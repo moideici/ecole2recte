@@ -34,6 +34,9 @@ jobs:
       - name: Typage
         run: pnpm -r typecheck
 
+      - name: Construction
+        run: pnpm -r build
+
       # Le service n'est jamais appelé depuis la CI : ni compte, ni jeton, ni écriture.
       # Une capture réseau brute porterait le mot de passe en clair, d'où ce garde-fou.
       - name: Aucune capture réseau dans le dépôt

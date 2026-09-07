@@ -1,0 +1,218 @@
+/*
+ * Le système visuel.
+ *
+ * Une seule famille de jetons, définie en clair sur `:root` et redéfinie en sombre. Aucune
+ * couleur n'a sa seule définition dans un bloc conditionnel : un thème qui n'a pas prévu un
+ * cas donne du texte clair sur fond clair, et personne ne le voit venir.
+ *
+ * Les tailles suivent la même règle que l'application Android : cibles tactiles d'au moins
+ * 44 px, contrastes tenus, et rien qui ne dépende de la couleur seule pour être compris.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --fond: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --bordure: #dfe3ea;
+  --encre: #16181d;
+  --encre-douce: #5b6270;
+  --accent: #1d4ed8;
+  --accent-doux: #e7edfd;
+  --accent-encre: #ffffff;
+  --succes: #15803d;
+  --alerte: #b45309;
+  --erreur: #b91c1c;
+  --erreur-doux: #fdeaea;
+
+  --rayon: 14px;
+  --rayon-petit: 10px;
+  --marge: 16px;
+  --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 8px 24px rgb(16 24 40 / 5%);
+
+  --police: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='clair']) {
+    --fond: #0d1017;
+    --surface: #151a23;
+    --surface-2: #1d232e;
+    --bordure: #2a3240;
+    --encre: #e9ecf2;
+    --encre-douce: #97a1b2;
+    --accent: #7aa2ff;
+    --accent-doux: #1b2740;
+    --accent-encre: #0d1017;
+    --succes: #4ade80;
+    --alerte: #fbbf24;
+    --erreur: #f87171;
+    --erreur-doux: #2a1717;
+    --ombre: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+  }
+}
+
+:root[data-theme='sombre'] {
+  --fond: #0d1017;
+  --surface: #151a23;
+  --surface-2: #1d232e;
+  --bordure: #2a3240;
+  --encre: #e9ecf2;
+  --encre-douce: #97a1b2;
+  --accent: #7aa2ff;
+  --accent-doux: #1b2740;
+  --accent-encre: #0d1017;
+  --succes: #4ade80;
+  --alerte: #fbbf24;
+  --erreur: #f87171;
+  --erreur-doux: #2a1717;
+  --ombre: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font-family: var(--police);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+h1 { font-size: 1.65rem; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 1rem; }
+p { margin: 0; }
+
+a { color: var(--accent); }
+
+/* Le focus doit se voir : c'est la seule boussole de qui navigue au clavier. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+  padding: 14px 16px;
+}
+
+a.carte, button.carte {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+a.carte:hover, button.carte:hover { border-color: var(--accent); }
+
+.pile { display: flex; flex-direction: column; gap: 10px; }
+.rangee { display: flex; align-items: center; gap: 10px; }
+.espace { flex: 1; }
+.discret { color: var(--encre-douce); font-size: 0.9rem; }
+.minuscule { color: var(--encre-douce); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+.bouton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--rayon-petit);
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+.bouton:hover { border-color: var(--accent); }
+.bouton[disabled] { opacity: 0.55; cursor: not-allowed; }
+.bouton.primaire { background: var(--accent); border-color: var(--accent); color: var(--accent-encre); }
+
+.pastille {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pastille[aria-pressed='true'], .pastille[aria-current='true'] {
+  background: var(--accent-doux);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.champ {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: var(--rayon-petit);
+  border: 1px solid var(--bordure);
+  background: var(--surface);
+  color: var(--encre);
+  font: inherit;
+}
+
+.erreur {
+  border: 1px solid var(--erreur);
+  background: var(--erreur-doux);
+  color: var(--erreur);
+  border-radius: var(--rayon-petit);
+  padding: 12px 14px;
+  font-size: 0.92rem;
+}
+
+/* Une liste horizontale qui déborde doit défiler seule, jamais la page. */
+.defilement {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+table.tableau { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+table.tableau th { text-align: left; color: var(--encre-douce); font-weight: 600; font-size: 0.82rem; }
+table.tableau th, table.tableau td { padding: 8px 10px; border-bottom: 1px solid var(--bordure); }
+
+.enveloppe-large { overflow-x: auto; }
+
+.saut-contenu {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--accent);
+  color: var(--accent-encre);
+  padding: 10px 16px;
+  border-radius: 0 0 var(--rayon-petit) 0;
+  z-index: 50;
+}
+.saut-contenu:focus { left: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

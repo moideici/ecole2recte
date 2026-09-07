@@ -1,0 +1,11 @@
+{
+  "name": "ecole2recte",
+  "short_name": "ecole2recte",
+  "description": "Un client ÉcoleDirecte lisible, sur ordinateur comme sur téléphone.",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7f8",
+  "theme_color": "#1d4ed8",
+  "icons": [{ "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
