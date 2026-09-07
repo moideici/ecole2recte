@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.svelte-kit/
+build/
+coverage/
+*.tsbuildinfo
+.DS_Store
+
+# Jamais dans le depot : une capture reseau brute porte le mot de passe en clair
+# dans le corps `data=` du login, et le X-Token dans chaque en-tete suivant.
+*.har
+captures/
+.env
+.env.*
+!.env.example

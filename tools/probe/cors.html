@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Sondage CORS — ecole2recte</title>
+<style>
+  body { font: 15px/1.6 system-ui, sans-serif; max-width: 44rem; margin: 3rem auto; padding: 0 1rem; }
+  pre { background: #f4f4f5; padding: 1rem; border-radius: 8px; overflow-x: auto; }
+  .ok { color: #15803d; } .ko { color: #b91c1c; }
+</style>
+<h1>Le service accepte-t-il un navigateur ?</h1>
+<p>
+  Cette page interroge le point d'entrée public d'ÉcoleDirecte depuis <em>ton</em> navigateur.
+  Elle n'utilise aucun identifiant et n'écrit rien. C'est la vérification décisive : le verdict
+  d'un navigateur fait autorité là où un client en ligne de commande ne prouve rien, puisqu'il
+  n'applique pas la politique d'origine.
+</p>
+<p>Ouvre-la depuis un serveur local (<code>npx serve tools/probe</code>), pas par <code>file://</code>.</p>
+<button id="lancer">Lancer le sondage</button>
+<pre id="sortie">En attente.</pre>
+<script>
+  const sortie = document.getElementById('sortie')
+  document.getElementById('lancer').addEventListener('click', async () => {
+    const version = '4.75.0'
+    sortie.textContent = 'Appel en cours…'
+    try {
+      const response = await fetch(`https://api.ecoledirecte.com/v3/login.awp?gtk=1&v=${version}`, {
+        method: 'GET',
+        headers: { Accept: 'application/json, text/plain, */*' },
+      })
+      sortie.innerHTML =
+        `<span class="ok">Le navigateur a accepté la réponse (HTTP ${response.status}).</span>\n` +
+        "Le service envoie donc des en-têtes CORS : un client statique est envisageable.\n" +
+        "Le mandataire reste néanmoins recommandé, pour que le jeton ne descende jamais ici."
+    } catch (error) {
+      sortie.innerHTML =
+        `<span class="ko">Le navigateur a refusé : ${error.message}</span>\n` +
+        "C'est le résultat attendu. Un mandataire côté serveur est obligatoire —\n" +
+        "et c'est une chance : le jeton et le mot de passe ne toucheront jamais le navigateur."
+    }
+  })
+</script>
