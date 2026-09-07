@@ -2,10 +2,10 @@ import type { PageServerLoad } from './$types'
 import { ALL_SECTIONS, SECTION_LABELS, hasModule } from '@ecole2recte/protocol'
 import { SECTION_MODULES } from '@ecole2recte/protocol'
 import { WRITE_FEATURE_LABELS, isWriteEnabled, writePolicy } from '$lib/server/write-policy.js'
-import { requireAccount } from '$lib/server/guard.js'
+import { requireStudent } from '$lib/server/guard.js'
 
 export const load: PageServerLoad = ({ locals }) => {
-  const { record, account } = requireAccount(locals)
+  const { record, account } = requireStudent(locals)
 
   return {
     modules: ALL_SECTIONS.map((section) => {

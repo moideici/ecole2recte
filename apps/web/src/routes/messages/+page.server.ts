@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types'
 import { type MessageFolder, MESSAGE_FOLDERS, counterpart } from '@ecole2recte/protocol'
 import { clientFor, today } from '$lib/server/api.js'
 import { persist } from '$lib/server/api.js'
-import { requireAccount } from '$lib/server/guard.js'
+import { requireStudent } from '$lib/server/guard.js'
 
 /**
  * La messagerie, en lecture.
@@ -12,7 +12,7 @@ import { requireAccount } from '$lib/server/guard.js'
  * serveur plutôt que gardée en cache, parce que la pagination est celle du service.
  */
 export const load: PageServerLoad = async ({ locals, url }) => {
-  const { id, record, account } = requireAccount(locals)
+  const { id, record, account } = requireStudent(locals)
   const demande = url.searchParams.get('dossier') as MessageFolder | null
   const dossier: MessageFolder = demande && MESSAGE_FOLDERS.includes(demande) ? demande : 'received'
   const page = Math.max(0, Number(url.searchParams.get('page') ?? '0') || 0)

@@ -39,6 +39,29 @@ export function isStudent(account: Account): boolean {
   return account.type.toUpperCase() === 'E'
 }
 
+export type AccountRole = 'student' | 'family' | 'teacher' | 'unknown'
+
+/**
+ * Le rôle d'un compte.
+ *
+ * `E` pour un élève, c'est établi. Les comptes famille se reconnaissent à leur liste
+ * d'enfants, et sont dépliés en un profil par enfant avant d'arriver ici.
+ *
+ * **Le professeur est une hypothèse, pas un fait.** La documentation publique décrit des
+ * routes enseignant sur un autre hôte (`apip.ecoledirecte.com`, segments `/P/{id}` et
+ * `/enseignants/{id}`), mais aucune source consultée ne confirme littéralement la valeur de
+ * `typeCompte` pour un enseignant. On la reconnaît donc au mieux, et l'application le dit
+ * plutôt que de faire semblant : sans compte professeur pour vérifier, écrire du code
+ * enseignant reviendrait à deviner.
+ */
+export function accountRole(account: Account): AccountRole {
+  const type = account.type.trim().toUpperCase()
+  if (type === 'E') return 'student'
+  if (type === 'P') return 'teacher'
+  if (type === '1' || type === '2' || type === 'F') return 'family'
+  return 'unknown'
+}
+
 /** Vrai pour un enfant consulté depuis un compte parent. */
 export function viewedByFamily(account: Account): boolean {
   return account.familyId !== undefined && account.familyId !== ''

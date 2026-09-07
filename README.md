@@ -5,9 +5,9 @@ pour les trois profils : élève, parent, professeur. Frère du client Android
 [`ecole2rect`](https://github.com/moidefr/ecole2rect), dont il reprend le savoir
 protocolaire — durement acquis — sans en reprendre le code.
 
-> **État : P0 (fondations).** L'authentification complète est écrite et couverte par des
-> tests. La lecture des données scolaires arrive en P1. Rien de ce qui écrit sur le serveur
-> n'est activé.
+> **État : P0 à P3 écrits.** Le protocole, la lecture complète, l'application et l'écriture
+> documentée. Aucune écriture n'est **ouverte** : chacune attend son aller-retour réel sur un
+> vrai compte. Voir [ROADMAP.md](ROADMAP.md).
 
 ## Ce qui commande l'architecture
 
@@ -32,7 +32,9 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 |---|---|
 | `packages/protocol/` | tout le savoir protocolaire : encodages, codes métier, session, client. Zéro dépendance, tourne en Node comme dans un navigateur. |
 | `tools/probe/` | sondage du service sans compte : la question CORS, et rien d'autre. |
-| `apps/web/` | l'interface et le mandataire (P1). |
+| `apps/web/` | l'interface et le mandataire : onze pages, ordinateur et téléphone. |
+| `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
+| `tools/har/` | extraction de la *forme* d'un endpoint depuis une capture réseau, sans les valeurs. |
 
 Le jour où ÉcoleDirecte change, `packages/protocol/` est le seul endroit à reprendre.
 
@@ -90,10 +92,18 @@ l'interface. Un professeur n'est pas une cible de test.
 
 ```sh
 pnpm install
-pnpm test        # 40 tests, sans réseau ni compte
+pnpm test        # sans réseau ni compte
 pnpm typecheck
+pnpm build
+pnpm --filter @ecole2recte/web dev
+
 pnpm probe       # sondage CORS, sans identifiants
+pnpm har capture.har > forme.json   # la forme d'un endpoint, jamais ses valeurs
+pnpm smoke       # les allers-retours d'écriture, sur un vrai compte, à la main
 ```
+
+Copie `.env.example` en `.env`. En production, `SESSION_SECRET` est obligatoire : sans lui,
+l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 Les tests tournent contre un **serveur factice** qui retient chaque requête sortante : on
 vérifie ce que l'on envoie, pas seulement ce que l'on comprend. Le corps du login est

@@ -7,7 +7,9 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "probe": "node tools/probe/probe.mjs"
+    "probe": "node tools/probe/probe.mjs",
+    "smoke": "pnpm --filter @ecole2recte/protocol build && node tools/smoke/smoke.mjs",
+    "har": "node tools/har/extract.mjs"
   },
   "devDependencies": {
     "typescript": "5.7.3",

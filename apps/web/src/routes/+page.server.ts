@@ -12,7 +12,7 @@ import {
   upcomingExams,
 } from '@ecole2recte/protocol'
 import { loadSections, nowLocal, today } from '$lib/server/api.js'
-import { requireAccount } from '$lib/server/guard.js'
+import { requireAccount, requireStudent } from '$lib/server/guard.js'
 import { persist } from '$lib/server/api.js'
 
 /**
@@ -22,7 +22,7 @@ import { persist } from '$lib/server/api.js'
  * faire, ce qui a été noté, ce qui attend d'être lu. Le reste a ses propres pages.
  */
 export const load: PageServerLoad = async ({ locals }) => {
-  const { id, record, account } = requireAccount(locals)
+  const { id, record, account } = requireStudent(locals)
   const jour = today()
   const maintenant = nowLocal()
 
