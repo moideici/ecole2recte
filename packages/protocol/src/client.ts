@@ -10,7 +10,7 @@ import {
   cookieHeader,
   createSession,
 } from './session.js'
-import { type HttpEngine, type HttpRequest, NetworkFailure } from './transport.js'
+import { type BinaryResponse, type HttpEngine, type HttpRequest, NetworkFailure } from './transport.js'
 
 export const DEFAULT_API_BASE = 'https://api.ecoledirecte.com/v3'
 /** Les professeurs vivent sur un autre hôte. Prêt, mais rien ne l'utilise encore. */
@@ -288,6 +288,29 @@ export class EcoleDirecteClient {
     const cv = data && typeof data['cv'] === 'string' ? (data['cv'] as string) : ''
     if (cn === '' || cv === '') return failure('protocol', "Le service n'a pas validé la réponse.")
     return { ok: true, value: { cn, cv } }
+  }
+
+  // ——————————————————————————————————————————————————— téléchargement
+
+  /** Le moteur sait-il rapporter des octets ? Sans lui, pas de pièce jointe. */
+  engineForDownload(): ((request: HttpRequest) => Promise<BinaryResponse>) | null {
+    const download = this.engine.download
+    return download ? (request) => download.call(this.engine, request) : null
+  }
+
+  downloadUrl(fileId: string, fileType: string): string {
+    const params = new URLSearchParams()
+    params.set('verbe', 'get')
+    params.set('fichierId', fileId)
+    params.set('leTypeDeFichier', fileType)
+    params.set('v', this.session.apiVersion)
+    return `${this.apiBase}/telechargement.awp?${params.toString()}`
+  }
+
+  downloadHeaders(): Record<string, string> {
+    const headers = this.authHeaders()
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    return headers
   }
 
   /**

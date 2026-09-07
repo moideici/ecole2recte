@@ -22,8 +22,17 @@ export interface HttpResponse {
   body: string
 }
 
+/** Une réponse binaire : une pièce jointe n'est pas du texte. */
+export interface BinaryResponse {
+  status: number
+  headers: Record<string, string[]>
+  bytes: Uint8Array
+}
+
 export interface HttpEngine {
   send(request: HttpRequest): Promise<HttpResponse>
+  /** Facultatif : sans lui, les téléchargements ne sont pas proposés. */
+  download?(request: HttpRequest): Promise<BinaryResponse>
 }
 
 /** Le réseau n'a pas répondu du tout — à distinguer d'un refus, qui est une réponse. */
@@ -66,6 +75,25 @@ export function fetchEngine(fetchImpl: typeof fetch = fetch): HttpEngine {
         else headers[name] = [value]
       })
       return { status: response.status, headers, body: await response.text() }
+    },
+
+    async download(request: HttpRequest): Promise<BinaryResponse> {
+      let response: Response
+      try {
+        response = await fetchImpl(request.url, {
+          method: request.method,
+          headers: request.headers,
+          body: request.body,
+          redirect: 'follow',
+        })
+      } catch (cause) {
+        throw new NetworkFailure('Le service est injoignable.', { cause })
+      }
+      const headers: Record<string, string[]> = {}
+      response.headers.forEach((value, key) => {
+        headers[key.toLowerCase()] = [value]
+      })
+      return { status: response.status, headers, bytes: new Uint8Array(await response.arrayBuffer()) }
     },
   }
 }
