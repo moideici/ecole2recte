@@ -105,11 +105,26 @@ pnpm smoke       # les allers-retours d'écriture, sur un vrai compte, à la mai
 Copie `.env.example` en `.env`. En production, `SESSION_SECRET` est obligatoire : sans lui,
 l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
-Les tests tournent contre un **serveur factice** qui retient chaque requête sortante : on
-vérifie ce que l'on envoie, pas seulement ce que l'on comprend. Le corps du login est
-comparé au caractère près, parce que le service est sensible à l'ordre des clés et à
-l'échappement des accents (il attend un JSON sérialisé comme le fait Python, pas comme le
-fait `JSON.stringify`).
+### Comment c'est éprouvé
+
+137 tests, sans réseau et sans compte, sur quatre niveaux :
+
+1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,
+   verbe, paramètres, corps — et le corps du login est comparé **au caractère près**, parce
+   que le service est sensible à l'ordre des clés et à l'échappement des accents.
+2. **Un vrai serveur HTTP factice**, à qui parle le vrai moteur `fetch`. Il éprouve ce qu'un
+   moteur simulé ne verrait pas : deux `Set-Cookie` que `headers.get` recollerait en un
+   seul, le User-Agent épinglé renvoyé à chaque appel, et le **HTTP 200 qui refuse**.
+3. **Les lecteurs face à des réponses réalistes**, avec leurs variantes : une classe tantôt
+   objet tantôt libellé, un « 12,5 » à virgule, une date en jj/mm/aaaa, un contenu en base64.
+   Aucun lecteur ne lève, même sur une réponse absurde.
+4. **Les invariants qui protègent**. La police d'écriture bloque les cinq écritures et rien
+   ne sort du moteur. Aucun mot de passe n'apparaît dans une trace. Une section qui échoue
+   n'emporte pas les autres. Un sceau modifié d'une lettre est refusé.
+
+La CI ajoute deux garde-fous qui ne sont pas des tests : aucune capture réseau versionnée,
+et l'écriture fermée dans l'exemple de configuration — un fichier qui l'ouvrirait finirait
+un jour copié tel quel en production.
 
 ## Ce qui n'est pas promis
 

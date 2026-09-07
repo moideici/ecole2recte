@@ -139,11 +139,16 @@ export function personName(source: Json | null): string {
   return direct
 }
 
-/** Retire le balisage d'un contenu HTML pour en faire un aperçu lisible. */
+/**
+ * Retire le balisage d'un contenu HTML pour en faire un texte lisible.
+ *
+ * Un paragraphe devient une ligne vide et un `<br>` un simple retour : sans cette
+ * distinction, un message d'établissement arrive en un seul bloc illisible.
+ */
 export function plainText(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')

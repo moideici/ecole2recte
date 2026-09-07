@@ -46,3 +46,17 @@ jobs:
             exit 1
           fi
           echo "Aucune capture réseau versionnée."
+
+      # L'écriture ne s'ouvre qu'après son aller-retour réel, qui ne peut pas se faire ici.
+      # Un fichier d'exemple qui l'ouvrirait finirait un jour copié tel quel en production.
+      - name: L'écriture reste fermée par défaut
+        run: |
+          if ! grep -qx 'ED_WRITE_POLICY=deny' .env.example; then
+            echo "L'exemple de configuration n'ouvre plus l'écriture par défaut."
+            exit 1
+          fi
+          if ! grep -qx 'ED_WRITE_FEATURES=' .env.example; then
+            echo "L'exemple de configuration active des fonctions d'écriture."
+            exit 1
+          fi
+          echo "Écriture fermée par défaut."

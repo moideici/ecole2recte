@@ -197,10 +197,20 @@ export function normalize(value: string): string {
     .trim()
 }
 
+/**
+ * Tous les mots doivent se retrouver, dans n'importe quel ordre.
+ *
+ * Le pluriel est toléré : « maths » doit trouver « Mathématiques », et personne ne tape le
+ * singulier exact d'une matière. C'est la seule souplesse accordée — au-delà, un
+ * dictionnaire de synonymes ferait trouver des choses qu'on n'a pas demandées.
+ */
 export function matches(query: string, ...fields: Array<string | undefined>): boolean {
   const needle = normalize(query)
   if (needle === '') return true
-  const words = needle.split(/\s+/)
+  const words = needle.split(/\s+/).filter((word) => word !== '')
   const haystack = fields.filter((field): field is string => typeof field === 'string').map(normalize).join(' ')
-  return words.every((word) => haystack.includes(word))
+  return words.every((word) => {
+    if (haystack.includes(word)) return true
+    return word.endsWith('s') && word.length > 2 && haystack.includes(word.slice(0, -1))
+  })
 }

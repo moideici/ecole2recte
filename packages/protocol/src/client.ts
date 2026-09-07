@@ -225,9 +225,23 @@ export class EcoleDirecteClient {
     }
     absorb(this.session, response.headers)
     const gtk = this.session.gtk ?? this.session.cookies['GTK'] ?? null
-    if (!gtk) return failure('protocol', "Le service n'a pas fourni de jeton GTK.")
-    this.session.gtk = gtk
-    return { ok: true, value: gtk }
+    if (gtk) {
+      this.session.gtk = gtk
+      return { ok: true, value: gtk }
+    }
+    // Pas de jeton : avant de conclure au protocole, on regarde si le service a dit
+    // pourquoi. Un 517 annoncé « jeton GTK absent » enverrait chercher au mauvais endroit.
+    try {
+      const body = JSON.parse(response.body) as Record<string, unknown>
+      const code = typeof body['code'] === 'number' ? (body['code'] as number) : ApiCode.OK
+      if (code !== ApiCode.OK) {
+        const { kind, message } = kindForCode(code)
+        return failure(kind, message, `code ${code}`)
+      }
+    } catch {
+      // Corps illisible : on retombe sur le diagnostic générique ci-dessous.
+    }
+    return failure('protocol', "Le service n'a pas fourni de jeton GTK.")
   }
 
   async login(identifier: string, password: string, answer?: TrustedAnswer): Promise<LoginOutcome> {
