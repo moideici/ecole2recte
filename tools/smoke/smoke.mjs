@@ -22,19 +22,42 @@
  * Le script lit le protocole compilé : `pnpm smoke` s'en charge.
  */
 
+import { createInterface } from 'node:readline'
 import { EcoleDirecteApi, EcoleDirecteClient, createSession, fetchEngine } from '../../packages/protocol/dist/index.js'
 
-const identifiant = process.env.ED_IDENTIFIANT
-const motdepasse = process.env.ED_MOTDEPASSE
 const irreversible = process.env.ED_AUTORISER_IRREVERSIBLE === 'oui'
 
-if (!identifiant || !motdepasse) {
-  console.error('ED_IDENTIFIANT et ED_MOTDEPASSE sont attendus dans l\'environnement.')
-  console.error('Ils ne sont ni journalisés, ni écrits, ni transmis ailleurs qu\'à ÉcoleDirecte.')
-  process.exit(1)
-}
 if (process.env['CI']) {
   console.error("Ce script ne tourne pas en intégration continue : il écrit sur un vrai compte.")
+  process.exit(1)
+}
+
+/**
+ * Demande au clavier ce qui n'a pas à traîner dans un fichier.
+ *
+ * Le mot de passe n'est pas affiché pendant la frappe, et rien n'est écrit sur disque ni
+ * dans l'historique du terminal. Les variables d'environnement restent acceptées pour qui
+ * préfère, mais ce n'est pas le chemin conseillé.
+ */
+async function demander(question, masque = false) {
+  const lecture = createInterface({ input: process.stdin, output: process.stdout, terminal: true })
+  if (masque) {
+    const ecrire = lecture._writeToOutput?.bind(lecture)
+    lecture._writeToOutput = (texte) => {
+      if (texte.includes(question)) ecrire?.(texte)
+    }
+  }
+  const reponse = await new Promise((resoudre) => lecture.question(question, resoudre))
+  lecture.close()
+  if (masque) process.stdout.write('\n')
+  return reponse.trim()
+}
+
+const identifiant = process.env.ED_IDENTIFIANT || (await demander('Identifiant ÉcoleDirecte : '))
+const motdepasse = process.env.ED_MOTDEPASSE || (await demander('Mot de passe (invisible) : ', true))
+
+if (!identifiant || !motdepasse) {
+  console.error('Identifiant et mot de passe sont attendus.')
   process.exit(1)
 }
 

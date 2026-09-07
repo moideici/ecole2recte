@@ -88,6 +88,12 @@ caractère — c'est ce qui prouve qu'un accent, un retour à la ligne ou un mes
 pas mutilés en route. Tant que cet aller-retour n'est pas vert, la fonction reste absente de
 l'interface. Un professeur n'est pas une cible de test.
 
+## Tu débutes ? Commence par [`DEMARRER/`](DEMARRER/)
+
+Le dossier [`DEMARRER/`](DEMARRER/README.md) contient la liste de ce qu'il faut installer et
+les étapes dans l'ordre, sans supposer de connaissances en développement. Un script prépare
+tout : `bash DEMARRER/demarrer.sh`, ou `DEMARRER\demarrer.ps1` sous Windows.
+
 ## Développement
 
 ```sh
