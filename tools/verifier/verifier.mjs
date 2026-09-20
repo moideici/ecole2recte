@@ -26,7 +26,8 @@ import { dirname, join } from 'node:path'
 import {
   EcoleDirecteApi,
   EcoleDirecteClient,
-  choiceForDate,
+  choiceForAnswer,
+  readDate,
   createSession,
   fetchEngine,
   generalAverage,
@@ -106,7 +107,7 @@ function verifierConfig() {
   const lignes = [
     ['identifiant', source('ED_IDENTIFIANT', 'id', 'ID', 'identifiant')],
     ['mot de passe', source('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse')],
-    ['date de naissance', source('ED_NAISSANCE', 'naissance')],
+    ['reponse de securite', source('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')],
   ]
   console.log('Configuration lue. Aucune valeur n’est affichee.')
   console.log('')
@@ -134,7 +135,7 @@ async function main() {
   const identifiant = lire('ED_IDENTIFIANT', 'id', 'ID', 'identifiant') || (await demander('Identifiant ÉcoleDirecte : '))
   const motdepasse = lire('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse') || (await demander('Mot de passe (invisible) : ', true))
   const naissance =
-    lire('ED_NAISSANCE', 'naissance') || (await demander('Date de naissance AAAA-MM-JJ (vide pour ne pas l’utiliser) : '))
+    lire('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')
 
   if (!identifiant || !motdepasse) {
     console.error('Identifiant et mot de passe sont attendus.')
@@ -166,33 +167,40 @@ async function main() {
     console.log(`\n       question : ${question.value.question}`)
     console.log(`       formes   : ${[...new Set(question.value.choices.map(forme))].join(' | ')}\n`)
 
-    if (naissance === '') {
-      noter('date de naissance', 'skip', 'non fournie')
-      console.log('\nRelance en la donnant pour éprouver ce mécanisme.')
-      return conclure()
-    }
+    const donnee = reponse || (await demander('Reponse a cette question (vide pour la choisir dans la liste) : '))
 
-    const choisi = choiceForDate(question.value.choices, naissance)
-    if (choisi === null) {
-      const lisibles = question.value.choices.filter((choix) => forme(choix).includes('9')).length
+    let choisi = donnee === '' ? null : choiceForAnswer(question.value.choices, donnee)
+    if (choisi !== null) {
+      noter('la reponse donnee correspond', 'ok', `forme ${forme(choisi)}`)
+    } else {
+      // Le compte du diagnostic porte sur ce qui **se lit comme une date**, et non sur ce
+      // qui contient un chiffre : une classe s'ecrit `1ERE G2`, et n'est pas une date.
+      const dates = question.value.choices.filter((choix) => readDate(choix) !== undefined).length
       noter(
-        'la date répond à la question',
-        'ko',
-        lisibles === 0
-          ? "aucune proposition ne se lit comme une date : la question porte sur autre chose"
-          : `${lisibles} proposition(s) lues comme des dates, aucune n'est celle donnée`,
+        'la reponse donnee correspond',
+        donnee === '' ? 'skip' : 'ko',
+        donnee === ''
+          ? 'aucune reponse donnee d avance'
+          : `aucune des ${question.value.choices.length} propositions n est cette reponse` +
+            ` (${dates} se lisent comme des dates)`,
       )
-      console.log('\nSi les formes ci-dessus sont bien des dates, c’est la lecture qu’il faut corriger.')
-      return conclure()
+
+      // On poursuit quand meme : le reste du verificateur porte sur le jeton, et c'est
+      // justement ce qu'on ne saurait pas sinon.
+      console.log('')
+      question.value.choices.forEach((choix, index) => console.log(`   ${String(index + 1).padStart(2)}. ${choix}`))
+      console.log('')
+      const numero = Number(await demander('Numero de la bonne reponse (0 pour arreter) : '))
+      if (!Number.isInteger(numero) || numero < 1 || numero > question.value.choices.length) return conclure()
+      choisi = question.value.choices[numero - 1]
     }
-    noter('la date répond à la question', 'ok', `forme ${forme(choisi)}`)
 
     const repondu = await client.answerSecurityQuestion(choisi)
     if (!repondu.ok) {
-      noter('le service accepte la réponse', 'ko', repondu.message)
+      noter('le service accepte la reponse', 'ko', repondu.message)
       return conclure()
     }
-    noter('le service accepte la réponse', 'ok', 'couple de confiance obtenu')
+    noter('le service accepte la reponse', 'ok', 'couple de confiance obtenu')
 
     outcome = await client.login(identifiant, motdepasse, repondu.value, { fresh: true })
   } else if (outcome.ok) {

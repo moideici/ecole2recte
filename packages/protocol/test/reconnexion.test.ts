@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EcoleDirecteClient, choiceForDate } from '../src/client.js'
+import { EcoleDirecteClient, choiceForAnswer, choiceForDate, readDate } from '../src/client.js'
 import { createSession } from '../src/session.js'
 import type { HttpEngine, HttpRequest, HttpResponse } from '../src/transport.js'
 import { FakeEngine, GTK_EXCHANGE, loginResponse } from './fake.js'
@@ -143,5 +143,41 @@ describe('date de naissance et question de sécurité', () => {
   it('refuse une date mal formée plutôt que de l’interpréter', () => {
     expect(choiceForDate(['15/03/2009'], '15/03/2009')).toBeNull()
     expect(choiceForDate(['15/03/2009'], '')).toBeNull()
+  })
+})
+
+describe('une question qui ne porte pas sur une date', () => {
+  // Relevé sur un vrai compte : « Quelle est votre classe ? », quinze propositions, aucune
+  // date. Un champ « date de naissance » ne pouvait structurellement pas y répondre.
+  const CLASSES = ['1ERE G2', '1ERE G1', 'Terminale G3', '2NDE 4', 'TERM STMG']
+
+  it('répond quand la réponse donnée est l’une des propositions', () => {
+    expect(choiceForAnswer(CLASSES, '1ERE G2')).toBe('1ERE G2')
+    // Casse, accents et espaces sont de l'écriture, pas du sens.
+    expect(choiceForAnswer(CLASSES, 'terminale  g3')).toBe('Terminale G3')
+  })
+
+  it('ne répond pas sur un morceau de proposition', () => {
+    // « G2 » répondrait pour « 1ERE G2 » : ce serait deviner, et c'est refusé.
+    expect(choiceForAnswer(CLASSES, 'G2')).toBeNull()
+    expect(choiceForAnswer(CLASSES, '1ERE')).toBeNull()
+  })
+
+  it('ne répond pas sur une réponse absente', () => {
+    expect(choiceForAnswer(CLASSES, 'Terminale G9')).toBeNull()
+    expect(choiceForAnswer(CLASSES, '')).toBeNull()
+  })
+
+  it('accepte encore une date, écrite comme on veut', () => {
+    const dates = ['28/02/2011', '01/09/2010']
+    expect(choiceForAnswer(dates, '2011-02-28')).toBe('28/02/2011')
+    expect(choiceForAnswer(dates, '28 février 2011')).toBe('28/02/2011')
+  })
+
+  it('ne prend pas une classe pour une date', () => {
+    // Le diagnostic comptait naguère « ce qui contient un chiffre » : `1ERE G2` en contient.
+    expect(readDate('1ERE G2')).toBeUndefined()
+    expect(readDate('2NDE 4')).toBeUndefined()
+    expect(readDate('28/02/2011')).toBe('2011-02-28')
   })
 })

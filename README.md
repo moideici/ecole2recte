@@ -135,14 +135,21 @@ qui ferait peser une matière à six devoirs trois fois plus qu'une matière à 
   devinée ni approchée : elle doit correspondre exactement à une proposition du serveur, et
   il n'y a pas de seconde tentative automatique.
 
-  La page de connexion accepte une **date de naissance facultative**, qui permet de répondre
-  sans que la question soit reposée. Ce n'est pas une entorse, et voici pourquoi : la date
-  vient de la personne, jamais du code ; ce qui repart est **la proposition du serveur telle
-  quelle**, jamais une chaîne recomposée ; il faut qu'**exactement une** proposition soit
-  cette date, sinon la question se pose comme avant ; et il n'y a qu'une tentative. Le
-  service écrit ses dates de plusieurs façons (`15/03/2009`, `15 mars 2009`) : les comparer
-  après lecture, c'est reconnaître la même valeur, pas approcher une réponse. La date ne sort
-  pas de l'échange — ni journalisée, ni conservée, ni mise en cookie.
+  La page de connexion accepte une **réponse facultative** à cette question. Ce n'est pas une
+  entorse, et voici pourquoi : la réponse vient de la personne, jamais du code ; ce qui repart
+  est **la proposition du serveur telle quelle**, jamais une chaîne recomposée ; il faut
+  qu'**exactement une** proposition soit cette réponse, sinon la question se pose comme
+  avant ; et il n'y a qu'une tentative. Une date est comparée comme une date, parce que le
+  service l'écrit de plusieurs façons (`28/02/2011`, `28 février 2011`) ; tout le reste est
+  comparé à l'identique, à la casse, aux accents et aux espaces près. Ni rapprochement par
+  ressemblance, ni recherche par morceaux : `G2` ne répond pas pour `1ERE G2`, sans quoi on
+  devinerait. La réponse ne sort pas de l'échange — ni journalisée, ni conservée, ni mise en
+  cookie.
+
+  La question varie selon l'établissement : un compte réel a rendu « Quelle est votre
+  classe ? » là où on attendait une date de naissance. C'est pourquoi le champ n'est pas une
+  date.
+
 - **Rien de secret ne sort.** Les traces de requêtes expurgent mot de passe, jetons et
   couple `cn`/`cv` ; un test échoue si l'un d'eux apparaît dans une trace.
 - **Aucune capture réseau brute n'entre dans le dépôt.** Un fichier HAR porte le mot de passe
@@ -231,7 +238,7 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
-225 tests, sans réseau et sans compte — 188 pour le protocole, 37 pour l’application — sur
+230 tests, sans réseau et sans compte — 193 pour le protocole, 37 pour l’application — sur
 quatre niveaux :
 
 1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,

@@ -14,9 +14,10 @@ sans compte réel », pas « éprouvé sur le terrain ».
       au lieu de bloquer la connexion.
 - [x] Question de sécurité : question et propositions décodées, choix renvoyé, couple
       `cn`/`cv` conservé. Jamais devinée, jamais approchée, une seule tentative.
-- [x] Date de naissance facultative à la connexion : elle répond à la question quand c'est
-      elle qu'on demande, en renvoyant la proposition du serveur telle quelle. Zéro ou
-      plusieurs correspondances : la question se pose.
+- [x] Réponse facultative à la question de sécurité, donnée à la connexion : elle renvoie la
+      proposition du serveur telle quelle. Zéro ou plusieurs correspondances : la question se
+      pose. **Relevé sur un compte réel** : la question peut être « Quelle est votre
+      classe ? », d'où un champ libre et non une date.
 - [x] **Renouvellement automatique du jeton** : une lecture refusée pour jeton expiré est
       renouvelée et rejouée une fois. Une écriture ne l'est jamais — un commentaire envoyé
       deux fois ne se reprend pas.

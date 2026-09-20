@@ -97,7 +97,7 @@ function sansAccent(value: string): string {
 }
 
 /** Une proposition lue comme une date, ou `undefined` si ce n'en est pas une. */
-function dateDe(choix: string): string | undefined {
+export function readDate(choix: string): string | undefined {
   const texte = choix.trim()
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte)
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
@@ -131,7 +131,48 @@ function dateDe(choix: string): string | undefined {
  */
 export function choiceForDate(choices: string[], isoDate: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null
-  const correspondances = choices.filter((choix) => dateDe(choix) === isoDate)
+  const correspondances = choices.filter((choix) => readDate(choix) === isoDate)
+  return correspondances.length === 1 ? (correspondances[0] as string) : null
+}
+
+/** Même texte à la casse, aux accents et aux espaces près. Ni plus, ni moins. */
+function pareil(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * La proposition qui **est** cette réponse, s'il n'y en a qu'une.
+ *
+ * La question ne porte pas toujours sur une date : elle peut demander la classe, une ville.
+ * Le principe ne change pas d'un iota — la réponse vient de la personne, et ce qui repart
+ * est **la proposition du serveur telle quelle**, jamais une chaîne recomposée.
+ *
+ * Une date est comparée comme une date, parce que le service l'écrit de plusieurs façons.
+ * Tout le reste est comparé **à l'identique**, à la casse, aux accents et aux espaces près :
+ * `Terminale G2` et `terminale  g2` sont le même texte écrit deux fois. Il n'y a ni
+ * rapprochement par ressemblance, ni recherche par morceaux — `G2` ne répond pas pour
+ * `1ERE G2`, sans quoi on devinerait.
+ *
+ * Rien n'est rendu si **zéro ou plusieurs** propositions correspondent : dans le doute, la
+ * question se pose. Il n'y a jamais de seconde tentative.
+ */
+export function choiceForAnswer(choices: string[], answer: string): string | null {
+  const donnee = answer.trim()
+  if (donnee === '') return null
+
+  // Une date donnée dans n'importe quelle écriture courante reste une date.
+  const commeDate = readDate(donnee)
+  if (commeDate !== undefined) {
+    const parDate = choiceForDate(choices, commeDate)
+    if (parDate !== null) return parDate
+  }
+
+  const correspondances = choices.filter((choix) => pareil(choix) === pareil(donnee))
   return correspondances.length === 1 ? (correspondances[0] as string) : null
 }
 

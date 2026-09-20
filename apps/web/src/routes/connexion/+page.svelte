@@ -75,16 +75,18 @@
       <input class="champ" name="motdepasse" type="password" autocomplete="current-password" required />
     </label>
     <label class="pile" style="gap:6px">
-      <span class="minuscule">Date de naissance <span class="option">facultatif</span></span>
-      <input class="champ" name="naissance" type="date" autocomplete="bday" />
+      <span class="minuscule">Réponse de sécurité <span class="option">facultatif</span></span>
+      <input class="champ" name="reponse" autocomplete="off" placeholder="Terminale G2, 28/02/2011…" />
       <!--
-        ÉcoleDirecte pose une question de sécurité sur un appareil qu'il ne connaît pas.
-        Quand c'est la date de naissance qu'il demande, la donner ici évite l'aller-retour.
-        Ce n'est pas un contournement : c'est la même réponse, donnée d'avance.
+        ÉcoleDirecte pose une question de sécurité sur un appareil qu'il ne connaît pas, et
+        elle varie d'un établissement à l'autre : la classe, la date de naissance, autre
+        chose. La donner ici évite l'aller-retour. Ce n'est pas un contournement : c'est la
+        même réponse, donnée d'avance, et il faut qu'elle corresponde exactement.
       -->
       <span class="discret" style="font-size:0.82rem">
-        Sert à répondre à la question de sécurité si ÉcoleDirecte la pose. Elle n’est ni
-        conservée ni enregistrée : si la question porte sur autre chose, elle te sera posée.
+        Ce qu’ÉcoleDirecte demande pour un nouvel appareil : souvent la classe ou la date de
+        naissance. Ni conservée ni enregistrée — et si elle ne correspond à aucune des
+        propositions, la question te sera posée normalement.
       </span>
     </label>
     <button class="bouton primaire" disabled={envoi}>{envoi ? 'Connexion…' : 'Se connecter'}</button>

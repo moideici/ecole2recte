@@ -5,7 +5,7 @@ import {
   type TrustedAnswer,
   EcoleDirecteClient,
   accountRole,
-  choiceForDate,
+  choiceForAnswer,
   createSession,
   fetchEngine,
   parseAccounts,
@@ -56,10 +56,10 @@ export const actions: Actions = {
       return fail(400, { message: 'Identifiant et mot de passe sont attendus.' })
     }
 
-    // La date de naissance, quand elle est donnée, sert à répondre à la question de sécurité
-    // sans la reposer. Elle ne sort pas de cet échange : ni journalisée, ni conservée, ni
-    // mise en cookie — le même traitement que le mot de passe.
-    const naissance = String(form.get('naissance') ?? '').trim()
+    // La réponse à la question de sécurité, quand elle est donnée d'avance : date de
+    // naissance, classe, ce que l'établissement demande. Elle ne sort pas de cet échange :
+    // ni journalisée, ni conservée, ni mise en cookie — le traitement du mot de passe.
+    const reponse = String(form.get('reponse') ?? '').trim()
 
     const client = newClient()
     // Un couple de confiance déjà validé évite de reposer la question à chaque connexion.
@@ -86,14 +86,15 @@ export const actions: Actions = {
     if (!question.ok) return fail(502, { message: question.message })
 
     /*
-     * La question, répondue par la date donnée — si elle y répond.
+     * La question, répondue par ce qui a été donné d'avance — si cela y répond.
      *
-     * Rien n'est deviné : la date vient de la personne, et ce qui part est **la proposition
-     * du serveur**, à l'identique. Il faut qu'exactement une proposition soit cette date ;
-     * si la question porte sur autre chose, ou si deux propositions correspondent, on la
-     * pose comme avant. Une seule tentative : un échec renvoie à la page de connexion.
+     * Rien n'est deviné : la réponse vient de la personne, et ce qui part est **la
+     * proposition du serveur**, à l'identique. Il faut qu'exactement une proposition soit
+     * cette réponse ; si la question porte sur autre chose, ou si deux propositions
+     * correspondent, on la pose comme avant. Une seule tentative : un échec renvoie à la
+     * page de connexion.
      */
-    const evidence = naissance === '' ? null : choiceForDate(question.value.choices, naissance)
+    const evidence = reponse === '' ? null : choiceForAnswer(question.value.choices, reponse)
     if (evidence !== null) {
       const repondu = await client.answerSecurityQuestion(evidence)
       if (!repondu.ok) return fail(401, { message: repondu.message })
