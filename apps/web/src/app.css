@@ -12,61 +12,71 @@
 :root {
   color-scheme: light dark;
 
-  --fond: #f6f7f9;
+  /* Le nuancier de Pronote : teal de marque, bleu d'info, fond crème plutôt que blanc pur. */
+  --fond: #f8f8f8;
   --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --bordure: #dfe3ea;
-  --encre: #16181d;
-  --encre-douce: #5b6270;
-  --accent: #1d4ed8;
-  --accent-doux: #e7edfd;
+  --surface-2: #f0f0ee;
+  --bordure: #e2e2e2;
+  --encre: #333333;
+  --encre-douce: #6b6e77;
+  --accent: #008673;
+  --accent-doux: #d9f2ee;
   --accent-encre: #ffffff;
-  --succes: #15803d;
-  --alerte: #b45309;
-  --erreur: #b91c1c;
-  --erreur-doux: #fdeaea;
+  --lien: #0e78d5;
+  --succes: #1c5700;
+  --succes-doux: #97e47c;
+  --alerte: #643c00;
+  --alerte-doux: #f7c983;
+  --erreur: #720000;
+  --erreur-doux: #ffdbdb;
 
-  --rayon: 14px;
-  --rayon-petit: 10px;
+  --rayon: 0.7rem;
+  --rayon-petit: 0.35rem;
   --marge: 16px;
   --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 8px 24px rgb(16 24 40 / 5%);
 
-  --police: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --police: 'Montserrat', Arial, Verdana, Geneva, Helvetica, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='clair']) {
-    --fond: #0d1017;
-    --surface: #151a23;
-    --surface-2: #1d232e;
-    --bordure: #2a3240;
-    --encre: #e9ecf2;
-    --encre-douce: #97a1b2;
-    --accent: #7aa2ff;
-    --accent-doux: #1b2740;
+    --fond: #1c1c1c;
+    --surface: #282828;
+    --surface-2: #333333;
+    --bordure: #3c3c3c;
+    --encre: #f0efeb;
+    --encre-douce: #a5a5a5;
+    --accent: #11acb1;
+    --accent-doux: #0b3d3e;
     --accent-encre: #0d1017;
-    --succes: #4ade80;
-    --alerte: #fbbf24;
-    --erreur: #f87171;
-    --erreur-doux: #2a1717;
+    --lien: #4ba3e8;
+    --succes: #97e47c;
+    --succes-doux: #1c5700;
+    --alerte: #f7c983;
+    --alerte-doux: #643c00;
+    --erreur: #ffdbdb;
+    --erreur-doux: #3c0101;
     --ombre: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
   }
 }
 
 :root[data-theme='sombre'] {
-  --fond: #0d1017;
-  --surface: #151a23;
-  --surface-2: #1d232e;
-  --bordure: #2a3240;
-  --encre: #e9ecf2;
-  --encre-douce: #97a1b2;
-  --accent: #7aa2ff;
-  --accent-doux: #1b2740;
+  --fond: #1c1c1c;
+  --surface: #282828;
+  --surface-2: #333333;
+  --bordure: #3c3c3c;
+  --encre: #f0efeb;
+  --encre-douce: #a5a5a5;
+  --accent: #11acb1;
+  --accent-doux: #0b3d3e;
   --accent-encre: #0d1017;
-  --succes: #4ade80;
-  --alerte: #fbbf24;
-  --erreur: #f87171;
-  --erreur-doux: #2a1717;
+  --lien: #4ba3e8;
+  --succes: #97e47c;
+  --succes-doux: #1c5700;
+  --alerte: #f7c983;
+  --alerte-doux: #643c00;
+  --erreur: #ffdbdb;
+  --erreur-doux: #3c0101;
   --ombre: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
 }
 
@@ -89,7 +99,7 @@ h2 { font-size: 1.15rem; }
 h3 { font-size: 1rem; }
 p { margin: 0; }
 
-a { color: var(--accent); }
+a { color: var(--lien); }
 
 /* Le focus doit se voir : c'est la seule boussole de qui navigue au clavier. */
 :focus-visible {
@@ -198,6 +208,17 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
 table.tableau { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
 table.tableau th { text-align: left; color: var(--encre-douce); font-weight: 600; font-size: 0.82rem; }
 table.tableau th, table.tableau td { padding: 8px 10px; border-bottom: 1px solid var(--bordure); }
+
+/* Une matière, une couleur — comme sur Pronote. `couleurMatiere()` fournit les deux jetons. */
+.etiquette-matiere {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--fond-matiere);
+  color: var(--encre-matiere);
+}
 
 .enveloppe-large { overflow-x: auto; }
 

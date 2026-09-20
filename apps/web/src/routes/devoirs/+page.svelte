@@ -4,6 +4,7 @@
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { matches, relativeDay } from '@ecole2recte/protocol'
+  import { couleurMatiere } from '$lib/matiereCouleur.js'
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
@@ -82,7 +83,13 @@
             </form>
           {/if}
           <div style="flex:1;min-width:0">
-            <p style="font-weight:600">{devoir.subject}{devoir.exam ? ' · Évaluation' : ''}</p>
+            <p>
+              <span
+                class="etiquette-matiere"
+                style={`--fond-matiere:${couleurMatiere(devoir.subject).fond};--encre-matiere:${couleurMatiere(devoir.subject).encre}`}
+              >{devoir.subject}</span>
+              {#if devoir.exam}<span class="discret"> · Évaluation</span>{/if}
+            </p>
             {#if devoir.content}<p class="discret">{devoir.content}</p>{/if}
             {#if devoir.onlineSubmission}
               <!-- Le taire serait pire : on cocherait une case en croyant avoir rendu. -->

@@ -3,6 +3,7 @@
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate } from '@ecole2recte/protocol'
+  import { couleurMatiere } from '$lib/matiereCouleur.js'
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
@@ -65,7 +66,10 @@
       {#each data.moyennes as moyenne (moyenne.subject + moyenne.periodCode)}
         <tr>
           <td>
-            {moyenne.subject}
+            <span
+              class="etiquette-matiere"
+              style={`--fond-matiere:${couleurMatiere(moyenne.subject).fond};--encre-matiere:${couleurMatiere(moyenne.subject).encre}`}
+            >{moyenne.subject}</span>
             {#if moyenne.teacher}<span class="discret" style="display:block">{moyenne.teacher}</span>{/if}
             {#if moyenne.appreciation}<span class="appreciation">{moyenne.appreciation}</span>{/if}
           </td>
@@ -83,10 +87,13 @@
 <h2>Notes</h2>
 <div class="pile" style="margin-top:10px">
   {#each data.notes as note (note.id)}
-    <article class="carte">
+    <article class="carte" id={note.id}>
       <div class="rangee" style="align-items:flex-start">
         <div style="flex:1;min-width:0">
-          <p style="font-weight:600">{note.subject}</p>
+          <span
+            class="etiquette-matiere"
+            style={`--fond-matiere:${couleurMatiere(note.subject).fond};--encre-matiere:${couleurMatiere(note.subject).encre}`}
+          >{note.subject}</span>
           <p class="discret">{[note.label, note.kind, note.date ? longDate(note.date) : ''].filter(Boolean).join(' · ')}</p>
           {#if !note.counted}
             <!-- Une note hors moyenne comptée fausserait tout : le dire évite un calcul faux. -->

@@ -153,8 +153,18 @@
 
   .laterale { display: none; }
 
-  .marque { font-weight: 700; letter-spacing: -0.02em; font-size: 1.05rem; margin-bottom: 4px; }
-  .profil { padding: 12px 14px; }
+  .marque {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-size: 1.15rem;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+  .profil {
+    padding: 12px 14px;
+    background: var(--accent-doux);
+    border-color: var(--accent-doux);
+  }
   .enfants { margin: 4px 0; }
 
   .demo {

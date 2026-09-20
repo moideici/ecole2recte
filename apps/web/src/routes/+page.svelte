@@ -4,6 +4,7 @@
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate, relativeDay, relativeTime, timeOf } from '@ecole2recte/protocol'
+  import { couleurMatiere } from '$lib/matiereCouleur.js'
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
@@ -56,7 +57,10 @@
     <h2 id="t-devoirs">À faire</h2>
     {#each data.aFaire as devoir (devoir.id)}
       <a class="carte" href={`/devoirs#${devoir.id}`}>
-        <p style="font-weight:600">{devoir.subject}</p>
+        <span
+          class="etiquette-matiere"
+          style={`--fond-matiere:${couleurMatiere(devoir.subject).fond};--encre-matiere:${couleurMatiere(devoir.subject).encre}`}
+        >{devoir.subject}</span>
         <p class="discret">{relativeDay(devoir.dueDate, data.jour)}</p>
         {#if devoir.content}<p class="extrait">{devoir.content}</p>{/if}
       </a>
@@ -69,10 +73,13 @@
     <section class="pile" aria-labelledby="t-eval">
       <h2 id="t-eval">Évaluations</h2>
       {#each data.evaluations as devoir (devoir.id)}
-        <div class="carte">
-          <p style="font-weight:600">{devoir.subject}</p>
+        <a class="carte" href={`/devoirs#${devoir.id}`}>
+          <span
+            class="etiquette-matiere"
+            style={`--fond-matiere:${couleurMatiere(devoir.subject).fond};--encre-matiere:${couleurMatiere(devoir.subject).encre}`}
+          >{devoir.subject}</span>
           <p class="discret">{relativeDay(devoir.dueDate, data.jour)}</p>
-        </div>
+        </a>
       {/each}
     </section>
   {/if}
@@ -80,15 +87,18 @@
   <section class="pile" aria-labelledby="t-notes">
     <h2 id="t-notes">Dernières notes</h2>
     {#each data.dernieresNotes as note (note.id)}
-      <div class="carte rangee">
+      <a class="carte rangee" href={`/notes#${note.id}`}>
         <div style="flex:1;min-width:0">
-          <p style="font-weight:600">{note.subject}</p>
+          <span
+            class="etiquette-matiere"
+            style={`--fond-matiere:${couleurMatiere(note.subject).fond};--encre-matiere:${couleurMatiere(note.subject).encre}`}
+          >{note.subject}</span>
           <p class="discret">{note.label || 'Évaluation'}</p>
         </div>
         <p class="valeur">
           {note.value !== undefined ? `${note.value}` : '—'}<span class="discret">/{note.scale}</span>
         </p>
-      </div>
+      </a>
     {:else}
       <Vide titre="Aucune note" description="Rien n’a encore été saisi." />
     {/each}
