@@ -21,6 +21,11 @@
  * ici par le message d'activité suspecte du service, alors que le jeton valait encore. On ne
  * le redemande donc qu'avec `--renouvellement`, quand on cherche exprès à le comprendre.
  *
+ * **Ce qu'il coûte.** Chaque lancement est une **vraie connexion sur un vrai compte**, et
+ * ÉcoleDirecte compte les connexions : le 20 septembre 2026, quelques essais d'affilée ont
+ * fait bloquer le compte, qu'il a fallu débloquer à la main. Ce n'est pas un test qu'on
+ * relance en boucle — on prépare ce qu'on veut savoir, puis on le lance une fois.
+ *
  * **Ce qu'il n'écrit jamais.** Aucune écriture ne part : la police est sur `deny`, donc même
  * une erreur de code ne pourrait rien modifier. Pour les allers-retours d'écriture, c'est
  * `pnpm smoke`, et c'est un autre script exprès.
