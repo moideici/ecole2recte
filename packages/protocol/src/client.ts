@@ -146,34 +146,78 @@ function pareil(value: string): string {
 }
 
 /**
- * La proposition qui **est** cette réponse, s'il n'y en a qu'une.
+ * Ce qu'une question réclame d'une date de naissance.
  *
- * La question ne porte pas toujours sur une date : elle peut demander la classe, une ville.
- * Le principe ne change pas d'un iota — la réponse vient de la personne, et ce qui repart
- * est **la proposition du serveur telle quelle**, jamais une chaîne recomposée.
+ * Relevé sur un compte réel : le service **tire une question au hasard à chaque
+ * connexion** — l'année, le jour, le mois, la date entière, la classe. Une réponse unique
+ * donnée d'avance ne peut donc pas convenir : il faut savoir de quelle part du fait on
+ * parle. Lire la question pour le savoir n'est pas deviner la réponse — le fait vient
+ * toujours de la personne.
+ */
+function partDemandee(question: string): 'annee' | 'jour' | 'mois' | 'date' {
+  const posee = sansAccent(question)
+  if (posee.includes('annee')) return 'annee'
+  if (posee.includes('jour')) return 'jour'
+  if (posee.includes('mois')) return 'mois'
+  return 'date'
+}
+
+/** Les écritures sous lesquelles une part de date peut apparaître dans une proposition. */
+function ecritures(iso: string, part: 'annee' | 'jour' | 'mois' | 'date'): string[] {
+  const [annee, mois, jour] = iso.split('-') as [string, string, string]
+  switch (part) {
+    case 'annee':
+      return [annee]
+    case 'jour':
+      return [jour, String(Number(jour))]
+    case 'mois':
+      return [mois, String(Number(mois)), MOIS[Number(mois) - 1] as string]
+    case 'date':
+      return [iso]
+  }
+}
+
+/**
+ * La proposition qui **est** la réponse, s'il n'y en a qu'une.
  *
- * Une date est comparée comme une date, parce que le service l'écrit de plusieurs façons.
- * Tout le reste est comparé **à l'identique**, à la casse, aux accents et aux espaces près :
- * `Terminale G2` et `terminale  g2` sont le même texte écrit deux fois. Il n'y a ni
- * rapprochement par ressemblance, ni recherche par morceaux — `G2` ne répond pas pour
- * `1ERE G2`, sans quoi on devinerait.
+ * Le principe ne change pas d'un iota : les faits viennent de la personne — sa date de
+ * naissance, sa classe —, et ce qui repart est **la proposition du serveur telle quelle**,
+ * jamais une chaîne recomposée. La question sert seulement à savoir **quelle part** du fait
+ * est demandée, parce que le service la tire au hasard d'une connexion à l'autre.
+ *
+ * Une date est comparée comme une date, quelle que soit son écriture. Tout le reste est
+ * comparé **à l'identique**, à la casse, aux accents et aux espaces près : `Terminale G2` et
+ * `terminale  g2` sont le même texte écrit deux fois. Il n'y a ni rapprochement par
+ * ressemblance, ni recherche par morceaux — `G2` ne répond pas pour `1ERE G2`.
  *
  * Rien n'est rendu si **zéro ou plusieurs** propositions correspondent : dans le doute, la
  * question se pose. Il n'y a jamais de seconde tentative.
  */
-export function choiceForAnswer(choices: string[], answer: string): string | null {
-  const donnee = answer.trim()
-  if (donnee === '') return null
+export function choiceForQuestion(question: string, choices: string[], answers: string[]): string | null {
+  const part = partDemandee(question)
+  const candidats = new Set<string>()
 
-  // Une date donnée dans n'importe quelle écriture courante reste une date.
-  const commeDate = readDate(donnee)
-  if (commeDate !== undefined) {
-    const parDate = choiceForDate(choices, commeDate)
-    if (parDate !== null) return parDate
+  for (const brut of answers) {
+    const donnee = brut.trim()
+    if (donnee === '') continue
+    const iso = readDate(donnee)
+    // Une date donne la part demandée ; tout le reste vaut pour lui-même.
+    if (iso === undefined) candidats.add(donnee)
+    else for (const ecriture of ecritures(iso, part)) candidats.add(ecriture)
   }
+  if (candidats.size === 0) return null
 
-  const correspondances = choices.filter((choix) => pareil(choix) === pareil(donnee))
-  return correspondances.length === 1 ? (correspondances[0] as string) : null
+  const voulus = [...candidats].map(pareil)
+  const trouves = [
+    ...new Set(
+      choices.filter((choix) => {
+        const commeDate = readDate(choix)
+        if (commeDate !== undefined && candidats.has(commeDate)) return true
+        return voulus.includes(pareil(choix))
+      }),
+    ),
+  ]
+  return trouves.length === 1 ? (trouves[0] as string) : null
 }
 
 const SECRET_KEYS = new Set(['motdepasse', 'password', 'token', 'access_token', 'cn', 'cv', 'choix', 'fa'])

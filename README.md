@@ -135,20 +135,23 @@ qui ferait peser une matière à six devoirs trois fois plus qu'une matière à 
   devinée ni approchée : elle doit correspondre exactement à une proposition du serveur, et
   il n'y a pas de seconde tentative automatique.
 
-  La page de connexion accepte une **réponse facultative** à cette question. Ce n'est pas une
-  entorse, et voici pourquoi : la réponse vient de la personne, jamais du code ; ce qui repart
-  est **la proposition du serveur telle quelle**, jamais une chaîne recomposée ; il faut
-  qu'**exactement une** proposition soit cette réponse, sinon la question se pose comme
-  avant ; et il n'y a qu'une tentative. Une date est comparée comme une date, parce que le
-  service l'écrit de plusieurs façons (`28/02/2011`, `28 février 2011`) ; tout le reste est
-  comparé à l'identique, à la casse, aux accents et aux espaces près. Ni rapprochement par
-  ressemblance, ni recherche par morceaux : `G2` ne répond pas pour `1ERE G2`, sans quoi on
-  devinerait. La réponse ne sort pas de l'échange — ni journalisée, ni conservée, ni mise en
-  cookie.
+  La page de connexion accepte, **facultativement**, la date de naissance et la classe. Ce
+  n'est pas une entorse, et voici pourquoi : les faits viennent de la personne, jamais du
+  code ; ce qui repart est **la proposition du serveur telle quelle**, jamais une chaîne
+  recomposée ; il faut qu'**exactement une** proposition corresponde, sinon la question se
+  pose comme avant ; et il n'y a qu'une tentative.
 
-  La question varie selon l'établissement : un compte réel a rendu « Quelle est votre
-  classe ? » là où on attendait une date de naissance. C'est pourquoi le champ n'est pas une
-  date.
+  Deux champs et non un seul, parce qu'un compte réel l'a imposé : **le service tire sa
+  question au hasard à chaque connexion** — « Quelle est votre année de naissance ? », puis
+  « Quel est votre jour de naissance ? » à la connexion suivante, ailleurs « Quelle est votre
+  classe ? ». La question sert donc à savoir **quelle part** du fait est demandée : l'année,
+  le quantième, le mois — en chiffres ou en lettres —, la date entière. Lire la question pour
+  cela n'est pas deviner la réponse.
+
+  Le rapprochement reste strict : une date est comparée comme une date, quelle que soit son
+  écriture ; tout le reste est comparé à l'identique, à la casse, aux accents et aux espaces
+  près. Ni ressemblance, ni recherche par morceaux — `G2` ne répond pas pour `1ERE G2`. Les
+  faits ne sortent pas de l'échange : ni journalisés, ni conservés, ni mis en cookie.
 
 - **Rien de secret ne sort.** Les traces de requêtes expurgent mot de passe, jetons et
   couple `cn`/`cv` ; un test échoue si l'un d'eux apparaît dans une trace.
@@ -239,7 +242,7 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
-230 tests, sans réseau et sans compte — 193 pour le protocole, 37 pour l’application — sur
+234 tests, sans réseau et sans compte — 197 pour le protocole, 37 pour l’application — sur
 quatre niveaux :
 
 1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,
@@ -307,17 +310,18 @@ par le service vient d'un relevé et non d'une observation.
 `.env` de la racine est lu (`id`, `mdp`, `reponse`, ou les noms `ED_*`), et ce mode n'affiche
 jamais une valeur, seulement présent ou absent.
 
-Il signale aussi une chose qui a coûté deux essais : lancé à travers `npx` puis `pnpm`, le
-script **n'hérite pas d'un clavier utilisable**. Il se pilote donc en deux temps, sans jamais
-rien taper :
+Il signale aussi que, lancé à travers `npx` puis `pnpm`, le script **n'hérite pas d'un
+clavier utilisable**. On lui donne donc les faits en option, une fois pour toutes :
 
 ```sh
-pnpm verifier -- --questions    # la question, et ses propositions numérotées
-pnpm verifier -- --choix 7      # répond avec la 7e, et va jusqu'au bout
+pnpm verifier -- --reponse "2011-02-28,1ERE G2"
 ```
 
-`--reponse "Terminale G2"` donne le texte plutôt que le rang, et `--choix=7` vaut `--choix 7`
-pour les chaînes d'appel qui perdent le second argument.
+**Et surtout pas en deux temps.** Relever la question puis répondre par son rang ne peut pas
+marcher : ce sont deux connexions, donc deux questions tirées au hasard. L'essai qui l'a
+montré avait vu « Quelle est votre année de naissance ? » puis, à la connexion suivante,
+« Quel est votre jour de naissance ? » — le rang de l'année désignait un quantième, et le
+service a répondu « identifiant ou mot de passe incorrect ».
 
 Rien n'est écrit : la police d'écriture y reste sur `deny`, donc même une erreur de code ne
 pourrait rien modifier. Les identifiants ne sont ni affichés ni conservés.

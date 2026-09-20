@@ -74,21 +74,30 @@
       <span class="minuscule">Mot de passe</span>
       <input class="champ" name="motdepasse" type="password" autocomplete="current-password" required />
     </label>
-    <label class="pile" style="gap:6px">
-      <span class="minuscule">Réponse de sécurité <span class="option">facultatif</span></span>
-      <input class="champ" name="reponse" autocomplete="off" placeholder="Terminale G2, 28/02/2011…" />
-      <!--
-        ÉcoleDirecte pose une question de sécurité sur un appareil qu'il ne connaît pas, et
-        elle varie d'un établissement à l'autre : la classe, la date de naissance, autre
-        chose. La donner ici évite l'aller-retour. Ce n'est pas un contournement : c'est la
-        même réponse, donnée d'avance, et il faut qu'elle corresponde exactement.
-      -->
-      <span class="discret" style="font-size:0.82rem">
-        Ce qu’ÉcoleDirecte demande pour un nouvel appareil : souvent la classe ou la date de
-        naissance. Ni conservée ni enregistrée — et si elle ne correspond à aucune des
-        propositions, la question te sera posée normalement.
-      </span>
-    </label>
+    <!--
+      ÉcoleDirecte pose une question de sécurité sur un appareil qu'il ne connaît pas, et il
+      la **tire au hasard à chaque connexion** : l'année de naissance, le jour, le mois, la
+      date entière, la classe. D'où deux champs et non un seul — c'est un compte réel qui
+      l'a montré. Ce n'est pas un contournement : c'est la même réponse, donnée d'avance.
+    -->
+    <details class="avance">
+      <summary>Éviter la question de sécurité <span class="option">facultatif</span></summary>
+      <div class="pile" style="gap:10px;margin-top:10px">
+        <label class="pile" style="gap:6px">
+          <span class="minuscule">Date de naissance</span>
+          <input class="champ" name="naissance" type="date" autocomplete="bday" />
+        </label>
+        <label class="pile" style="gap:6px">
+          <span class="minuscule">Classe</span>
+          <input class="champ" name="classe" autocomplete="off" placeholder="1ERE G2" />
+        </label>
+        <span class="discret" style="font-size:0.82rem">
+          ÉcoleDirecte tire sa question au hasard : l’année, le jour ou le mois de naissance,
+          la date entière, ou la classe. Ces deux champs y répondent. Rien n’est conservé — et
+          si aucune proposition ne correspond exactement, la question te sera posée.
+        </span>
+      </div>
+    </details>
     <button class="bouton primaire" disabled={envoi}>{envoi ? 'Connexion…' : 'Se connecter'}</button>
   </form>
 
@@ -127,5 +136,13 @@
   }
   .choix:hover { border-color: var(--accent); }
   .demo { margin-top: 22px; gap: 8px; }
-  .option { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.75; }
+  .option { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.75; font-size: 0.82rem; }
+  .avance {
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-petit);
+    background: var(--surface);
+    padding: 10px 14px;
+  }
+  .avance summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; min-height: 24px; }
+  .avance[open] summary { margin-bottom: 2px; }
 </style>

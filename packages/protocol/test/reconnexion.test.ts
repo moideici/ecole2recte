@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EcoleDirecteClient, choiceForAnswer, choiceForDate, readDate } from '../src/client.js'
+import { EcoleDirecteClient, choiceForDate, choiceForQuestion, readDate } from '../src/client.js'
 import { createSession } from '../src/session.js'
 import type { HttpEngine, HttpRequest, HttpResponse } from '../src/transport.js'
 import { FakeEngine, GTK_EXCHANGE, loginResponse } from './fake.js'
@@ -146,36 +146,67 @@ describe('date de naissance et question de sécurité', () => {
   })
 })
 
-describe('une question qui ne porte pas sur une date', () => {
-  // Relevé sur un vrai compte : « Quelle est votre classe ? », quinze propositions, aucune
-  // date. Un champ « date de naissance » ne pouvait structurellement pas y répondre.
-  const CLASSES = ['1ERE G2', '1ERE G1', 'Terminale G3', '2NDE 4', 'TERM STMG']
+describe('la question change a chaque connexion', () => {
+  /*
+   * Releve sur un vrai compte, deux connexions d'affilee :
+   *   « Quelle est votre annee de naissance ? »  -> 15 annees
+   *   « Quel est votre jour de naissance ? »     -> des quantiemes
+   * Puis, une autre fois : « Quelle est votre classe ? ».
+   * Une reponse unique donnee d'avance ne pouvait donc pas convenir.
+   */
+  const NAISSANCE = '2011-02-28'
+  const ANNEES = ['2000', '1999', '2005', '2012', '2009', '2004', '2011', '2013', '2010']
+  const JOURS = ['4', '17', '28', '9', '30', '11', '2']
+  const MOIS_LISTE = ['janvier', 'fevrier', 'mars', 'octobre']
+  const DATES = ['28/02/2011', '01/09/2010', '14/07/2011']
+  const CLASSES = ['1ERE G2', '1ERE G1', 'Terminale G3', '2NDE 4']
 
-  it('répond quand la réponse donnée est l’une des propositions', () => {
-    expect(choiceForAnswer(CLASSES, '1ERE G2')).toBe('1ERE G2')
-    // Casse, accents et espaces sont de l'écriture, pas du sens.
-    expect(choiceForAnswer(CLASSES, 'terminale  g3')).toBe('Terminale G3')
+  it('rend l annee quand c est l annee qu on demande', () => {
+    expect(choiceForQuestion('Quelle est votre année de naissance ?', ANNEES, [NAISSANCE])).toBe('2011')
   })
 
-  it('ne répond pas sur un morceau de proposition', () => {
-    // « G2 » répondrait pour « 1ERE G2 » : ce serait deviner, et c'est refusé.
-    expect(choiceForAnswer(CLASSES, 'G2')).toBeNull()
-    expect(choiceForAnswer(CLASSES, '1ERE')).toBeNull()
+  it('rend le jour quand c est le jour qu on demande', () => {
+    // Le piege exact qui a fait echouer l essai : le rang de l annee designait un jour.
+    expect(choiceForQuestion('Quel est votre jour de naissance ?', JOURS, [NAISSANCE])).toBe('28')
   })
 
-  it('ne répond pas sur une réponse absente', () => {
-    expect(choiceForAnswer(CLASSES, 'Terminale G9')).toBeNull()
-    expect(choiceForAnswer(CLASSES, '')).toBeNull()
+  it('rend le mois, chiffre ou en lettres', () => {
+    expect(choiceForQuestion('Quel est votre mois de naissance ?', MOIS_LISTE, [NAISSANCE])).toBe('fevrier')
+    expect(choiceForQuestion('Quel est votre mois de naissance ?', ['1', '2', '3'], [NAISSANCE])).toBe('2')
+    expect(choiceForQuestion('Quel est votre mois de naissance ?', ['01', '02', '03'], [NAISSANCE])).toBe('02')
   })
 
-  it('accepte encore une date, écrite comme on veut', () => {
-    const dates = ['28/02/2011', '01/09/2010']
-    expect(choiceForAnswer(dates, '2011-02-28')).toBe('28/02/2011')
-    expect(choiceForAnswer(dates, '28 février 2011')).toBe('28/02/2011')
+  it('rend la date entiere quand c est elle qu on demande', () => {
+    expect(choiceForQuestion('Quelle est votre date de naissance ?', DATES, [NAISSANCE])).toBe('28/02/2011')
+  })
+
+  it('rend la classe quand c est la classe qu on demande', () => {
+    expect(choiceForQuestion('Quelle est votre classe ?', CLASSES, [NAISSANCE, '1ERE G2'])).toBe('1ERE G2')
+    // La casse et les espaces sont de l'ecriture, pas du sens.
+    expect(choiceForQuestion('Quelle est votre classe ?', CLASSES, ['terminale  g3'])).toBe('Terminale G3')
+  })
+
+  it('ne confond pas le jour avec le mois', () => {
+    // Ne 02 : si l'on essayait toutes les parts a la fois, « 2 » et « 28 » matcheraient
+    // tous deux dans une liste de quantiemes, et l'on repondrait au hasard.
+    expect(choiceForQuestion('Quel est votre jour de naissance ?', ['2', '28', '15'], [NAISSANCE])).toBe('28')
+    expect(choiceForQuestion('Quel est votre mois de naissance ?', ['2', '28', '15'], [NAISSANCE])).toBe('2')
+  })
+
+  it('ne repond pas sur un morceau de proposition', () => {
+    expect(choiceForQuestion('Quelle est votre classe ?', CLASSES, ['G2'])).toBeNull()
+    expect(choiceForQuestion('Quelle est votre classe ?', CLASSES, ['1ERE'])).toBeNull()
+  })
+
+  it('ne repond pas quand le fait donne ne repond pas a la question', () => {
+    // Une classe donnee ne repond pas a une question sur l'annee, et inversement.
+    expect(choiceForQuestion('Quelle est votre année de naissance ?', ANNEES, ['1ERE G2'])).toBeNull()
+    expect(choiceForQuestion('Quelle est votre classe ?', CLASSES, [NAISSANCE])).toBeNull()
+    expect(choiceForQuestion('Quelle est votre année de naissance ?', ANNEES, [])).toBeNull()
   })
 
   it('ne prend pas une classe pour une date', () => {
-    // Le diagnostic comptait naguère « ce qui contient un chiffre » : `1ERE G2` en contient.
+    // Le diagnostic comptait naguere « ce qui contient un chiffre » : `1ERE G2` en contient.
     expect(readDate('1ERE G2')).toBeUndefined()
     expect(readDate('2NDE 4')).toBeUndefined()
     expect(readDate('28/02/2011')).toBe('2011-02-28')

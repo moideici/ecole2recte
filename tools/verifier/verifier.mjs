@@ -2,11 +2,15 @@
 /**
  * L'épreuve du réel, en lecture seule.
  *
- *     pnpm verifier --config       ce que le script voit, sans rien appeler
- *     pnpm verifier --questions    la question de sécurité et ses propositions, puis stop
- *     pnpm verifier --choix 7      répond avec la 7e proposition, et va jusqu'au bout
- *     pnpm verifier --reponse "Terminale G2"
- *     pnpm verifier                demande au clavier ce qui manque
+ *     pnpm verifier --config                        ce qu'il voit, sans rien appeler
+ *     pnpm verifier --reponse "2011-02-28,1ERE G2"  les faits, une fois pour toutes
+ *     pnpm verifier --questions                     la question tirée cette fois-ci
+ *     pnpm verifier --choix 7                       répond avec la 7e proposition
+ *
+ * **La question est tirée au hasard à chaque connexion** — l'année de naissance, le jour, le
+ * mois, la date entière, la classe. `--choix N` ne vaut donc que pour la connexion en cours,
+ * et `--questions` suivi de `--choix` ne peut pas marcher : ce sont deux connexions, donc
+ * deux questions. C'est `--reponse` qui tient, parce qu'il donne les **faits**.
  *
  * **Ce que fait ce script.** Il se connecte à un vrai compte et vérifie ce qu'aucun test
  * hors-ligne ne peut trancher : la **réponse à la question de sécurité** donnée d'avance, et
@@ -31,7 +35,7 @@ import { dirname, join } from 'node:path'
 import {
   EcoleDirecteApi,
   EcoleDirecteClient,
-  choiceForAnswer,
+  choiceForQuestion,
   createSession,
   fetchEngine,
   generalAverage,
@@ -155,7 +159,12 @@ async function main() {
 
   const identifiant = lire('ED_IDENTIFIANT', 'id', 'ID', 'identifiant') || (await demander('Identifiant ÉcoleDirecte : '))
   const motdepasse = lire('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse') || (await demander('Mot de passe (invisible) : ', true))
-  const donnee = option('reponse') || lire('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')
+  // Plusieurs faits, separes par des virgules : le service tire sa question au hasard, et
+  // une reponse unique ne peut pas couvrir l'annee, le jour, le mois et la classe.
+  const faits = (option('reponse') || lire('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance'))
+    .split(',')
+    .map((entree) => entree.trim())
+    .filter((entree) => entree !== '')
   const numero = Number(option('choix'))
 
   if (!identifiant || !motdepasse) {
@@ -200,8 +209,8 @@ async function main() {
     if (Number.isInteger(numero) && numero >= 1 && numero <= choix.length) {
       retenu = choix[numero - 1]
       noter('réponse choisie à la main', 'ok', `proposition ${numero}, forme ${forme(retenu)}`)
-    } else if (donnee !== '') {
-      retenu = choiceForAnswer(choix, donnee)
+    } else if (faits.length > 0) {
+      retenu = choiceForQuestion(question.value.question, choix, faits)
       if (retenu !== null) {
         noter('la réponse donnée correspond', 'ok', `forme ${forme(retenu)}`)
       } else {

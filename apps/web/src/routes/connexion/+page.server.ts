@@ -5,7 +5,7 @@ import {
   type TrustedAnswer,
   EcoleDirecteClient,
   accountRole,
-  choiceForAnswer,
+  choiceForQuestion,
   createSession,
   fetchEngine,
   parseAccounts,
@@ -56,10 +56,19 @@ export const actions: Actions = {
       return fail(400, { message: 'Identifiant et mot de passe sont attendus.' })
     }
 
-    // La réponse à la question de sécurité, quand elle est donnée d'avance : date de
-    // naissance, classe, ce que l'établissement demande. Elle ne sort pas de cet échange :
-    // ni journalisée, ni conservée, ni mise en cookie — le traitement du mot de passe.
-    const reponse = String(form.get('reponse') ?? '').trim()
+    /*
+     * Ce qu'on donne d'avance pour répondre à la question de sécurité.
+     *
+     * Deux faits, parce que le service **tire une question au hasard à chaque connexion** :
+     * l'année de naissance, le jour, le mois, la date entière, ou la classe. Une réponse
+     * unique ne pouvait donc pas convenir — c'est un compte réel qui l'a montré.
+     *
+     * Ils ne sortent pas de cet échange : ni journalisés, ni conservés, ni mis en cookie —
+     * le traitement du mot de passe.
+     */
+    const faits = [String(form.get('naissance') ?? ''), String(form.get('classe') ?? '')]
+      .map((entree) => entree.trim())
+      .filter((entree) => entree !== '')
 
     const client = newClient()
     // Un couple de confiance déjà validé évite de reposer la question à chaque connexion.
@@ -88,13 +97,14 @@ export const actions: Actions = {
     /*
      * La question, répondue par ce qui a été donné d'avance — si cela y répond.
      *
-     * Rien n'est deviné : la réponse vient de la personne, et ce qui part est **la
-     * proposition du serveur**, à l'identique. Il faut qu'exactement une proposition soit
-     * cette réponse ; si la question porte sur autre chose, ou si deux propositions
-     * correspondent, on la pose comme avant. Une seule tentative : un échec renvoie à la
-     * page de connexion.
+     * Rien n'est deviné : les faits viennent de la personne, et ce qui part est **la
+     * proposition du serveur**, à l'identique. La question sert seulement à savoir quelle
+     * part du fait est demandée. Il faut qu'exactement une proposition corresponde ; sinon
+     * on pose la question comme avant. Une seule tentative : un échec renvoie à la page de
+     * connexion.
      */
-    const evidence = reponse === '' ? null : choiceForAnswer(question.value.choices, reponse)
+    const evidence =
+      faits.length === 0 ? null : choiceForQuestion(question.value.question, question.value.choices, faits)
     if (evidence !== null) {
       const repondu = await client.answerSecurityQuestion(evidence)
       if (!repondu.ok) return fail(401, { message: repondu.message })
