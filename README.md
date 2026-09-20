@@ -52,7 +52,13 @@ Le jour où ÉcoleDirecte change, `packages/protocol/` est le seul endroit à re
   obtenus pendant la question et renvoie le couple à la racine du corps **et** dans `fa` —
   avec `fa` seul, le service refuse une réponse pourtant juste. Le couple est ensuite
   réutilisable, donc conservable pour ne pas reposer la question à chaque connexion.
-- **Renouvellement du jeton** sans repasser par le mot de passe (`renewtoken.awp`).
+- **Renouvellement du jeton** sans repasser par le mot de passe (`renewtoken.awp`), et
+  **automatique** : le jeton tourne à chaque requête et une pause suffit à le périmer, ce qui
+  se voyait jusqu'ici comme une déconnexion en pleine consultation. Une lecture refusée pour
+  jeton expiré est donc renouvelée puis rejouée **une seule fois**. Une **écriture** ne l'est
+  pas : si le service avait agi avant d'annoncer que le jeton ne vaut plus, la rejouer
+  enverrait deux fois le même commentaire. Le jeton est renouvelé quand même, si bien que le
+  geste suivant passe.
 - **Comptes élève et famille** : un compte parent ne rend pas un élève mais une famille et
   ses enfants ; chaque enfant devient un profil complet, et la messagerie reste celle de la
   famille. Donner l'identifiant de la famille aux appels élève fait répondre « accès refusé »
@@ -127,6 +133,15 @@ qui ferait peser une matière à six devoirs trois fois plus qu'une matière à 
 - **Aucune protection n'est contournée.** La réponse à une question de sécurité n'est jamais
   devinée ni approchée : elle doit correspondre exactement à une proposition du serveur, et
   il n'y a pas de seconde tentative automatique.
+
+  La page de connexion accepte une **date de naissance facultative**, qui permet de répondre
+  sans que la question soit reposée. Ce n'est pas une entorse, et voici pourquoi : la date
+  vient de la personne, jamais du code ; ce qui repart est **la proposition du serveur telle
+  quelle**, jamais une chaîne recomposée ; il faut qu'**exactement une** proposition soit
+  cette date, sinon la question se pose comme avant ; et il n'y a qu'une tentative. Le
+  service écrit ses dates de plusieurs façons (`15/03/2009`, `15 mars 2009`) : les comparer
+  après lecture, c'est reconnaître la même valeur, pas approcher une réponse. La date ne sort
+  pas de l'échange — ni journalisée, ni conservée, ni mise en cookie.
 - **Rien de secret ne sort.** Les traces de requêtes expurgent mot de passe, jetons et
   couple `cn`/`cv` ; un test échoue si l'un d'eux apparaît dans une trace.
 - **Aucune capture réseau brute n'entre dans le dépôt.** Un fichier HAR porte le mot de passe
@@ -214,7 +229,7 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
-213 tests, sans réseau et sans compte — 176 pour le protocole, 37 pour l’application — sur
+225 tests, sans réseau et sans compte — 188 pour le protocole, 37 pour l’application — sur
 quatre niveaux :
 
 1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,

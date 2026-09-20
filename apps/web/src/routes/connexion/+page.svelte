@@ -74,6 +74,19 @@
       <span class="minuscule">Mot de passe</span>
       <input class="champ" name="motdepasse" type="password" autocomplete="current-password" required />
     </label>
+    <label class="pile" style="gap:6px">
+      <span class="minuscule">Date de naissance <span class="option">facultatif</span></span>
+      <input class="champ" name="naissance" type="date" autocomplete="bday" />
+      <!--
+        ÉcoleDirecte pose une question de sécurité sur un appareil qu'il ne connaît pas.
+        Quand c'est la date de naissance qu'il demande, la donner ici évite l'aller-retour.
+        Ce n'est pas un contournement : c'est la même réponse, donnée d'avance.
+      -->
+      <span class="discret" style="font-size:0.82rem">
+        Sert à répondre à la question de sécurité si ÉcoleDirecte la pose. Elle n’est ni
+        conservée ni enregistrée : si la question porte sur autre chose, elle te sera posée.
+      </span>
+    </label>
     <button class="bouton primaire" disabled={envoi}>{envoi ? 'Connexion…' : 'Se connecter'}</button>
   </form>
 
@@ -112,4 +125,5 @@
   }
   .choix:hover { border-color: var(--accent); }
   .demo { margin-top: 22px; gap: 8px; }
+  .option { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.75; }
 </style>

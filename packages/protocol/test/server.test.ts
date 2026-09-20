@@ -86,9 +86,10 @@ describe('une section qui tombe n’emporte pas les autres', () => {
     const outcome = await subject.login('camille', 'secret')
     const compte = (outcome as { accounts: Account[] }).accounts[0] as Account
 
-    // Un module fermé pour l'établissement, et un serveur qui répond mal sur les notes.
+    // Un module fermé pour l'établissement, et un compte bloqué sur les notes. Deux refus
+    // que le client ne rattrape pas — contrairement à un jeton expiré, voir plus bas.
     serveur.fail('cloud.awp', 403)
-    serveur.fail('notes.awp', 520)
+    serveur.fail('notes.awp', 516)
 
     const { snapshot, errors } = await syncSections(new EcoleDirecteApi(subject), compte, {
       today: '2026-09-07',
@@ -96,11 +97,34 @@ describe('une section qui tombe n’emporte pas les autres', () => {
     })
 
     expect(errors.cloud?.kind).toBe('access-denied')
-    expect(errors.grades?.kind).toBe('session-expired')
+    expect(errors.grades?.kind).toBe('account-blocked')
     // L'emploi du temps reste consultable, et c'est tout l'intérêt.
     expect(snapshot.lessons).toHaveLength(4)
     expect(snapshot.syncedAt.timetable).toBeDefined()
     expect(snapshot.syncedAt.grades).toBeUndefined()
+  })
+
+  it('traverse un jeton expiré sans que la personne le voie', async () => {
+    const subject = client()
+    const outcome = await subject.login('camille', 'secret')
+    const compte = (outcome as { accounts: Account[] }).accounts[0] as Account
+
+    // Le jeton tourne à chaque requête, et une pause suffit à le périmer. Jusqu'ici cela se
+    // voyait comme une déconnexion en pleine consultation ; il est maintenant renouvelé et
+    // l'appel rejoué, une seule fois.
+    serveur.fail('notes.awp', 525)
+    serveur.requests.length = 0
+
+    const { snapshot, errors } = await syncSections(new EcoleDirecteApi(subject), compte, {
+      today: '2026-09-07',
+      sections: ['grades'],
+    })
+
+    expect(errors.grades).toBeUndefined()
+    expect(snapshot.periods).toHaveLength(2)
+    // Un renouvellement, et deux passages sur les notes : jamais un troisième.
+    expect(serveur.requests.filter((requete) => requete.path.includes('renewtoken')).length).toBe(1)
+    expect(serveur.requests.filter((requete) => requete.path.includes('notes.awp')).length).toBe(2)
   })
 
   it('traduit une version périmée en message qui dit quoi faire', async () => {

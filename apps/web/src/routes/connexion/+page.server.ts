@@ -5,6 +5,7 @@ import {
   type TrustedAnswer,
   EcoleDirecteClient,
   accountRole,
+  choiceForDate,
   createSession,
   fetchEngine,
   parseAccounts,
@@ -55,6 +56,11 @@ export const actions: Actions = {
       return fail(400, { message: 'Identifiant et mot de passe sont attendus.' })
     }
 
+    // La date de naissance, quand elle est donnée, sert à répondre à la question de sécurité
+    // sans la reposer. Elle ne sort pas de cet échange : ni journalisée, ni conservée, ni
+    // mise en cookie — le même traitement que le mot de passe.
+    const naissance = String(form.get('naissance') ?? '').trim()
+
     const client = newClient()
     // Un couple de confiance déjà validé évite de reposer la question à chaque connexion.
     const confiance = unseal<TrustedAnswer>(cookies.get(CONFIANCE))
@@ -78,6 +84,26 @@ export const actions: Actions = {
 
     const question = await client.securityQuestion()
     if (!question.ok) return fail(502, { message: question.message })
+
+    /*
+     * La question, répondue par la date donnée — si elle y répond.
+     *
+     * Rien n'est deviné : la date vient de la personne, et ce qui part est **la proposition
+     * du serveur**, à l'identique. Il faut qu'exactement une proposition soit cette date ;
+     * si la question porte sur autre chose, ou si deux propositions correspondent, on la
+     * pose comme avant. Une seule tentative : un échec renvoie à la page de connexion.
+     */
+    const evidence = naissance === '' ? null : choiceForDate(question.value.choices, naissance)
+    if (evidence !== null) {
+      const repondu = await client.answerSecurityQuestion(evidence)
+      if (!repondu.ok) return fail(401, { message: repondu.message })
+
+      const conclu = await client.login(identifiant, motdepasse, repondu.value, { fresh: true })
+      if (!conclu.ok) return fail(401, { message: conclu.message })
+
+      retenirConfiance(cookies, url, repondu.value)
+      return await install(cookies, url, client, conclu.accounts)
+    }
 
     // Le mot de passe reste en mémoire du serveur le temps de l'échange, et **uniquement**
     // ce temps : il faut le rejouer avec le couple de confiance pour finir la connexion.
@@ -129,18 +155,7 @@ export const actions: Actions = {
     await sessions.destroy(id)
     if (!outcome.ok) return fail(401, { message: outcome.message })
 
-    // Le couple de confiance n'est pas un mot de passe : c'est la preuve d'avoir répondu.
-    // Il est scellé, et seulement s'il tient dans un cookie sans le faire déborder.
-    const sealed = seal(answered.value)
-    if (sealed.length < 3500) {
-      cookies.set(CONFIANCE, sealed, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'strict',
-        secure: secure(url),
-        maxAge: 180 * 24 * 60 * 60,
-      })
-    }
+    retenirConfiance(cookies, url, answered.value)
 
     return await install(cookies, url, client, outcome.accounts)
   },
@@ -166,6 +181,22 @@ export const actions: Actions = {
     setSessionCookie(cookies, id, secure(url))
     redirect(303, prof ? '/prof' : '/')
   },
+}
+
+/**
+ * Le couple de confiance n'est pas un mot de passe : c'est la preuve d'avoir répondu.
+ * Il est scellé, et seulement s'il tient dans un cookie sans le faire déborder.
+ */
+function retenirConfiance(cookies: import('@sveltejs/kit').Cookies, url: URL, answer: TrustedAnswer): void {
+  const sealed = seal(answer)
+  if (sealed.length >= 3500) return
+  cookies.set(CONFIANCE, sealed, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: secure(url),
+    maxAge: 180 * 24 * 60 * 60,
+  })
 }
 
 async function install(

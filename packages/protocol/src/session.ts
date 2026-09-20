@@ -19,6 +19,14 @@ export interface SessionState {
    */
   userAgent: string
   apiVersion: string
+  /**
+   * Le titulaire de la connexion, retenu au login.
+   *
+   * `renewtoken.awp` l'exige : sans lui, on ne peut pas renouveler un jeton expiré, et la
+   * seule issue serait de redemander le mot de passe. Ce n'est pas un secret — c'est un
+   * identifiant de compte, déjà présent dans chaque route appelée.
+   */
+  userId?: string
 }
 
 /** Le couple rendu par une question de sécurité réussie. Réutilisable, donc conservable. */
@@ -49,6 +57,7 @@ export function createSession(init: Partial<SessionState> = {}): SessionState {
     cookies: { ...(init.cookies ?? {}) },
     userAgent: init.userAgent ?? DEFAULT_USER_AGENT,
     apiVersion: init.apiVersion ?? DEFAULT_API_VERSION,
+    ...(init.userId !== undefined ? { userId: init.userId } : {}),
   }
 }
 

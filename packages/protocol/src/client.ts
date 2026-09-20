@@ -58,6 +58,14 @@ export interface CallOptions {
   auth?: boolean
   /** Marque l'appel comme modifiant l'état côté serveur : il passe par la police d'écriture. */
   write?: boolean
+  /**
+   * Interdit le renouvellement automatique du jeton pour cet appel.
+   *
+   * Posé sur `renewtoken.awp` lui-même — sans quoi un jeton refusé ferait tourner la
+   * tentative de renouvellement sur elle-même — et sur le second essai, pour qu'il n'y en
+   * ait jamais un troisième.
+   */
+  noRenew?: boolean
 }
 
 export type LoginOutcome =
@@ -67,6 +75,64 @@ export type LoginOutcome =
 export interface SecurityQuestion {
   question: string
   choices: string[]
+}
+
+const MOIS = [
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
+]
+
+function sansAccent(value: string): string {
+  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+}
+
+/** Une proposition lue comme une date, ou `undefined` si ce n'en est pas une. */
+function dateDe(choix: string): string | undefined {
+  const texte = choix.trim()
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte)
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
+
+  const francaise = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(texte)
+  if (francaise) {
+    return `${francaise[3]}-${String(francaise[2]).padStart(2, '0')}-${String(francaise[1]).padStart(2, '0')}`
+  }
+
+  const lettres = /^(\d{1,2})\s+([^\s]+)\s+(\d{4})$/.exec(texte)
+  if (lettres) {
+    const mois = MOIS.findIndex((nom) => sansAccent(nom) === sansAccent(lettres[2] as string))
+    if (mois >= 0) {
+      return `${lettres[3]}-${String(mois + 1).padStart(2, '0')}-${String(lettres[1]).padStart(2, '0')}`
+    }
+  }
+  return undefined
+}
+
+/**
+ * La proposition qui **est** cette date, s'il n'y en a qu'une.
+ *
+ * Ce n'est pas une réponse devinée : la date vient de la personne, et ce qui repart est la
+ * proposition du serveur **telle quelle**, jamais une chaîne recomposée. Le service écrit
+ * ses dates de plusieurs façons (`15/03/2009`, `15 mars 2009`, `2009-03-15`) ; les comparer
+ * après lecture n'est pas approcher une réponse, c'est reconnaître la même valeur sous deux
+ * écritures.
+ *
+ * Rien n'est rendu si **zéro ou plusieurs** propositions correspondent : dans le doute, la
+ * question se pose comme avant. Il n'y a jamais de seconde tentative.
+ */
+export function choiceForDate(choices: string[], isoDate: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null
+  const correspondances = choices.filter((choix) => dateDe(choix) === isoDate)
+  return correspondances.length === 1 ? (correspondances[0] as string) : null
 }
 
 const SECRET_KEYS = new Set(['motdepasse', 'password', 'token', 'access_token', 'cn', 'cv', 'choix', 'fa'])
@@ -205,9 +271,33 @@ export class EcoleDirecteClient {
         : failure('write-disabled', "Cette écriture n'est pas encore autorisée.", url)
     }
 
-    const headers = options.auth === false ? this.browserHeaders() : this.authHeaders()
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    return this.send({ method: 'POST', url, headers, body: formBody(body) })
+    const envoyer = () => {
+      const headers = options.auth === false ? this.browserHeaders() : this.authHeaders()
+      headers['Content-Type'] = 'application/x-www-form-urlencoded'
+      return this.send({ method: 'POST', url, headers, body: formBody(body) })
+    }
+
+    const result = await envoyer()
+    if (result.ok || result.kind !== 'session-expired') return result
+
+    /*
+     * Le jeton a expiré : on le renouvelle sans repasser par le mot de passe.
+     *
+     * Le service le fait tourner à chaque requête ; il suffit d'une pause pour qu'il périme,
+     * et jusqu'ici cela se voyait comme une déconnexion brutale au milieu d'une consultation.
+     *
+     * Une seule fois, jamais en boucle. Et **on ne rejoue pas une écriture** : si le service
+     * avait agi avant de répondre que le jeton ne vaut plus, la rejouer enverrait deux fois
+     * le même commentaire ou créerait deux dossiers. Le jeton est quand même renouvelé, si
+     * bien que le geste suivant passe — c'est le prix d'un doute qu'on ne peut pas lever.
+     */
+    if (options.noRenew === true || !this.session.userId) return result
+
+    const renouvele = await this.renewToken(this.session.userId)
+    if (!renouvele.ok) return result
+    if (write) return failure('session-expired', 'La session a été renouvelée : recommence ce geste.')
+
+    return this.call(path, { ...options, noRenew: true })
   }
 
   /**
@@ -296,8 +386,13 @@ export class EcoleDirecteClient {
     headers['X-GTK'] = gtk.value
 
     const result = await this.send({ method: 'POST', url, headers, body: formBody(body) })
-    if (result.ok) return { ok: true, accounts: parseAccounts(result.value) }
-    return result
+    if (!result.ok) return result
+    const accounts = parseAccounts(result.value)
+    // Le titulaire de la connexion, pour pouvoir renouveler le jeton sans le mot de passe.
+    // C'est le compte principal — pour une famille, la famille, et non l'un des enfants.
+    const titulaire = accounts.find((account) => account.familyId !== undefined)?.familyId ?? accounts[0]?.id
+    if (titulaire) this.session.userId = titulaire
+    return { ok: true, accounts }
   }
 
   /** Deuxième temps quand le service a répondu 250 : la question et ses propositions. */
@@ -362,6 +457,6 @@ export class EcoleDirecteClient {
    * `X-Token`, `2FA-Token` et les cookies d'un coup : ils sont tous repris au vol.
    */
   async renewToken(userId: string): Promise<ApiResult<unknown>> {
-    return this.call('/renewtoken.awp', { verb: 'post', body: { idUser: userId, uuid: '' } })
+    return this.call('/renewtoken.awp', { verb: 'post', body: { idUser: userId, uuid: '' }, noRenew: true })
   }
 }

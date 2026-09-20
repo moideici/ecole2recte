@@ -11,10 +11,12 @@ import {
   TeacherApi,
   emptySnapshot,
   fetchEngine,
+  mailboxId,
   mergeSnapshot,
   syncSections,
 } from '@ecole2recte/protocol'
 import { demoEngine } from './demo.js'
+import { activeAccount } from './session.js'
 import { type SessionRecord, sessions } from './store.js'
 import { writePolicy } from './write-policy.js'
 
@@ -41,6 +43,19 @@ export function clientFor(record: SessionRecord): { client: EcoleDirecteClient; 
   })
   // Réglable sans redéployer : le jour où la version périme, tout tombe avec le code 517.
   if (env['ED_API_VERSION']) client.session.apiVersion = env['ED_API_VERSION']
+
+  /*
+   * Le titulaire de la connexion, pour que le jeton puisse se renouveler seul.
+   *
+   * Le login le retient désormais, mais les sessions ouvertes avant ne l'ont pas : on le
+   * retrouve ici plutôt que de les laisser sans renouvellement jusqu'à la prochaine
+   * connexion. C'est le même identifiant que celui de la boîte aux lettres — pour un parent,
+   * la famille, et non l'enfant consulté.
+   */
+  if (!client.session.userId) {
+    const actif = activeAccount(record)
+    if (actif) client.session.userId = mailboxId(actif)
+  }
   return { client, api: new EcoleDirecteApi(client) }
 }
 
