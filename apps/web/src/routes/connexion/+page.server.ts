@@ -69,7 +69,7 @@ export const actions: Actions = {
     }
 
     if (outcome.ok) {
-      return install(cookies, url, client, outcome.accounts)
+      return await install(cookies, url, client, outcome.accounts)
     }
 
     if (outcome.kind !== 'two-factor') {
@@ -82,7 +82,7 @@ export const actions: Actions = {
     // Le mot de passe reste en mémoire du serveur le temps de l'échange, et **uniquement**
     // ce temps : il faut le rejouer avec le couple de confiance pour finir la connexion.
     // Il est effacé dès que la réponse est validée, et n'est jamais écrit sur disque.
-    const id = sessions.create({
+    const id = await sessions.create({
       protocol: client.session,
       accounts: [],
       activeAccountId: null,
@@ -119,14 +119,14 @@ export const actions: Actions = {
     // tentative : si elle échoue, on repart de la page de connexion.
     const answered = await client.answerSecurityQuestion(choix)
     if (!answered.ok) {
-      sessions.destroy(id)
+      await sessions.destroy(id)
       return fail(401, { message: answered.message })
     }
 
     // `fresh` : juste après la réponse, le couple part à la racine du corps et dans `fa`.
     const outcome = await client.login(attente.identifier, attente.password, answered.value, { fresh: true })
     // La session d'attente disparaît avec le mot de passe qu'elle portait, réussite ou non.
-    sessions.destroy(id)
+    await sessions.destroy(id)
     if (!outcome.ok) return fail(401, { message: outcome.message })
 
     // Le couple de confiance n'est pas un mot de passe : c'est la preuve d'avoir répondu.
@@ -142,17 +142,17 @@ export const actions: Actions = {
       })
     }
 
-    return install(cookies, url, client, outcome.accounts)
+    return await install(cookies, url, client, outcome.accounts)
   },
 
   /**
    * L'espace professeur sur données inventées. Une session de démonstration n'a ni jeton ni
    * identifiants, et son moteur ne parle qu'à un faux serveur local.
    */
-  demo: ({ cookies, url }) => {
+  demo: async ({ cookies, url }) => {
     if (!demoEnabled()) return fail(404, { message: 'La démonstration n’est pas activée sur ce serveur.' })
     const accounts = parseAccounts(DEMO_LOGIN)
-    const id = sessions.create({
+    const id = await sessions.create({
       protocol: createSession(),
       accounts,
       activeAccountId: accounts[0]?.id ?? null,
@@ -165,12 +165,12 @@ export const actions: Actions = {
   },
 }
 
-function install(
+async function install(
   cookies: import('@sveltejs/kit').Cookies,
   url: URL,
   client: EcoleDirecteClient,
   accounts: Account[],
-): never {
+): Promise<never> {
   if (accounts.length === 0) {
     // Une connexion sans profil lisible n'est pas une réussite, quoi qu'en dise le code 200.
     throw redirect(303, '/connexion?vide=1')
@@ -178,7 +178,7 @@ function install(
   // Le profil ouvert d'abord : un élève ou un enseignant, plutôt qu'un rôle que l'application
   // ne sait pas montrer.
   const active = accounts.find((account) => accountRole(account) !== 'unknown') ?? accounts[0]
-  const id = sessions.create({
+  const id = await sessions.create({
     protocol: client.session,
     accounts,
     activeAccountId: active?.id ?? null,

@@ -19,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
   const { api } = clientFor(record)
   const result = await api.messages(account, { folder: dossier, page })
-  persist(id, record)
+  await persist(id, record)
 
   const messages = result.ok ? result.value.messages : []
   return {

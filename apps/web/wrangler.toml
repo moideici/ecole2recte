@@ -1,0 +1,32 @@
+name = "ecole2recte-web"
+compatibility_date = "2026-09-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Écrasé à chaque build par @sveltejs/adapter-cloudflare : c'est lui qui écrit le worker ici.
+main = ".svelte-kit/cloudflare/_worker.js"
+
+[assets]
+directory = ".svelte-kit/cloudflare"
+binding = "ASSETS"
+
+# Le Durable Object des sessions vit dans un worker séparé (apps/sessions) : l'adaptateur
+# régénère ce fichier à chaque build et ne peut donc pas exporter notre propre classe. Le lien
+# externe (`script_name`) évite ce problème sans y toucher.
+[[durable_objects.bindings]]
+name = "SESSIONS"
+class_name = "SessionDurableObject"
+script_name = "ecole2recte-sessions"
+
+[[routes]]
+pattern = "ed.moideici.tech"
+custom_domain = true
+
+# Les mêmes réglages que .env.example, réglables sans reconstruire l'application — un
+# `wrangler deploy` suffit. `SESSION_SECRET` n'est volontairement pas ici : c'est un secret,
+# posé avec `wrangler secret put SESSION_SECRET`, jamais en clair dans ce fichier versionné.
+[vars]
+ED_API_VERSION = "4.101.4"
+ED_TIMEZONE = "Europe/Paris"
+ED_DEMO = "0"
+ED_WRITE_POLICY = "deny"
+ED_WRITE_FEATURES = ""

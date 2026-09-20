@@ -1,6 +1,6 @@
 import type { Cookies } from '@sveltejs/kit'
 import type { Account } from '@ecole2recte/protocol'
-import { type SessionRecord, sessions } from './store.js'
+import type { SessionRecord, SessionStore } from './store.js'
 
 export const COOKIE_NAME = 'e2r'
 
@@ -26,10 +26,13 @@ export function clearSessionCookie(cookies: Cookies): void {
   cookies.delete(COOKIE_NAME, { path: '/' })
 }
 
-export function readSession(cookies: Cookies): { id: string; record: SessionRecord } | null {
+export async function readSession(
+  cookies: Cookies,
+  store: SessionStore,
+): Promise<{ id: string; record: SessionRecord } | null> {
   const id = cookies.get(COOKIE_NAME)
   if (!id) return null
-  const record = sessions.read(id)
+  const record = await store.read(id)
   return record ? { id, record } : null
 }
 

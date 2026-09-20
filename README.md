@@ -32,7 +32,8 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 |---|---|
 | `packages/protocol/` | tout le savoir protocolaire : encodages, codes métier, session, client, appels élève, famille et enseignant. Zéro dépendance, tourne en Node comme dans un navigateur. |
 | `tools/probe/` | sondage du service sans compte : la question CORS, et rien d'autre. |
-| `apps/web/` | l'interface et le mandataire : onze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. |
+| `apps/web/` | l'interface et le mandataire : onze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. |
+| `apps/sessions/` | le Durable Object qui garde les sessions vivantes entre deux requêtes sur Cloudflare — voir « Déploiement ». |
 | `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
 | `tools/har/` | extraction de la *forme* d'un endpoint depuis une capture réseau, sans les valeurs. |
 
@@ -156,6 +157,40 @@ quatre niveaux :
 La CI ajoute deux garde-fous qui ne sont pas des tests : aucune capture réseau versionnée,
 et l'écriture fermée dans l'exemple de configuration — un fichier qui l'ouvrirait finirait
 un jour copié tel quel en production.
+
+## Déploiement (Cloudflare Workers)
+
+`apps/web` tourne en Worker (`@sveltejs/adapter-cloudflare`) plutôt qu'en serveur Node : pas
+de process à garder en vie, pas de machine à maintenir.
+
+**La session ne peut pas rester en mémoire.** Un Worker n'est pas un process persistant —
+chaque requête peut atterrir sur une isolate différente, n'importe où. La session vit donc
+dans un Durable Object, un par session, hébergé par un second worker minuscule,
+`apps/sessions/` : `apps/web` s'y adresse par un lien externe (`script_name` dans son
+`wrangler.toml`), parce que l'adaptateur régénère son propre fichier de worker à chaque build
+et ne peut donc pas exporter une classe à lui. En développement (`pnpm dev`), faute de ce
+lien, la session retombe sur une simple `Map` en mémoire — voir `apps/web/src/lib/server/store.ts`.
+
+```sh
+# une fois, avant le premier déploiement
+cd apps/sessions && npx wrangler deploy    # crée le Durable Object
+cd ../web
+npx wrangler secret put SESSION_SECRET     # openssl rand -base64 48
+
+# à chaque déploiement
+pnpm --filter @ecole2recte/web deploy
+```
+
+`apps/web/wrangler.toml` porte déjà la route vers `ed.moideici.tech` (le domaine doit être
+sur Cloudflare) et les réglages non secrets de `.env.example` (`ED_API_VERSION`,
+`ED_WRITE_POLICY`, …), modifiables sans reconstruire l'application.
+
+Pour tester tout ça en local, sans compte Cloudflare :
+
+```sh
+cd apps/web
+npx wrangler dev -c wrangler.toml -c ../sessions/wrangler.toml
+```
 
 ## Ce qui n'est pas promis
 

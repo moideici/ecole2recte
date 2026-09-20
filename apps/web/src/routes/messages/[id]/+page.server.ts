@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
   const { api } = clientFor(record)
   // Cet appel est celui du site : il marque aussi le message lu côté ÉcoleDirecte.
   const result = await api.messageDetail(account, params.id, dossier)
-  persist(id, record)
+  await persist(id, record)
   if (!result.ok) error(result.kind === 'access-denied' ? 403 : 502, result.message)
 
   return { jour: today(), dossier, message: result.value }

@@ -72,7 +72,7 @@ export const actions: Actions = {
       return fail(400, { message: 'Profil inconnu.' })
     }
     record.activeAccountId = enfant
-    persist(id, record)
+    await persist(id, record)
     redirect(303, '/')
   },
 }

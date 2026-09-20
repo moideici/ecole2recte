@@ -5,8 +5,8 @@ import { sessions } from '$lib/server/store.js'
 
 /** Se déconnecter efface la session côté serveur, pas seulement le cookie côté navigateur. */
 export const actions: Actions = {
-  default: ({ cookies, locals }) => {
-    if (locals.sessionId) sessions.destroy(locals.sessionId)
+  default: async ({ cookies, locals }) => {
+    if (locals.sessionId) await sessions.destroy(locals.sessionId)
     clearSessionCookie(cookies)
     redirect(303, '/connexion')
   },

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomBytes } from 'node:crypto'
 import type { Account, SchoolSnapshot, SessionState, TrustedAnswer } from '@ecole2recte/protocol'
 
@@ -9,10 +10,12 @@ import type { Account, SchoolSnapshot, SessionState, TrustedAnswer } from '@ecol
  * quatre kilo-octets d'un cookie. Le navigateur ne reçoit donc qu'un identifiant opaque, et
  * le secret ne quitte jamais le serveur — ce qui vaut mieux de toute façon.
  *
- * **Ce que cette implémentation ne fait pas.** Elle garde tout en mémoire : un redémarrage
- * déconnecte, et deux instances derrière un répartiteur ne se voient pas. C'est suffisant
- * pour un déploiement à une instance, et l'interface est là pour qu'un magasin partagé
- * (Redis, base) prenne sa place sans toucher au reste.
+ * **Deux implémentations.** En développement, ou sur un déploiement Node classique, une
+ * simple `Map` en mémoire suffit — voir `MemorySessionStore`. Sur Cloudflare Workers, il n'y
+ * a pas de process persistant : chaque requête peut atterrir sur une isolate différente. La
+ * session vit alors dans un Durable Object (`DurableSessionStore`), un par identifiant de
+ * session, choisi automatiquement quand le lien `SESSIONS` est présent — voir
+ * `apps/sessions/`.
  */
 export interface SessionRecord {
   /** L'état protocolaire : jetons, cookies, User-Agent épinglé. Le secret. */
@@ -47,52 +50,165 @@ export interface SessionRecord {
 }
 
 export interface SessionStore {
-  create(record: Omit<SessionRecord, 'createdAt' | 'touchedAt'>): string
-  read(id: string): SessionRecord | null
-  write(id: string, record: SessionRecord): void
-  destroy(id: string): void
+  create(record: Omit<SessionRecord, 'createdAt' | 'touchedAt'>): Promise<string>
+  read(id: string): Promise<SessionRecord | null>
+  write(id: string, record: SessionRecord): Promise<void>
+  destroy(id: string): Promise<void>
 }
 
 /** Douze heures : au-delà, le jeton ÉcoleDirecte a de toute façon toutes les chances d'être mort. */
-const TTL_MS = 12 * 60 * 60 * 1000
+export const SESSION_TTL_MS = 12 * 60 * 60 * 1000
+
+/** 32 octets d'aléa : l'identifiant est la seule chose que le navigateur détient. */
+function newSessionId(): string {
+  return randomBytes(32).toString('base64url')
+}
 
 class MemorySessionStore implements SessionStore {
   private readonly records = new Map<string, SessionRecord>()
 
-  create(record: Omit<SessionRecord, 'createdAt' | 'touchedAt'>): string {
+  async create(record: Omit<SessionRecord, 'createdAt' | 'touchedAt'>): Promise<string> {
     this.sweep()
-    // 32 octets d'aléa : l'identifiant est la seule chose que le navigateur détient.
-    const id = randomBytes(32).toString('base64url')
+    const id = newSessionId()
     const now = Date.now()
     this.records.set(id, { ...record, createdAt: now, touchedAt: now })
     return id
   }
 
-  read(id: string): SessionRecord | null {
+  async read(id: string): Promise<SessionRecord | null> {
     const record = this.records.get(id)
     if (!record) return null
-    if (Date.now() - record.touchedAt > TTL_MS) {
+    if (Date.now() - record.touchedAt > SESSION_TTL_MS) {
       this.records.delete(id)
       return null
     }
     return record
   }
 
-  write(id: string, record: SessionRecord): void {
+  async write(id: string, record: SessionRecord): Promise<void> {
     if (!this.records.has(id)) return
     this.records.set(id, { ...record, touchedAt: Date.now() })
   }
 
-  destroy(id: string): void {
+  async destroy(id: string): Promise<void> {
     this.records.delete(id)
   }
 
   private sweep(): void {
-    const limit = Date.now() - TTL_MS
+    const limit = Date.now() - SESSION_TTL_MS
     for (const [id, record] of this.records) {
       if (record.touchedAt < limit) this.records.delete(id)
     }
   }
 }
 
-export const sessions: SessionStore = new MemorySessionStore()
+/**
+ * Espace de bindings minimal attendu de Cloudflare : juste de quoi joindre le Durable Object
+ * des sessions, sans dépendre de `@cloudflare/workers-types` ici.
+ */
+export interface SessionNamespace {
+  idFromName(name: string): { toString(): string }
+  get(id: { toString(): string }): { fetch(input: string, init?: RequestInit): Promise<Response> }
+}
+
+const fallback: SessionStore = new MemorySessionStore()
+
+/**
+ * Le magasin de sessions côté Cloudflare : un Durable Object par session, hébergé par le
+ * worker `apps/sessions` (voir ce dossier). Il ne fait qu'un aller-retour HTTP interne — le
+ * Durable Object garde la vraie mémoire, et reste le seul foyer de vérité quelle que soit
+ * l'isolate qui reçoit la requête.
+ *
+ * **Repli silencieux.** Le lien `SESSIONS` existe dès que `wrangler.toml` le déclare — y
+ * compris sous `pnpm dev` (simple `vite dev`), où le worker `apps/sessions` ne tourne pas à
+ * côté. Un aller-retour qui échoue bascule donc sur la mémoire du process plutôt que de faire
+ * tomber la page : le développement local reste possible sans rien déployer.
+ */
+class DurableSessionStore implements SessionStore {
+  constructor(
+    private readonly namespace: SessionNamespace,
+    private readonly fallback: SessionStore,
+  ) {}
+
+  private async request(id: string, path: string, init?: RequestInit): Promise<Response> {
+    const stub = this.namespace.get(this.namespace.idFromName(id))
+    const response = await stub.fetch(`https://session/${path}`, init)
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`Durable Object des sessions indisponible (${response.status}).`)
+    }
+    return response
+  }
+
+  async create(record: Omit<SessionRecord, 'createdAt' | 'touchedAt'>): Promise<string> {
+    try {
+      const id = newSessionId()
+      const now = Date.now()
+      await this.request(id, 'write', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...record, createdAt: now, touchedAt: now }),
+      })
+      return id
+    } catch {
+      return this.fallback.create(record)
+    }
+  }
+
+  async read(id: string): Promise<SessionRecord | null> {
+    try {
+      const response = await this.request(id, 'read')
+      if (response.status === 404) return null
+      return (await response.json()) as SessionRecord
+    } catch {
+      return this.fallback.read(id)
+    }
+  }
+
+  async write(id: string, record: SessionRecord): Promise<void> {
+    try {
+      await this.request(id, 'write', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...record, touchedAt: Date.now() }),
+      })
+    } catch {
+      await this.fallback.write(id, record)
+    }
+  }
+
+  async destroy(id: string): Promise<void> {
+    try {
+      await this.request(id, 'destroy', { method: 'DELETE' })
+    } catch {
+      await this.fallback.destroy(id)
+    }
+  }
+}
+
+/** Choisit le magasin pour la requête en cours : Durable Object si le lien existe, mémoire sinon. */
+export function selectStore(namespace: SessionNamespace | undefined | null): SessionStore {
+  return namespace ? new DurableSessionStore(namespace, fallback) : fallback
+}
+
+const context = new AsyncLocalStorage<SessionStore>()
+
+/** Rend `store` actif pour toute la durée de `run`, y compris à travers les `await`. */
+export function withSessionStore<T>(store: SessionStore, run: () => Promise<T>): Promise<T> {
+  return context.run(store, run)
+}
+
+function current(): SessionStore {
+  return context.getStore() ?? fallback
+}
+
+/**
+ * Le magasin actif de la requête en cours. `hooks.server.ts` choisit l'implémentation ; tout
+ * le reste de l'application — `persist`, `invalidate`, les actions de connexion — s'en sert
+ * sans savoir laquelle tourne dessous.
+ */
+export const sessions: SessionStore = {
+  create: (record) => current().create(record),
+  read: (id) => current().read(id),
+  write: (id, record) => current().write(id, record),
+  destroy: (id) => current().destroy(id),
+}

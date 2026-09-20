@@ -35,7 +35,7 @@ export const actions: Actions = {
     if (!result.ok) return fail(502, { message: result.message })
 
     // Ce qui était affiché n'est plus vrai : le cache du profil est oublié.
-    invalidate(id, record, account.id)
+    await invalidate(id, record, account.id)
     return { ok: true }
   },
 }

@@ -13,32 +13,32 @@ function creer() {
 }
 
 describe('magasin de sessions', () => {
-  it('rend un identifiant opaque et imprévisible', () => {
-    const premier = creer()
-    const second = creer()
+  it('rend un identifiant opaque et imprévisible', async () => {
+    const premier = await creer()
+    const second = await creer()
     expect(premier).not.toBe(second)
     // 32 octets en base64url : c'est la seule chose que le navigateur détient.
     expect(premier.length).toBeGreaterThanOrEqual(42)
     expect(premier).not.toMatch(/[^A-Za-z0-9_-]/)
   })
 
-  it('ne rend rien pour un identifiant inconnu', () => {
-    expect(sessions.read('inexistant')).toBeNull()
+  it('ne rend rien pour un identifiant inconnu', async () => {
+    expect(await sessions.read('inexistant')).toBeNull()
   })
 
-  it('conserve puis oublie', () => {
-    const id = creer()
-    expect(sessions.read(id)?.protocol.token).toBe('JETON')
-    sessions.destroy(id)
-    expect(sessions.read(id)).toBeNull()
+  it('conserve puis oublie', async () => {
+    const id = await creer()
+    expect((await sessions.read(id))?.protocol.token).toBe('JETON')
+    await sessions.destroy(id)
+    expect(await sessions.read(id)).toBeNull()
   })
 
-  it('n’écrit pas dans une session détruite', () => {
-    const id = creer()
-    const record = sessions.read(id)!
-    sessions.destroy(id)
-    sessions.write(id, record)
+  it('n’écrit pas dans une session détruite', async () => {
+    const id = await creer()
+    const record = (await sessions.read(id))!
+    await sessions.destroy(id)
+    await sessions.write(id, record)
     // Sans cette garde, se déconnecter puis finir une requête en vol ressusciterait la session.
-    expect(sessions.read(id)).toBeNull()
+    expect(await sessions.read(id)).toBeNull()
   })
 })

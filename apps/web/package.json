@@ -8,13 +8,15 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --threshold error"
+    "typecheck": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --threshold error",
+    "deploy": "vite build && wrangler deploy"
   },
   "dependencies": {
     "@ecole2recte/protocol": "workspace:*"
   },
   "devDependencies": {
-    "@sveltejs/adapter-node": "5.2.12",
+    "@cloudflare/workers-types": "5.20260920.1",
+    "@sveltejs/adapter-cloudflare": "7.2.9",
     "@sveltejs/kit": "2.17.1",
     "@sveltejs/vite-plugin-svelte": "5.0.3",
     "@types/node": "22.10.7",
@@ -22,6 +24,7 @@
     "svelte-check": "4.1.4",
     "typescript": "5.7.3",
     "vite": "6.0.11",
-    "vitest": "3.0.5"
+    "vitest": "3.0.5",
+    "wrangler": "4.135.0"
   }
 }

@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
   // compte de messages non lus gardé pour l'accueil n'est donc plus juste.
   const result = await api.messageDetail(account, params.id, dossier, today())
   if (record.cache) delete record.cache[CLE_MESSAGES_ACCUEIL]
-  persist(id, record)
+  await persist(id, record)
   if (!result.ok) error(result.kind === 'access-denied' ? 403 : 502, result.message)
 
   return { dossier, message: result.value }

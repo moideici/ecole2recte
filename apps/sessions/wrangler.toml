@@ -1,0 +1,10 @@
+name = "ecole2recte-sessions"
+main = "src/index.ts"
+compatibility_date = "2026-09-20"
+
+# Un Durable Object par session. `apps/web` s'y adresse depuis son propre wrangler.toml via
+# `script_name`, sans passer par une route HTTP publique : ce worker ne sert que de foyer
+# pour la classe, et n'est jamais appelé directement.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SessionDurableObject"]

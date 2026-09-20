@@ -30,7 +30,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 
   const { api } = clientFor(record)
   const result = await api.download(attachment)
-  persist(id, record)
+  await persist(id, record)
   if (!result.ok) error(result.kind === 'access-denied' ? 403 : 502, result.message)
 
   return new Response(result.value.bytes as BodyInit, {

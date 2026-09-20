@@ -55,8 +55,8 @@ export function teacherFor(record: SessionRecord): { client: EcoleDirecteClient;
  * Les jetons tournent à chaque requête : ne pas les réécrire revient à se déconnecter tout
  * seul au bout de quelques minutes.
  */
-export function persist(id: string, record: SessionRecord): void {
-  sessions.write(id, record)
+export async function persist(id: string, record: SessionRecord): Promise<void> {
+  await sessions.write(id, record)
 }
 
 const SNAPSHOT_TTL_MS = 5 * 60 * 1000
@@ -95,7 +95,7 @@ export async function loadSections(
   const outcome = await syncSections(api, account, { today: options.today, sections: wanted })
   const snapshot = mergeSnapshot(base, outcome)
   record.snapshots[account.id] = { snapshot, at: Date.now() }
-  persist(id, record)
+  await persist(id, record)
   return { snapshot, errors: outcome.errors, fromCache: false }
 }
 
@@ -123,14 +123,14 @@ export async function cached<T>(
     const kept = Object.entries(record.cache ?? {}).filter(([, entry]) => now - entry.at < ttl)
     record.cache = { ...Object.fromEntries(kept), [key]: { at: now, value: result.value } }
   }
-  persist(id, record)
+  await persist(id, record)
   return result
 }
 
 /** Oublie le cache d'un profil : après une écriture, ce qu'on affichait n'est plus vrai. */
-export function invalidate(id: string, record: SessionRecord, accountId: string): void {
+export async function invalidate(id: string, record: SessionRecord, accountId: string): Promise<void> {
   delete record.snapshots[accountId]
-  persist(id, record)
+  await persist(id, record)
 }
 
 /**
