@@ -38,6 +38,7 @@
  * Il lit le protocole compilé : `pnpm verifier` s'en charge.
  */
 
+import { readFileSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -67,6 +68,38 @@ try {
   process.loadEnvFile(join(racine, '.env'))
 } catch {
   // Pas de fichier, ou illisible : on demandera au clavier.
+}
+
+/*
+ * Le couple `cn`/`cv` d'une question déjà répondue, gardé d'un lancement à l'autre.
+ *
+ * C'est ce que fait le navigateur depuis toujours — l'application le scelle dans un cookie
+ * de 180 jours — mais le vérificateur repartait de zéro à chaque fois, et **reposait donc la
+ * question à chaque lancement**. C'est une connexion de plus à chaque essai, sur un compte
+ * réel qu'ÉcoleDirecte a fini par bloquer.
+ *
+ * Ce n'est pas un mot de passe : c'est la preuve d'avoir répondu. Le fichier n'est pas
+ * versionné, au même titre que le `.env` d'à côté.
+ */
+const CONFIANCE = join(racine, '.confiance.json')
+
+function lireConfiance() {
+  try {
+    const { cn, cv } = JSON.parse(readFileSync(CONFIANCE, 'utf8'))
+    return typeof cn === 'string' && typeof cv === 'string' ? { cn, cv } : null
+  } catch {
+    return null
+  }
+}
+
+function ecrireConfiance(couple) {
+  try {
+    writeFileSync(CONFIANCE, `${JSON.stringify(couple)}
+`, { encoding: 'utf8', mode: 0o600 })
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** La première variable renseignée parmi plusieurs orthographes raisonnables. */
@@ -157,6 +190,10 @@ function verifierConfig() {
   console.log('')
   const clavier = process.stdin.isTTY === true
   console.log(`  ${clavier ? ' ok   ' : 'absent'} ${'clavier utilisable'.padEnd(20)}${clavier ? '' : 'utilise --reponse ou --choix'}`)
+  // Dit d'avance si la question sera reposée — donc si ce lancement coûtera une connexion
+  // de plus. C'est ce compteur-là qu'ÉcoleDirecte surveille.
+  const garde = lireConfiance() !== null
+  console.log(`  ${garde ? ' ok   ' : 'absent'} ${'couple de confiance'.padEnd(20)}${garde ? 'la question ne sera pas reposée' : 'la question sera posée'}`)
   console.log('')
   console.log('Relance sans --config pour éprouver la connexion.')
 }
@@ -191,7 +228,21 @@ async function main() {
 
   // ——————————————————————————————————————————— 1. connexion et question de sécurité
 
-  let outcome = await client.login(identifiant, motdepasse)
+  /*
+   * Un couple déjà validé évite de reposer la question — et surtout évite une connexion
+   * supplémentaire à chaque lancement.
+   *
+   * Comme dans l'application : un couple périmé fait annoncer un mot de passe invalide à un
+   * mot de passe juste, alors on l'oublie et on retente une seule fois sans lui.
+   */
+  const confiance = lireConfiance()
+  noter('couple de confiance gardé', confiance ? 'ok' : 'skip', confiance ? '.confiance.json' : 'aucun, la question sera posée')
+
+  let outcome = await client.login(identifiant, motdepasse, confiance ?? undefined)
+  if (!outcome.ok && outcome.kind === 'invalid-credentials' && confiance) {
+    noter('couple de confiance encore valable', 'ko', 'oublié, nouvel essai sans lui')
+    outcome = await client.login(identifiant, motdepasse)
+  }
 
   if (!outcome.ok && outcome.kind === 'two-factor') {
     noter('question de sécurité posée', 'ok', 'appareil non reconnu, comme attendu')
@@ -250,10 +301,11 @@ async function main() {
       return conclure()
     }
     noter('le service accepte la réponse', 'ok', 'couple de confiance obtenu')
+    noter('couple de confiance gardé pour la suite', ecrireConfiance(repondu.value) ? 'ok' : 'ko', '.confiance.json')
 
     outcome = await client.login(identifiant, motdepasse, repondu.value, { fresh: true })
   } else if (outcome.ok) {
-    noter('question de sécurité posée', 'skip', 'appareil déjà connu du service')
+    noter('question de sécurité posée', 'skip', confiance ? 'évitée par le couple gardé' : 'appareil déjà connu du service')
   }
 
   if (!outcome.ok) {
@@ -278,7 +330,7 @@ async function main() {
    *
    * `--renouvellement` la redemande, une fois, quand on cherche exprès à la comprendre.
    */
-  if (option('renouvellement') !== undefined) {
+  if (drapeau('renouvellement')) {
     const avant = client.session.token
     const renouvele = await client.renewToken(client.session.userId ?? compte.id)
     // Le code compte plus que la phrase : c'est lui qui dit de quelle famille est le refus.
