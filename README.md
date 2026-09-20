@@ -34,7 +34,7 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 |---|---|
 | `packages/protocol/` | tout le savoir protocolaire : encodages, codes métier, session, client, appels élève, famille et enseignant. Zéro dépendance, tourne en Node comme dans un navigateur. |
 | `tools/probe/` | sondage du service sans compte : la question CORS, et rien d'autre. |
-| `apps/web/` | l'interface et le mandataire : douze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
+| `apps/web/` | l'interface et le mandataire : douze pages élève et famille dont un accueil en widgets, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
 | `apps/sessions/` | le Durable Object qui garde les sessions vivantes entre deux requêtes sur Cloudflare — voir « Déploiement ». |
 | `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
 | `tools/har/` | extraction de la *forme* d'un endpoint depuis une capture réseau, sans les valeurs. |
@@ -76,6 +76,26 @@ donc à part, en parallèle et en cache : celles du travail qui vient pour la li
 d'accueil, et la sienne pour la fiche d'une journée. **Un devoir, un cours de l'emploi du
 temps et une ligne du fil mènent tous à cette fiche**, qui porte l'énoncé complet, les pièces
 jointes, ce qui a été fait en classe et les cours de la journée.
+
+## L'accueil est une disposition, pas une page
+
+L'accueil n'a pas de contenu à lui : c'est une suite de **widgets** que la personne choisit —
+lesquels, et dans quel ordre. Par défaut : la journée, où aller, le travail à faire, la
+moyenne générale, les dernières notes, la vie scolaire, les messages. Vingt-six tuiles au
+catalogue, réparties en six familles.
+
+Deux conséquences qui ont décidé de l'implémentation :
+
+- **La disposition vit dans un cookie, pas dans le navigateur.** Le serveur doit la connaître
+  **avant** de charger quoi que ce soit : un accueil sans notes n'appelle pas les notes, et un
+  accueil vide n'appelle rien. Avec un stockage côté navigateur il faudrait tout charger puis
+  en jeter la moitié, et la page clignoterait le temps de remettre les tuiles dans l'ordre.
+- **Tout se règle par formulaire**, flèches comprises : l'accueil se réordonne sans une ligne
+  de JavaScript, et une tuile dont le module est fermé n'est pas proposée.
+
+La journée, elle, est à l'échelle du temps : **la hauteur est la durée**. Une liste met toutes
+les heures à la même hauteur — un cours de deux heures y ressemble à un cours d'une heure, et
+un trou ne se voit pas du tout.
 
 ## La moyenne, et quand l'application refait le calcul
 
@@ -194,7 +214,7 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
-200 tests, sans réseau et sans compte — 176 pour le protocole, 24 pour l’application — sur
+213 tests, sans réseau et sans compte — 176 pour le protocole, 37 pour l’application — sur
 quatre niveaux :
 
 1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,

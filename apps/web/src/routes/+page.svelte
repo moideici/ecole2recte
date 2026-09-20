@@ -1,19 +1,29 @@
 <script lang="ts">
+  import { page } from '$app/state'
   import EnTete from '$lib/components/EnTete.svelte'
   import Actualiser from '$lib/components/Actualiser.svelte'
-  import Cours from '$lib/components/Cours.svelte'
-  import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
-  import { longDate, relativeDay, relativeTime } from '@ecole2recte/protocol'
-  import { couleurMatiere } from '$lib/matiereCouleur.js'
+  import Widget from '$lib/components/Widget.svelte'
+  import Vide from '$lib/components/Vide.svelte'
+  import { longDate } from '@ecole2recte/protocol'
+  import { FAMILLES, widget, widgetsDisponibles } from '$lib/accueil.js'
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
   const parent = $derived(data.profil?.parent ?? false)
 
-  function arrondi(valeur: number | undefined): string {
-    return valeur === undefined ? '—' : valeur.toFixed(2).replace('.', ',')
-  }
+  /**
+   * Le panneau de personnalisation vit dans l'adresse.
+   *
+   * Chaque geste — cocher, monter, descendre — est un envoi de formulaire : la page se
+   * réordonne donc **sans une ligne de JavaScript**, et revenir dessus après un déplacement
+   * rouvre le panneau là où on l'avait laissé.
+   */
+  const ouvert = $derived(page.url.searchParams.get('personnaliser') === '1')
+
+  const disponibles = $derived(widgetsDisponibles(data.profil?.modulesFermes ?? []))
+  const actifs = $derived(data.disposition.map((id) => widget(id)).filter((entree) => entree !== undefined))
+  const erreurs = $derived(Object.entries(data.erreurs).filter(([, valeur]) => valeur !== undefined))
 </script>
 
 <svelte:head><title>Accueil — ecole2recte</title></svelte:head>
@@ -23,264 +33,175 @@
   titre={parent ? (data.profil?.nom ?? 'Accueil') : 'Bonjour'}
   soustitre={parent ? 'Vue parent' : (data.profil?.classe ?? '')}
 >
-  {#snippet actions()}<Actualiser />{/snippet}
+  {#snippet actions()}
+    <a class="pastille" href={ouvert ? '/' : '/?personnaliser=1'} aria-current={ouvert}>
+      {ouvert ? 'Terminer' : 'Personnaliser'}
+    </a>
+    <Actualiser />
+  {/snippet}
 </EnTete>
 
-{#if data.erreurs.timetable}
-  <ErreurSection message="L'emploi du temps n'a pas pu être chargé." cause={data.erreurs.timetable.message} />
+{#each erreurs as [section, erreur] (section)}
+  <ErreurSection message={`La section « ${section} » n’a pas pu être chargée.`} cause={erreur?.message ?? ''} />
+{/each}
+
+{#if ouvert}
+  <!--
+    Le choix des tuiles. Tout est dans un seul formulaire : les flèches sont des boutons
+    d'envoi, donc l'ordre change sans perdre les cases cochées, et sans JavaScript.
+  -->
+  <form method="POST" action="?/disposition" class="panneau reglage">
+    <div class="tete-panneau">
+      <h2>Ce que je veux sur mon accueil</h2>
+      <span class="espace"></span>
+      <button class="bouton" name="reinitialiser" value="1">Remettre par défaut</button>
+      <button class="bouton primaire">Enregistrer</button>
+    </div>
+
+    <div class="corps-panneau">
+      <p class="discret" style="margin-bottom:12px">
+        L’ordre est celui de la liste, et c’est celui du téléphone. Sur un écran large, les
+        tuiles se répartissent en colonnes pour ne pas laisser de trous. Le choix reste sur
+        cet appareil, et seules les sections utiles sont chargées.
+      </p>
+
+      {#if actifs.length > 0}
+        <p class="minuscule">Affichés · {actifs.length}</p>
+        <ol class="choisis">
+          {#each actifs as entree, index (entree.id)}
+            <li>
+              <span class="position nombre">{index + 1}</span>
+              <span class="ligne-texte">
+                <span style="font-weight:600">{entree.nom}</span>
+                <span class="discret">{entree.taille === 'L' ? 'pleine largeur' : entree.taille === 'M' ? 'colonne' : 'tuile'}</span>
+              </span>
+              <button class="fleche" name="monter" value={entree.id} disabled={index === 0} aria-label={`Monter ${entree.nom}`}>↑</button>
+              <button class="fleche" name="descendre" value={entree.id} disabled={index === actifs.length - 1} aria-label={`Descendre ${entree.nom}`}>↓</button>
+              <!-- Décocher puis enregistrer retire la tuile. Les flèches emportent les cases
+                   telles qu'elles sont : rien ne se perd en réordonnant. -->
+              <label class="garder">
+                <input type="checkbox" name="actif" value={entree.id} checked />
+                <span>Afficher</span>
+              </label>
+            </li>
+          {/each}
+        </ol>
+      {:else}
+        <p class="discret">Aucune tuile affichée. Coche ci-dessous ce que tu veux voir.</p>
+      {/if}
+
+      {#each FAMILLES as famille (famille.cle)}
+        {@const dedans = disponibles.filter((entree) => entree.famille === famille.cle && !data.disposition.includes(entree.id))}
+        {#if dedans.length > 0}
+          <p class="minuscule" style="margin-top:16px">{famille.nom}</p>
+          <p class="discret" style="font-size:0.84rem">{famille.phrase}</p>
+          <div class="a-ajouter">
+            {#each dedans as entree (entree.id)}
+              <label class="proposition">
+                <input type="checkbox" name="actif" value={entree.id} />
+                <span>{entree.nom}</span>
+                <span class="jeton">{entree.taille}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      {/each}
+
+      <p class="discret" style="margin-top:16px">
+        Les tuiles d’un module que l’établissement n’a pas ouvert ne sont pas proposées.
+      </p>
+    </div>
+  </form>
 {/if}
 
 <!--
-  Le bandeau de tête : ce qu'on veut savoir en trois secondes, et rien d'autre. Ce qui y
-  figure a une page à soi, atteignable d'un clic.
+  Le mur. En colonnes plutôt qu'en grille : une grille laisse des trous sous la tuile la plus
+  courte de chaque rangée, alors que des colonnes se remplissent d'elles-mêmes. Sur téléphone,
+  une seule colonne — et l'ordre est exactement celui qu'on a choisi.
 -->
-<div class="vignettes">
-  <a class="vignette" href="/notes">
-    <span class="minuscule">Moyenne générale</span>
-    <span class="valeur nombre">{arrondi(data.moyenne.value)}</span>
-    <span class="discret">
-      {#if data.moyenne.origin === 'recomputed'}
-        Recalculée · bulletin {arrondi(data.moyenne.official)}
-      {:else if data.moyenne.origin === 'computed'}
-        Calculée
-      {:else if data.moyenne.origin === 'official'}
-        {data.periode?.name ?? 'Bulletin'}
-      {:else}
-        Aucune note
-      {/if}
-    </span>
-  </a>
-  <a class="vignette" href="/devoirs">
-    <span class="minuscule">À faire</span>
-    <span class="valeur nombre">{data.aFaire.length}</span>
-    <span class="discret">{data.evaluations.length} évaluation{data.evaluations.length > 1 ? 's' : ''} à venir</span>
-  </a>
-  <a class="vignette" href="/messages">
-    <span class="minuscule">Messages</span>
-    <span class="valeur nombre">{data.nonLusTotal}</span>
-    <span class="discret">non lu{data.nonLusTotal > 1 ? 's' : ''}</span>
-  </a>
-  <a class="vignette" class:alerte={data.absences > 0} href="/vie-scolaire">
-    <span class="minuscule">Vie scolaire</span>
-    <span class="valeur nombre">{data.absences}</span>
-    <span class="discret">absence{data.absences > 1 ? 's' : ''} non justifiée{data.absences > 1 ? 's' : ''}</span>
-  </a>
-</div>
-
-<div class="grille">
-  <section class="panneau" aria-labelledby="t-cours">
-    <div class="tete-panneau">
-      <h2 id="t-cours">{data.enCours ? 'En ce moment' : 'Prochain cours'}</h2>
+<div class="mur">
+  {#each data.disposition as id (id)}
+    <div class="tuile" class:pleine={widget(id)?.taille === 'L'}>
+      <Widget {id} {data} />
     </div>
-    <div class="corps-panneau pile">
-      {#if data.enCours}
-        <Cours cours={data.enCours} actuel />
-        {#if data.avancement !== undefined}
-          <div class="jauge" role="img" aria-label={`Journée avancée à ${Math.round(data.avancement * 100)} %`}>
-            <span style={`width:${Math.round(data.avancement * 100)}%`}></span>
-          </div>
-        {/if}
-      {:else if data.suivant}
-        <Cours cours={data.suivant} />
-        <p class="discret">{relativeTime(data.suivant.start, data.maintenant)}</p>
-      {:else}
-        <Vide titre="Plus de cours" description="La journée est finie." />
-      {/if}
-    </div>
-  </section>
-
-  <section class="panneau" aria-labelledby="t-journee">
-    <div class="tete-panneau">
-      <h2 id="t-journee">
-        {data.prochaineJournee ? `Prochaine journée · ${relativeDay(data.prochaineJournee, data.jour)}` : 'Aujourd’hui'}
-      </h2>
-    </div>
-    <div class="corps-panneau pile">
-      {#each (data.prochaineJournee ? data.prochainsCours : data.duJour).slice(0, 5) as cours (cours.id)}
-        <Cours {cours} />
-      {:else}
-        <Vide titre="Pas de cours" description="Rien n’est inscrit à l’emploi du temps." />
-      {/each}
-      <a class="bouton" href="/emploi-du-temps">Voir l’emploi du temps</a>
-    </div>
-  </section>
-
-  <section class="panneau" aria-labelledby="t-devoirs">
-    <div class="tete-panneau">
-      <h2 id="t-devoirs">À faire</h2>
-      <span class="espace"></span>
-      <a class="discret" href="/devoirs">Tout voir</a>
-    </div>
-    <div class="corps-panneau serre">
-      {#each data.aFaire as devoir (devoir.id)}
-        {@const couleur = couleurMatiere(devoir.subject)}
-        <!-- Cliquer ouvre la journée sur ce devoir : énoncé complet, pièces jointes, séance. -->
-        <a
-          class="ligne"
-          href={`/devoirs/${devoir.dueDate}#${devoir.id}`}
-          style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
-        >
-          <span class="filet" aria-hidden="true"></span>
-          <span class="ligne-texte">
-            <span class="rangee" style="gap:6px">
-              <span class="etiquette-matiere">{devoir.subject}</span>
-              <span class="discret">{relativeDay(devoir.dueDate, data.jour)}</span>
-              {#if devoir.exam}<span class="jeton alerte">Évaluation</span>{/if}
-            </span>
-            {#if devoir.content}
-              <span class="extrait">{devoir.content}</span>
-            {:else}
-              <span class="discret">Aucun énoncé saisi.</span>
-            {/if}
-          </span>
-          <span class="chevron" aria-hidden="true">›</span>
-        </a>
-      {:else}
-        <div style="padding:14px"><Vide titre="Rien à faire" description="Tous les devoirs connus sont cochés." /></div>
-      {/each}
-    </div>
-  </section>
-
-  {#if data.evaluations.length > 0}
-    <section class="panneau" aria-labelledby="t-eval">
-      <div class="tete-panneau"><h2 id="t-eval">Évaluations annoncées</h2></div>
-      <div class="corps-panneau serre">
-        {#each data.evaluations as devoir (devoir.id)}
-          {@const couleur = couleurMatiere(devoir.subject)}
-          <a
-            class="ligne"
-            href={`/devoirs/${devoir.dueDate}#${devoir.id}`}
-            style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
-          >
-            <span class="filet" aria-hidden="true"></span>
-            <span class="ligne-texte">
-              <span class="rangee" style="gap:6px">
-                <span class="etiquette-matiere">{devoir.subject}</span>
-                <span class="discret">{relativeDay(devoir.dueDate, data.jour)}</span>
-              </span>
-            </span>
-            <span class="chevron" aria-hidden="true">›</span>
-          </a>
-        {/each}
-      </div>
-    </section>
-  {/if}
-
-  <section class="panneau" aria-labelledby="t-notes">
-    <div class="tete-panneau">
-      <h2 id="t-notes">Dernières notes</h2>
-      <span class="espace"></span>
-      <a class="discret" href="/notes">Tout voir</a>
-    </div>
-    <div class="corps-panneau serre">
-      {#each data.dernieresNotes as note (note.id)}
-        {@const couleur = couleurMatiere(note.subject)}
-        <a
-          class="ligne"
-          href={`/notes#note-${note.id}`}
-          style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
-        >
-          <span class="filet" aria-hidden="true"></span>
-          <span class="ligne-texte">
-            <span class="etiquette-matiere">{note.subject}</span>
-            <span class="discret">{note.label || 'Évaluation'}</span>
-          </span>
-          <span class="note-valeur nombre">
-            {note.value !== undefined ? String(note.value).replace('.', ',') : '—'}<span class="sur">/{note.scale}</span>
-          </span>
-        </a>
-      {:else}
-        <div style="padding:14px"><Vide titre="Aucune note" description="Rien n’a encore été saisi." /></div>
-      {/each}
-    </div>
-  </section>
-
-  <section class="panneau" aria-labelledby="t-messages">
-    <div class="tete-panneau">
-      <h2 id="t-messages">Messages</h2>
-      <span class="espace"></span>
-      <a class="discret" href="/messages">Tout voir</a>
-    </div>
-    <div class="corps-panneau serre">
-      {#each data.nonLus as message (message.id)}
-        <a class="ligne" href={`/messages/${message.id}`}>
-          <span class="filet accent" aria-hidden="true"></span>
-          <span class="ligne-texte">
-            <span style="font-weight:600">{message.sender}</span>
-            <span class="discret">{message.subject}</span>
-          </span>
-        </a>
-      {:else}
-        <div style="padding:14px"><Vide titre="Tout est lu" /></div>
-      {/each}
-    </div>
-  </section>
-
-  {#each data.actualites as actualite (actualite.id)}
-    <section class="panneau" aria-labelledby={`t-${actualite.id}`}>
-      <div class="tete-panneau"><h2 id={`t-${actualite.id}`}>Actualité</h2></div>
-      <div class="corps-panneau">
-        <a href="/actualites" style="font-weight:600;text-decoration:none;color:inherit">{actualite.title}</a>
-        {#if actualite.date}<p class="discret">{longDate(actualite.date)}</p>{/if}
-        {#if actualite.content}<p class="extrait" style="margin-top:6px">{actualite.content}</p>{/if}
-      </div>
-    </section>
+  {:else}
+    <Vide
+      titre="Accueil vide"
+      description="Aucune tuile n’est affichée. Ouvre « Personnaliser » pour en choisir."
+    />
   {/each}
 </div>
 
 <style>
-  .vignettes { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 20px; }
-  @media (min-width: 900px) { .vignettes { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .reglage { margin-bottom: 20px; }
 
-  .vignette {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 12px 14px;
-    background: var(--surface);
-    border: 1px solid var(--bordure);
-    border-top: 3px solid var(--accent);
-    border-radius: var(--rayon);
-    box-shadow: var(--ombre);
-    text-decoration: none;
-    color: inherit;
-  }
-  .vignette:hover { border-color: var(--accent); }
-  .vignette.alerte { border-top-color: var(--erreur); }
-  .vignette .valeur { font-size: 1.8rem; font-weight: 700; line-height: 1.1; }
-  .vignette .discret { font-size: 0.8rem; }
-
-  .grille { display: grid; gap: 18px; grid-template-columns: 1fr; align-items: start; }
-  @media (min-width: 760px) { .grille { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (min-width: 1280px) { .grille { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-
-  .ligne {
+  .choisis { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .choisis li {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 14px 9px 0;
-    border-bottom: 1px solid var(--bordure-douce);
-    text-decoration: none;
-    color: inherit;
+    padding: 7px 10px;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-petit);
+    background: var(--surface-2);
   }
-  .ligne:last-child { border-bottom: 0; }
-  .ligne:hover { background: var(--surface-2); }
-  .filet { width: 5px; align-self: stretch; min-height: 34px; background: var(--encre-matiere); border-radius: 0 3px 3px 0; flex: none; }
-  .filet.accent { background: var(--accent); }
-  .ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
-  .note-valeur { font-weight: 700; font-size: 1.15rem; }
-  .sur { font-size: 0.7em; color: var(--encre-douce); }
-  .chevron { color: var(--encre-douce); font-size: 1.3rem; flex: none; }
+  .position {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent-doux);
+    color: var(--accent-fort);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+  .ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 
-  .extrait {
-    color: var(--encre-douce);
-    font-size: 0.86rem;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .fleche {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border-radius: var(--rayon-petit);
+    border: 1px solid var(--bordure);
+    background: var(--surface);
+    color: var(--encre);
+    font: inherit;
+    cursor: pointer;
   }
-  .jauge { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
-  .jauge span { display: block; height: 100%; background: var(--accent); }
+  .fleche:hover:not([disabled]) { border-color: var(--accent); color: var(--accent); }
+  .fleche[disabled] { opacity: 0.35; cursor: not-allowed; }
+
+  .garder { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; cursor: pointer; white-space: nowrap; }
+
+  .a-ajouter { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .proposition {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--bordure);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+  .proposition:hover { border-color: var(--accent); }
+  .proposition:has(input:checked) { background: var(--accent-doux); border-color: var(--accent); color: var(--accent-fort); }
+
+  /* — le mur */
+  .mur { column-gap: 18px; }
+  @media (min-width: 760px) { .mur { columns: 2; } }
+  @media (min-width: 1240px) { .mur { columns: 3; } }
+
+  .tuile {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 18px;
+  }
+  /* Une tuile pleine largeur coupe les colonnes : c'est ce qu'on lui demande. */
+  .tuile.pleine { column-span: all; }
 </style>

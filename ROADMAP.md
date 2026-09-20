@@ -46,6 +46,9 @@ sans compte réel », pas « éprouvé sur le terrain ».
       part ; un devoir, un cours de la grille et une ligne du fil y mènent maintenant.
 - [x] Barre de progression, bouton « Actualiser », thème appliqué avant le premier pixel et
       réglable depuis le bandeau.
+- [x] **Accueil en widgets** : vingt-six tuiles, l'ordre et la quantité au choix, gardés dans
+      un cookie pour que le serveur ne charge que les sections utiles. Réglable sans
+      JavaScript, en colonnes qui se remplissent sur écran large.
 - [x] Compte parent : un profil par enfant, sélecteur, messagerie de la famille.
 - [x] Compte enseignant **reconnu et annoncé comme non pris en charge** — voir P5.
 - [x] Téléchargement des pièces jointes par le serveur.
