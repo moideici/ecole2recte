@@ -2,20 +2,25 @@
 /**
  * L'épreuve du réel, en lecture seule.
  *
- *     pnpm verifier
+ *     pnpm verifier --config       ce que le script voit, sans rien appeler
+ *     pnpm verifier --questions    la question de sécurité et ses propositions, puis stop
+ *     pnpm verifier --choix 7      répond avec la 7e proposition, et va jusqu'au bout
+ *     pnpm verifier --reponse "Terminale G2"
+ *     pnpm verifier                demande au clavier ce qui manque
  *
- * **Ce que fait ce script.** Il se connecte à un vrai compte et vérifie les deux mécanismes
- * qu'aucun test hors-ligne ne peut trancher : la **date de naissance** qui répond à la
- * question de sécurité, et le **renouvellement automatique du jeton**. Il lit ensuite une
- * section pour confirmer que la chaîne complète tient.
+ * **Ce que fait ce script.** Il se connecte à un vrai compte et vérifie ce qu'aucun test
+ * hors-ligne ne peut trancher : la **réponse à la question de sécurité** donnée d'avance, et
+ * le **renouvellement automatique du jeton**. Il lit ensuite de quoi confirmer que la chaîne
+ * complète tient.
  *
  * **Ce qu'il n'écrit jamais.** Aucune écriture ne part : la police est sur `deny`, donc même
  * une erreur de code ne pourrait rien modifier. Pour les allers-retours d'écriture, c'est
  * `pnpm smoke`, et c'est un autre script exprès.
  *
- * **Ce qu'il ne montre pas.** Ni mot de passe, ni jeton, ni couple `cn`/`cv`, ni la date de
- * naissance. Le rapport final ne contient que des **formes** et des **codes** — pas une
- * valeur personnelle — précisément pour pouvoir être recopié à quelqu'un qui aide.
+ * **Ce qu'il ne montre pas.** Ni mot de passe, ni jeton, ni couple `cn`/`cv`. Le rapport
+ * final ne contient que des **formes** et des **codes** — pas une valeur personnelle —
+ * précisément pour pouvoir être recopié à quelqu'un qui aide. Les propositions, elles, ne
+ * s'affichent qu'à l'écran de qui lance le script, et jamais dans le rapport.
  *
  * Il lit le protocole compilé : `pnpm verifier` s'en charge.
  */
@@ -27,10 +32,10 @@ import {
   EcoleDirecteApi,
   EcoleDirecteClient,
   choiceForAnswer,
-  readDate,
   createSession,
   fetchEngine,
   generalAverage,
+  readDate,
 } from '../../packages/protocol/dist/index.js'
 
 if (process.env['CI']) {
@@ -43,7 +48,6 @@ if (process.env['CI']) {
  *
  * Node ne charge pas ces fichiers tout seul : sans cette ligne, un identifiant posé là est
  * simplement ignoré, et le script redemande tout au clavier comme s'il n'y avait rien.
- * Le fichier est ignoré par git — c'est la première chose que `.gitignore` protège.
  */
 const racine = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 try {
@@ -61,8 +65,33 @@ function lire(...noms) {
   return ''
 }
 
-/** Demande au clavier ce qui n'a pas à traîner dans un fichier ni dans l'historique. */
+/**
+ * La valeur d'une option, écrite `--nom valeur` ou `--nom=valeur`.
+ *
+ * Les deux, parce qu'un argument traverse ici `npx`, puis `pnpm`, puis `node` : la forme
+ * collée survit à des passages où la forme séparée se perd.
+ */
+function option(nom) {
+  const colle = process.argv.find((entree) => entree.startsWith(`--${nom}=`))
+  if (colle) return colle.slice(nom.length + 3).trim()
+  const index = process.argv.indexOf(`--${nom}`)
+  if (index === -1) return ''
+  const suivant = process.argv[index + 1] ?? ''
+  return suivant.startsWith('--') ? '' : suivant.trim()
+}
+const drapeau = (nom) => process.argv.some((entree) => entree === `--${nom}` || entree.startsWith(`--${nom}=`))
+
+/**
+ * Demande au clavier, quand il y en a un.
+ *
+ * Lancé à travers `npx` puis `pnpm`, le script n'hérite pas toujours d'une entrée utilisable.
+ * Mieux vaut le dire que rester suspendu sans que rien ne s'affiche.
+ */
 async function demander(question, masque = false) {
+  if (!process.stdin.isTTY) {
+    console.log(`\n(pas de clavier utilisable ici — ${question.trim()})`)
+    return ''
+  }
   const lecture = createInterface({ input: process.stdin, output: process.stdout, terminal: true })
   if (masque) {
     const ecrire = lecture._writeToOutput?.bind(lecture)
@@ -70,10 +99,10 @@ async function demander(question, masque = false) {
       if (texte.includes(question)) ecrire?.(texte)
     }
   }
-  const reponse = await new Promise((resoudre) => lecture.question(question, resoudre))
+  const saisie = await new Promise((resoudre) => lecture.question(question, resoudre))
   lecture.close()
   if (masque) process.stdout.write('\n')
-  return reponse.trim()
+  return saisie.trim()
 }
 
 const rapport = []
@@ -86,62 +115,53 @@ function noter(nom, etat, detail = '') {
 /**
  * La **forme** d'une proposition, jamais sa valeur.
  *
- * C'est tout ce qu'il faut pour corriger une lecture de date qui ne reconnaîtrait pas le
- * format d'un établissement — et cela ne dit rien de la personne.
+ * C'est tout ce qu'il faut pour corriger une lecture qui ne reconnaîtrait pas l'écriture
+ * d'un établissement — et cela ne dit rien de la personne.
  */
 function forme(texte) {
-  return texte
-    .replace(/\d/gu, '9')
-    .replace(/[A-Za-zÀ-ÿ]+/gu, (mot) => (mot.length > 2 ? 'Aaa' : 'Aa'))
+  return texte.replace(/\d/gu, '9').replace(/[A-Za-zÀ-ÿ]+/gu, (mot) => (mot.length > 2 ? 'Aaa' : 'Aa'))
 }
 
 /**
- * `--config` : ce que le script voit, avant de toucher au reseau.
+ * `--config` : ce que le script voit, avant de toucher au réseau.
  *
- * Il n'imprime AUCUNE valeur, pas meme une longueur : seulement present ou absent, et d'ou
- * cela vient. C'est ce qui manquait ici, car une configuration ignoree ressemblait a un
- * verificateur casse.
+ * Aucune valeur n'est imprimée, pas même une longueur : seulement présent ou absent, et d'où
+ * cela vient. Une configuration ignorée ressemblait sinon à un vérificateur cassé.
  */
 function verifierConfig() {
   const source = (...noms) => noms.find((nom) => lire(nom) !== '') ?? null
   const lignes = [
     ['identifiant', source('ED_IDENTIFIANT', 'id', 'ID', 'identifiant')],
     ['mot de passe', source('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse')],
-    ['reponse de securite', source('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')],
+    ['réponse de sécurité', source('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')],
   ]
-  console.log('Configuration lue. Aucune valeur n’est affichee.')
+  console.log('Configuration lue. Aucune valeur n’est affichée.')
   console.log('')
   for (const [nom, cle] of lignes) {
-    const etat = cle ? ' ok   ' : 'absent'
-    console.log(`  ${etat} ${nom.padEnd(18)}${cle ? `depuis ${cle}` : 'sera demande au clavier'}`)
-  }
-
-  const naissance = lire('ED_NAISSANCE', 'naissance')
-  if (naissance !== '') {
-    const bonne = /^\d{4}-\d{2}-\d{2}$/.test(naissance)
-    console.log('')
-    console.log(`  ${bonne ? ' ok   ' : 'ECHEC '} format de la date ${bonne ? 'AAAA-MM-JJ' : '— attendu AAAA-MM-JJ'}`)
-    if (!bonne) process.exitCode = 1
+    const ou = cle ? `depuis ${cle}` : 'à donner en option ou au clavier'
+    console.log(`  ${cle ? ' ok   ' : 'absent'} ${nom.padEnd(20)}${ou}`)
   }
   console.log('')
-  console.log('Relance sans --config pour eprouver la connexion.')
+  const clavier = process.stdin.isTTY === true
+  console.log(`  ${clavier ? ' ok   ' : 'absent'} ${'clavier utilisable'.padEnd(20)}${clavier ? '' : 'utilise --reponse ou --choix'}`)
+  console.log('')
+  console.log('Relance sans --config pour éprouver la connexion.')
 }
 
 async function main() {
   console.log('Vérificateur ecole2recte — lecture seule, aucune écriture ne partira.\n')
 
-  if (process.argv.includes('--config')) return verifierConfig()
+  if (drapeau('config')) return verifierConfig()
 
   const identifiant = lire('ED_IDENTIFIANT', 'id', 'ID', 'identifiant') || (await demander('Identifiant ÉcoleDirecte : '))
   const motdepasse = lire('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse') || (await demander('Mot de passe (invisible) : ', true))
-  const naissance =
-    lire('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')
+  const donnee = option('reponse') || lire('ED_REPONSE', 'reponse', 'ED_NAISSANCE', 'naissance')
+  const numero = Number(option('choix'))
 
   if (!identifiant || !motdepasse) {
-    console.error('Identifiant et mot de passe sont attendus.')
+    console.error('Identifiant et mot de passe sont attendus — pose-les dans .env (id= et mdp=).')
     process.exit(1)
   }
-  console.log('')
 
   const client = new EcoleDirecteClient({
     engine: fetchEngine(),
@@ -163,44 +183,55 @@ async function main() {
       noter('lecture de la question', 'ko', question.message)
       return conclure()
     }
-    noter('lecture de la question', 'ok', `${question.value.choices.length} proposition(s)`)
+    const choix = question.value.choices
+    noter('lecture de la question', 'ok', `${choix.length} proposition(s)`)
     console.log(`\n       question : ${question.value.question}`)
-    console.log(`       formes   : ${[...new Set(question.value.choices.map(forme))].join(' | ')}\n`)
+    console.log(`       formes   : ${[...new Set(choix.map(forme))].join(' | ')}\n`)
 
-    const donnee = reponse || (await demander('Reponse a cette question (vide pour la choisir dans la liste) : '))
-
-    let choisi = donnee === '' ? null : choiceForAnswer(question.value.choices, donnee)
-    if (choisi !== null) {
-      noter('la reponse donnee correspond', 'ok', `forme ${forme(choisi)}`)
-    } else {
-      // Le compte du diagnostic porte sur ce qui **se lit comme une date**, et non sur ce
-      // qui contient un chiffre : une classe s'ecrit `1ERE G2`, et n'est pas une date.
-      const dates = question.value.choices.filter((choix) => readDate(choix) !== undefined).length
-      noter(
-        'la reponse donnee correspond',
-        donnee === '' ? 'skip' : 'ko',
-        donnee === ''
-          ? 'aucune reponse donnee d avance'
-          : `aucune des ${question.value.choices.length} propositions n est cette reponse` +
-            ` (${dates} se lisent comme des dates)`,
-      )
-
-      // On poursuit quand meme : le reste du verificateur porte sur le jeton, et c'est
-      // justement ce qu'on ne saurait pas sinon.
-      console.log('')
-      question.value.choices.forEach((choix, index) => console.log(`   ${String(index + 1).padStart(2)}. ${choix}`))
-      console.log('')
-      const numero = Number(await demander('Numero de la bonne reponse (0 pour arreter) : '))
-      if (!Number.isInteger(numero) || numero < 1 || numero > question.value.choices.length) return conclure()
-      choisi = question.value.choices[numero - 1]
-    }
-
-    const repondu = await client.answerSecurityQuestion(choisi)
-    if (!repondu.ok) {
-      noter('le service accepte la reponse', 'ko', repondu.message)
+    // `--questions` : on montre la liste et on s'arrête. C'est le pas qui manquait quand le
+    // clavier n'est pas utilisable.
+    if (drapeau('questions')) {
+      choix.forEach((entree, index) => console.log(`   ${String(index + 1).padStart(2)}. ${entree}`))
+      console.log('\nRelance avec  --choix N  pour répondre avec la proposition N.')
       return conclure()
     }
-    noter('le service accepte la reponse', 'ok', 'couple de confiance obtenu')
+
+    let retenu = null
+    if (Number.isInteger(numero) && numero >= 1 && numero <= choix.length) {
+      retenu = choix[numero - 1]
+      noter('réponse choisie à la main', 'ok', `proposition ${numero}, forme ${forme(retenu)}`)
+    } else if (donnee !== '') {
+      retenu = choiceForAnswer(choix, donnee)
+      if (retenu !== null) {
+        noter('la réponse donnée correspond', 'ok', `forme ${forme(retenu)}`)
+      } else {
+        // Le compte porte sur ce qui **se lit comme une date**, et non sur ce qui contient un
+        // chiffre : une classe s'écrit `1ERE G2`, et n'est pas une date.
+        const dates = choix.filter((entree) => readDate(entree) !== undefined).length
+        noter(
+          'la réponse donnée correspond',
+          'ko',
+          `aucune des ${choix.length} propositions n’est cette réponse (${dates} se lisent comme des dates)`,
+        )
+      }
+    }
+
+    if (retenu === null) {
+      const saisi = await demander('Numéro de la bonne réponse (vide pour arrêter) : ')
+      const choisi = Number(saisi)
+      if (!Number.isInteger(choisi) || choisi < 1 || choisi > choix.length) {
+        console.log('\nRelance avec  --questions  pour voir les propositions, puis  --choix N.')
+        return conclure()
+      }
+      retenu = choix[choisi - 1]
+    }
+
+    const repondu = await client.answerSecurityQuestion(retenu)
+    if (!repondu.ok) {
+      noter('le service accepte la réponse', 'ko', repondu.message)
+      return conclure()
+    }
+    noter('le service accepte la réponse', 'ok', 'couple de confiance obtenu')
 
     outcome = await client.login(identifiant, motdepasse, repondu.value, { fresh: true })
   } else if (outcome.ok) {
@@ -227,8 +258,8 @@ async function main() {
   }
 
   // Le jeton renouvelé sert-il vraiment ? Sans cette lecture, on ne sait rien.
-  const apres = await api.homework(compte)
-  noter('lecture après renouvellement', apres.ok ? 'ok' : 'ko', apres.ok ? `${apres.value.length} devoir(s)` : apres.message)
+  const devoirs = await api.homework(compte)
+  noter('lecture après renouvellement', devoirs.ok ? 'ok' : 'ko', devoirs.ok ? `${devoirs.value.length} devoir(s)` : devoirs.message)
 
   // ——————————————————————————————————————————— 3. la chaîne complète, sur les notes
 
@@ -254,7 +285,7 @@ async function main() {
 
   // ——————————————————————————————————————————— 4. le détail d'une journée
 
-  const aVenir = apres.ok ? apres.value.map((devoir) => devoir.dueDate).sort()[0] : undefined
+  const aVenir = devoirs.ok ? devoirs.value.map((devoir) => devoir.dueDate).sort()[0] : undefined
   if (aVenir) {
     const jour = await api.dayContent(compte, aVenir)
     noter(
