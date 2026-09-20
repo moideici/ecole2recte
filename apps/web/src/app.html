@@ -3,16 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#008673" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1c1c1c" media="(prefers-color-scheme: dark)" />
+    <!-- La couleur de la barre du navigateur suit celle du bandeau, dans les deux thèmes. -->
+    <meta name="theme-color" content="#00685a" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#10312d" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icone.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,650;0,700;1,400&display=swap"
-      rel="stylesheet"
-    />
+    <!--
+      Aucune feuille de style ni police venue d'ailleurs : la politique de contenu posée dans
+      `hooks.server.ts` n'autorise que `'self'`, et un `<link>` vers Google Fonts ne chargeait
+      donc rien — tout en annonçant l'adresse de qui visite à un tiers. La pile de polices de
+      `app.css` prend Montserrat si l'appareil l'a déjà, et celle du système sinon.
+    -->
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

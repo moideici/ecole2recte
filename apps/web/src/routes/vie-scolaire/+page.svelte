@@ -17,6 +17,25 @@
     encouragement: 'Encouragement',
     other: 'Événement',
   }
+
+  /**
+   * L'heure, quand il y en a une.
+   *
+   * Un encouragement n'a pas d'heure : la réponse du service est alors une date nue, que
+   * `timeOf` rend « 00:00 ». L'afficher ferait croire à un événement survenu à minuit.
+   */
+  function heure(instant: string): string {
+    const lu = timeOf(instant)
+    return lu === '00:00' ? '' : lu
+  }
+
+  const FILTRES: Array<[typeof filtre, string]> = [
+    ['tout', 'Tout'],
+    ['absence', 'Absences'],
+    ['late', 'Retards'],
+    ['sanction', 'Sanctions'],
+    ['encouragement', 'Encouragements'],
+  ]
 </script>
 
 <svelte:head><title>Vie scolaire — ecole2recte</title></svelte:head>
@@ -33,11 +52,9 @@
   </p>
 {/if}
 
-<div class="defilement" role="group" aria-label="Filtre" style="margin-bottom:14px">
-  {#each [['tout', 'Tout'], ['absence', 'Absences'], ['late', 'Retards'], ['sanction', 'Sanctions'], ['encouragement', 'Encouragements']] as [valeur, libelle] (valeur)}
-    <button class="pastille" aria-pressed={filtre === valeur} onclick={() => (filtre = valeur as typeof filtre)}>
-      {libelle}
-    </button>
+<div class="onglets" role="group" aria-label="Filtre">
+  {#each FILTRES as [valeur, libelle] (valeur)}
+    <button aria-pressed={filtre === valeur} onclick={() => (filtre = valeur)}>{libelle}</button>
   {/each}
 </div>
 
@@ -45,33 +62,48 @@
   <ErreurSection message="La vie scolaire n’a pas pu être chargée." cause={data.erreur.message} />
 {/if}
 
-<div class="pile">
-  {#each visibles as evenement (evenement.id)}
-    <article class="carte">
-      <div class="rangee" style="align-items:flex-start">
-        <div style="flex:1;min-width:0">
-          <p style="font-weight:600">{LIBELLES[evenement.kind] ?? evenement.label}</p>
+<section class="panneau">
+  <div class="corps-panneau serre">
+    {#each visibles as evenement (evenement.id)}
+      <article class="evenement" class:injustifiee={evenement.kind === 'absence' && !evenement.justified}>
+        <span class="filet" aria-hidden="true"></span>
+        <div class="texte">
+          <p style="font-weight:650">{LIBELLES[evenement.kind] ?? evenement.label}</p>
           <p class="discret">
-            {longDate(evenement.start)}{timeOf(evenement.start) ? ` · ${timeOf(evenement.start)}` : ''}
+            {longDate(evenement.start)}{heure(evenement.start) ? ` · ${heure(evenement.start)}` : ''}
           </p>
           {#if evenement.reason}<p class="discret">Motif : {evenement.reason}</p>{/if}
           {#if evenement.comment}<p class="discret">{evenement.comment}</p>{/if}
         </div>
-        <div style="text-align:right">
+        <div class="etat">
           <!-- La durée est celle que compte l'établissement, pas celle qu'on recalculerait. -->
-          {#if evenement.duration}<p class="discret">{evenement.duration}</p>{/if}
+          {#if evenement.duration}<p class="discret nombre">{evenement.duration}</p>{/if}
           {#if evenement.kind === 'absence'}
-            <p class={evenement.justified ? 'ok' : 'ko'}>{evenement.justified ? 'Justifiée' : 'Non justifiée'}</p>
+            <span class={evenement.justified ? 'jeton succes' : 'jeton erreur-jeton'}>
+              {evenement.justified ? 'Justifiée' : 'Non justifiée'}
+            </span>
           {/if}
         </div>
+      </article>
+    {:else}
+      <div style="padding:14px">
+        <Vide titre="Rien à signaler" description="Aucun événement pour ce filtre." />
       </div>
-    </article>
-  {:else}
-    <Vide titre="Rien à signaler" description="Aucun événement pour ce filtre." />
-  {/each}
-</div>
+    {/each}
+  </div>
+</section>
 
 <style>
-  .ok { color: var(--succes); font-size: 0.85rem; font-weight: 600; }
-  .ko { color: var(--erreur); font-size: 0.85rem; font-weight: 600; }
+  .evenement {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px 11px 0;
+    border-bottom: 1px solid var(--bordure-douce);
+  }
+  .evenement:last-child { border-bottom: 0; }
+  .filet { width: 5px; align-self: stretch; min-height: 40px; background: var(--encre-douce); border-radius: 0 3px 3px 0; flex: none; }
+  .injustifiee .filet { background: var(--erreur); }
+  .texte { flex: 1; min-width: 0; }
+  .etat { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 </style>

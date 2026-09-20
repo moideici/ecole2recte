@@ -4,6 +4,7 @@ import {
   currentLesson,
   dateOf,
   dayProgress,
+  generalAverage,
   lessonsOn,
   nextLesson,
   pendingHomework,
@@ -42,7 +43,19 @@ export const load: PageServerLoad = async ({ locals }) => {
   // plus utile qu'une liste vide.
   const prochaineJournee = suivant && dateOf(suivant.start) !== jour ? dateOf(suivant.start) : null
 
+  // La moyenne de la période en cours, arbitrée comme sur la page des notes : l'accueil ne
+  // doit pas annoncer un chiffre que le relevé contredirait deux clics plus loin.
+  const periode = snapshot.periods.find((entry) => entry.current) ?? snapshot.periods[0] ?? null
+  const moyenne = generalAverage(
+    periode?.average,
+    snapshot.grades,
+    periode?.code ?? '',
+    snapshot.subjectAverages,
+  )
+
   return {
+    periode,
+    moyenne,
     jour,
     maintenant,
     erreurs: errors,

@@ -30,12 +30,17 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Chargement par section, chacune échouant seule.
 - [x] Dates de calendrier en chaînes ISO, calculées en UTC.
 - [x] Moyennes, simulateur, note à viser, recherche insensible aux accents.
+- [x] Moyenne du bulletin **confrontée aux notes** : quand elle est manifestement celle d'avant
+      des notes déjà saisies, l'application affiche la sienne et dit laquelle manquait. Un écart
+      inexpliqué, lui, laisse le bulletin avoir raison.
 
 ## P2 — Application · fait
 
 - [x] Mandataire : le jeton ne descend jamais jusqu'au navigateur.
 - [x] Connexion, question de sécurité, déconnexion.
 - [x] Onze pages, barre latérale sur ordinateur et barre basse sur téléphone.
+- [x] Les habitudes d'un logiciel de vie scolaire : bandeau de marque, sections à icônes,
+      emploi du temps en grille hebdomadaire, relevé de notes dépliable par matière.
 - [x] Compte parent : un profil par enfant, sélecteur, messagerie de la famille.
 - [x] Compte enseignant **reconnu et annoncé comme non pris en charge** — voir P5.
 - [x] Téléchargement des pièces jointes par le serveur.
@@ -80,7 +85,8 @@ ces routes en réel (`jeromeboivin/EcoleDirecteMCP`, relevé du trafic du site, 
       classe, cahier de textes `loadslots`, grille de notes, messagerie enseignant.
 - [x] Espace `/prof` : accueil, emploi du temps, classes, élèves, cahier de textes, notes et
       messagerie. Les moyennes sont calculées à partir de la grille et annoncées comme telles.
-- [x] Démonstration sur données inventées (`ED_DEMO=1`), sans aucune requête vers ÉcoleDirecte.
+- [x] Démonstration sur données inventées (`ED_DEMO=1`), élève **et** professeur, sans aucune
+      requête vers ÉcoleDirecte.
 - [ ] **Premier aller-retour réel**, avec un professeur volontaire qui se connecte lui-même :
       connexion, catalogue, une grille de notes. Les formes relevées sur son compte par
       `tools/har/extract.mjs` remplacent alors les fixtures.

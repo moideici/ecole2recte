@@ -1,9 +1,11 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
   import Cours from '$lib/components/Cours.svelte'
+  import GrilleSemaine from '$lib/components/GrilleSemaine.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import {
+    type Lesson,
     addDays,
     currentLesson,
     duration,
@@ -17,64 +19,83 @@
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
-  let mode = $state<'jour' | 'semaine'>('jour')
 
   const actuel = $derived(currentLesson(data.duJour, data.maintenant))
-  const minutes = $derived(
+  const minutesDuJour = $derived(
     data.duJour
       .filter((cours) => !cours.canceled)
-      .reduce((total, cours) => total + Math.round((Date.parse(`${cours.end}Z`) - Date.parse(`${cours.start}Z`)) / 60000), 0),
+      .reduce((total, cours) => total + (minutes(cours.end) - minutes(cours.start)), 0),
   )
+
+  function minutes(instant: string): number {
+    return Number(instant.slice(11, 13)) * 60 + Number(instant.slice(14, 16))
+  }
+
+  /** Ce qui est à rendre dans ce cours-là : c'est là qu'on le cherche. */
+  function mention(date: string, cours: Lesson): string {
+    const devoirs = data.devoirsSemaine.filter((devoir) => devoir.dueDate === date && devoir.subject === cours.subject)
+    if (devoirs.some((devoir) => devoir.exam)) return 'Évaluation'
+    return devoirs.length > 0 ? 'À rendre' : ''
+  }
+
+  /** Le lien qui garde la vue courante : changer de semaine ne doit pas changer d'écran. */
+  function lien(jour: string): string {
+    return `?jour=${jour}&vue=${data.vue}`
+  }
 </script>
 
 <svelte:head><title>Emploi du temps — ecole2recte</title></svelte:head>
 
 <EnTete
-  surtitre={relativeDay(data.selection, data.jour)}
+  surtitre={data.vue === 'semaine' ? `Semaine du ${shortDate(data.debutSemaine)}` : relativeDay(data.selection, data.jour)}
   titre="Emploi du temps"
-  soustitre={mode === 'jour'
-    ? `${data.duJour.filter((c) => !c.canceled).length} cours · ${duration(minutes)}`
-    : `Semaine du ${shortDate(data.debutSemaine)}`}
-/>
+  soustitre={data.vue === 'jour'
+    ? `${data.duJour.filter((cours) => !cours.canceled).length} cours · ${duration(minutesDuJour)}`
+    : `${data.semaine.reduce((total, jour) => total + jour.cours, 0)} cours`}
+>
+  {#snippet actions()}
+    <div class="onglets sans-marge" role="group" aria-label="Vue">
+      <a href={`?jour=${data.selection}&vue=semaine`} aria-current={data.vue === 'semaine'}>Semaine</a>
+      <a href={`?jour=${data.selection}&vue=jour`} aria-current={data.vue === 'jour'}>Jour</a>
+    </div>
+  {/snippet}
+</EnTete>
 
-<div class="rangee" style="margin-bottom:14px;flex-wrap:wrap">
-  <div class="defilement" role="group" aria-label="Vue">
-    <button class="pastille" aria-pressed={mode === 'jour'} onclick={() => (mode = 'jour')}>Jour</button>
-    <button class="pastille" aria-pressed={mode === 'semaine'} onclick={() => (mode = 'semaine')}>Semaine</button>
-  </div>
-  <span class="espace"></span>
-  <!-- Les flèches suivent le mode : en vue « Jour » elles avancent d'un jour d'école, seul
+<div class="rangee barre">
+  <!-- Les flèches suivent la vue : en vue « Jour » elles avancent d'un jour d'école, seul
        équivalent au balayage horizontal pour qui navigue au clavier ou au lecteur d'écran. -->
   <a
     class="pastille"
-    href={`?jour=${mode === 'jour' ? previousSchoolDay(data.selection) : addDays(data.selection, -7)}`}
-  >{mode === 'jour' ? 'Jour précédent' : 'Semaine précédente'}</a>
-  <a class="pastille" href="/emploi-du-temps">Aujourd’hui</a>
+    href={lien(data.vue === 'jour' ? previousSchoolDay(data.selection) : addDays(data.selection, -7))}
+  >‹ {data.vue === 'jour' ? 'Jour précédent' : 'Semaine précédente'}</a>
+  <a class="pastille" href={`?vue=${data.vue}`}>Aujourd’hui</a>
   <a
     class="pastille"
-    href={`?jour=${mode === 'jour' ? nextSchoolDay(data.selection) : addDays(data.selection, 7)}`}
-  >{mode === 'jour' ? 'Jour suivant' : 'Semaine suivante'}</a>
+    href={lien(data.vue === 'jour' ? nextSchoolDay(data.selection) : addDays(data.selection, 7))}
+  >{data.vue === 'jour' ? 'Jour suivant' : 'Semaine suivante'} ›</a>
 </div>
 
 {#if data.erreur}
   <ErreurSection message="L’emploi du temps n’a pas pu être chargé." cause={data.erreur.message} />
 {/if}
 
-{#if mode === 'semaine'}
-  <div class="semaine">
-    {#each data.semaine as jour (jour.date)}
-      <a class="carte" href={`?jour=${jour.date}`} aria-current={jour.date === data.selection}>
-        <p class="minuscule">{relativeDay(jour.date, data.jour)}</p>
-        <p style="font-weight:600">{shortDate(jour.date)}</p>
-        <p class="discret">{jour.cours === 0 ? 'Pas de cours' : `${jour.cours} cours · ${duration(jour.minutes)}`}</p>
-      </a>
-    {/each}
-  </div>
+{#if data.vue === 'semaine'}
+  <section class="panneau">
+    <GrilleSemaine
+      jours={data.semaine}
+      debut={data.grille.debut}
+      fin={data.grille.fin}
+      aujourdhui={data.jour}
+      lien={(date) => `?jour=${date}&vue=jour`}
+      {mention}
+    />
+  </section>
 {:else}
   <div class="pile">
+    <h2 class="titre-jour">{longDate(data.selection)}</h2>
     {#each data.duJour as cours (cours.id)}
       <Cours {cours} actuel={actuel?.id === cours.id} />
-      {#each data.devoirsDuJour.filter((d) => d.subject === cours.subject) as devoir (devoir.id)}
+      {#each data.devoirsDuJour.filter((devoir) => devoir.subject === cours.subject) as devoir (devoir.id)}
         <p class="attache">À rendre : {devoir.content || devoir.subject}</p>
       {/each}
     {:else}
@@ -91,10 +112,10 @@
 {/if}
 
 <style>
-  .semaine { display: grid; gap: 10px; grid-template-columns: 1fr; }
-  @media (min-width: 700px) { .semaine { grid-template-columns: repeat(3, 1fr); } }
-  .semaine a { text-decoration: none; }
-  .semaine a[aria-current='true'] { border-color: var(--accent); }
+  .sans-marge { border-bottom: 0; margin-bottom: 0; }
+  .barre { flex-wrap: wrap; margin-bottom: 14px; }
+  .titre-jour { margin-bottom: 4px; }
+
   .attache {
     margin-left: 18px;
     padding: 8px 12px;

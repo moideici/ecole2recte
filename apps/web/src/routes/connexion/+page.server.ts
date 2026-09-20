@@ -10,7 +10,7 @@ import {
   parseAccounts,
 } from '@ecole2recte/protocol'
 import { env } from '$env/dynamic/private'
-import { DEMO_LOGIN, demoEnabled } from '$lib/server/demo.js'
+import { DEMO_LOGIN, DEMO_STUDENT_LOGIN, demoEnabled } from '$lib/server/demo.js'
 import { seal, unseal } from '$lib/server/seal.js'
 import { setSessionCookie } from '$lib/server/session.js'
 import { sessions } from '$lib/server/store.js'
@@ -146,12 +146,15 @@ export const actions: Actions = {
   },
 
   /**
-   * L'espace professeur sur données inventées. Une session de démonstration n'a ni jeton ni
-   * identifiants, et son moteur ne parle qu'à un faux serveur local.
+   * L'application sur données inventées, côté élève ou côté professeur. Une session de
+   * démonstration n'a ni jeton ni identifiants, et son moteur ne parle qu'à un faux serveur
+   * local : rien ne part vers ÉcoleDirecte.
    */
-  demo: async ({ cookies, url }) => {
+  demo: async ({ request, cookies, url }) => {
     if (!demoEnabled()) return fail(404, { message: 'La démonstration n’est pas activée sur ce serveur.' })
-    const accounts = parseAccounts(DEMO_LOGIN)
+    const form = await request.formData()
+    const prof = String(form.get('profil') ?? 'eleve') === 'prof'
+    const accounts = parseAccounts(prof ? DEMO_LOGIN : DEMO_STUDENT_LOGIN)
     const id = await sessions.create({
       protocol: createSession(),
       accounts,
@@ -161,7 +164,7 @@ export const actions: Actions = {
       demo: true,
     })
     setSessionCookie(cookies, id, secure(url))
-    redirect(303, '/prof')
+    redirect(303, prof ? '/prof' : '/')
   },
 }
 

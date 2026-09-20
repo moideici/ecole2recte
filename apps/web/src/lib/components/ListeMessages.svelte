@@ -46,55 +46,59 @@
       : `${nonLus} message${nonLus > 1 ? 's' : ''} non lu${nonLus > 1 ? 's' : ''}`}
 />
 
-<label class="pile" style="gap:6px;margin-bottom:12px">
-  <span class="minuscule">Rechercher</span>
-  <input
-    class="champ"
-    bind:value={recherche}
-    type="search"
-    placeholder={dossier === 'sent' ? 'Un destinataire, un objet…' : 'Un expéditeur, un objet…'}
-  />
-</label>
-
-<div class="defilement" role="group" aria-label="Dossier" style="margin-bottom:10px">
+<div class="onglets" role="group" aria-label="Dossier">
   {#each MESSAGE_FOLDERS as entree (entree)}
-    <a class="pastille" href={`${base}?dossier=${entree}`} aria-current={entree === dossier}>
-      {MESSAGE_FOLDER_LABELS[entree]}
-    </a>
+    <a href={`${base}?dossier=${entree}`} aria-current={entree === dossier}>{MESSAGE_FOLDER_LABELS[entree]}</a>
   {/each}
 </div>
 
-{#if dossier === 'received'}
-  <div class="defilement" role="group" aria-label="Lecture" style="margin-bottom:14px">
-    <button class="pastille" aria-pressed={!nonLusSeuls} onclick={() => (nonLusSeuls = false)}>Tous</button>
-    <button class="pastille" aria-pressed={nonLusSeuls} onclick={() => (nonLusSeuls = true)}>Non lus</button>
-  </div>
-{/if}
+<div class="commandes">
+  <label class="pile" style="gap:6px;flex:1;min-width:200px;max-width:420px">
+    <span class="minuscule">Rechercher</span>
+    <input
+      class="champ"
+      bind:value={recherche}
+      type="search"
+      placeholder={dossier === 'sent' ? 'Un destinataire, un objet…' : 'Un expéditeur, un objet…'}
+    />
+  </label>
+  {#if dossier === 'received'}
+    <div class="defilement" role="group" aria-label="Lecture">
+      <button class="pastille" aria-pressed={!nonLusSeuls} onclick={() => (nonLusSeuls = false)}>Tous</button>
+      <button class="pastille" aria-pressed={nonLusSeuls} onclick={() => (nonLusSeuls = true)}>Non lus</button>
+    </div>
+  {/if}
+</div>
 
 {#if erreur}
   <ErreurSection message="La messagerie n’a pas pu être chargée." cause={erreur.message} />
 {/if}
 
-<div class="pile">
-  {#each visibles as message (message.id)}
-    <a class="carte rangee" href={`${base}/${message.id}?dossier=${dossier}`} style="align-items:flex-start">
-      <div style="flex:1;min-width:0">
-        <p class:gras={!message.read}>{message.interlocuteur}</p>
-        <p class="objet" class:gras={!message.read}>{message.subject}</p>
-        {#if message.preview}<p class="extrait">{message.preview}</p>{/if}
+<section class="panneau">
+  <div class="corps-panneau serre">
+    {#each visibles as message (message.id)}
+      <a class="ligne" class:nonlu={!message.read} href={`${base}/${message.id}?dossier=${dossier}`}>
+        <span class="point" aria-hidden="true"></span>
+        <span class="texte">
+          <span class="de" class:gras={!message.read}>{message.interlocuteur}</span>
+          <span class="objet" class:gras={!message.read}>{message.subject}</span>
+          {#if message.preview}<span class="extrait">{message.preview}</span>{/if}
+        </span>
+        <span class="quand discret">
+          {#if message.date}{listStamp(message.date, jour)}{/if}
+          {#if !message.read}<span class="jeton accent">Non lu</span>{/if}
+        </span>
+      </a>
+    {:else}
+      <div style="padding:14px">
+        <Vide
+          titre={recherche ? 'Aucun résultat' : 'Aucun message'}
+          description={recherche ? 'Rien ne correspond à ce filtre.' : 'Ce dossier est vide.'}
+        />
       </div>
-      <div style="text-align:right">
-        {#if message.date}<p class="discret">{listStamp(message.date, jour)}</p>{/if}
-        {#if !message.read}<span class="point" aria-label="Non lu"></span>{/if}
-      </div>
-    </a>
-  {:else}
-    <Vide
-      titre={recherche ? 'Aucun résultat' : 'Aucun message'}
-      description={recherche ? 'Rien ne correspond à ce filtre.' : 'Ce dossier est vide.'}
-    />
-  {/each}
-</div>
+    {/each}
+  </div>
+</section>
 
 <!-- L'année entière dépasse une page : elle se charge à la demande, jamais d'un coup. -->
 <div class="rangee" style="margin-top:18px;justify-content:center;gap:12px">
@@ -107,18 +111,36 @@
 </div>
 
 <style>
+  .commandes { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+
+  .ligne {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--bordure-douce);
+    text-decoration: none;
+    color: inherit;
+  }
+  .ligne:last-child { border-bottom: 0; }
+  .ligne:hover { background: var(--surface-2); }
+  .ligne.nonlu { background: color-mix(in srgb, var(--accent-doux) 45%, var(--surface)); }
+
+  .point { width: 8px; height: 8px; border-radius: 50%; background: transparent; margin-top: 8px; flex: none; }
+  .nonlu .point { background: var(--accent); }
+
+  .texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .gras { font-weight: 700; }
-  .objet { margin-top: 2px; }
+  .de { font-size: 0.94rem; }
+  .objet { font-size: 0.94rem; }
+  .quand { text-align: right; white-space: nowrap; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
   .extrait {
     color: var(--encre-douce);
-    font-size: 0.88rem;
-    margin-top: 4px;
+    font-size: 0.86rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .point { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); margin-top: 6px; }
-  a.carte { text-decoration: none; }
 </style>

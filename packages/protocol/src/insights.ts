@@ -1,6 +1,6 @@
 import { dateOf, minutesBetween } from './dates.js'
 import type { Grade, HomeworkItem, Lesson, MessageItem, SchoolLifeEvent, SubjectAverage } from './models.js'
-import { outOfTwenty } from './models.js'
+import { isSubSubject, outOfTwenty } from './models.js'
 
 /**
  * Ce que les données veulent dire.
@@ -108,14 +108,189 @@ export function weightedAverage(grades: Grade[]): number | undefined {
   return weight === 0 ? undefined : total / weight
 }
 
-/** La moyenne officielle si elle existe, la moyenne calculée sinon — et il faut le dire. */
+/**
+ * L'écart en deçà duquel deux moyennes sont la même.
+ *
+ * Une moyenne publiée arrive arrondie — « 14,26 », parfois « 14,3 ». Comparer à l'unité près
+ * ferait passer chaque arrondi pour un désaccord.
+ */
+const AVERAGE_TOLERANCE = 0.055
+
+/**
+ * D'où vient la moyenne affichée.
+ *
+ * - `official` : celle de l'établissement, et elle connaît les dernières notes.
+ * - `recomputed` : celle de l'établissement a été calculée **avant** des notes déjà saisies ;
+ *   on affiche la nôtre, à jour, et on dit lesquelles manquaient.
+ * - `computed` : l'établissement n'en publie pas ; on calcule, et on le dit.
+ * - `none` : rien de chiffré à afficher.
+ */
+export type AverageOrigin = 'official' | 'recomputed' | 'computed' | 'none'
+
+export interface AverageVerdict {
+  /** La moyenne à afficher, sur 20. */
+  value: number | undefined
+  /** Vrai quand la valeur affichée sort de notre calcul et non du bulletin. */
+  computed: boolean
+  origin: AverageOrigin
+  /** Celle que l'établissement publie, quand il en publie une — gardée même écartée. */
+  official: number | undefined
+  /** Les notes que la moyenne publiée ne connaît pas encore, la plus récente en tête. */
+  behind: Grade[]
+}
+
+function byDateDesc(left: Grade, right: Grade): number {
+  return (right.date ?? '').localeCompare(left.date ?? '')
+}
+
+/**
+ * Les notes arrivées après le calcul de la moyenne publiée.
+ *
+ * ÉcoleDirecte n'expose aucune date de calcul : la seule façon de savoir sans la deviner est
+ * de retirer les notes une à une, de la plus récente à la plus ancienne, et de regarder si la
+ * moyenne publiée réapparaît. Si oui, elle a été calculée avant celles qu'on vient d'ôter.
+ *
+ * Une note sans date arrête la recherche : on ne peut pas dire d'elle qu'elle est « après ».
+ */
+function gradesBehind(grades: Grade[], official: number): Grade[] {
+  const ordered = [...grades].sort(byDateDesc)
+  for (let dropped = 1; dropped < ordered.length; dropped += 1) {
+    if (ordered[dropped - 1]?.date === undefined) break
+    const partial = weightedAverage(ordered.slice(dropped))
+    if (partial !== undefined && Math.abs(partial - official) <= AVERAGE_TOLERANCE) {
+      return ordered.slice(0, dropped)
+    }
+  }
+  return []
+}
+
+/**
+ * La moyenne d'un lot de notes, confrontée à celle que l'établissement publie.
+ *
+ * La règle reste celle du bulletin : **l'établissement prime**, parce que tous les
+ * coefficients ne sont pas exposés et que les règles de calcul lui appartiennent. Avec une
+ * exception, et une seule : quand sa moyenne est manifestement celle d'**avant** des notes
+ * déjà saisies, l'afficher revient à cacher la dernière note. On affiche alors la nôtre, et
+ * on dit laquelle manquait.
+ */
+export function reconcileAverage(official: number | undefined, grades: Grade[]): AverageVerdict {
+  const usable = grades.filter((grade) => grade.counted && outOfTwenty(grade) !== undefined)
+  const computed = weightedAverage(usable)
+
+  if (official === undefined) {
+    return {
+      value: computed,
+      computed: computed !== undefined,
+      origin: computed === undefined ? 'none' : 'computed',
+      official,
+      behind: [],
+    }
+  }
+  if (computed === undefined || Math.abs(computed - official) <= AVERAGE_TOLERANCE) {
+    return { value: official, computed: false, origin: 'official', official, behind: [] }
+  }
+
+  const behind = gradesBehind(usable, official)
+  if (behind.length === 0) {
+    // Un écart sans explication n'est pas un retard : coefficients cachés, règle maison,
+    // matière regroupée. Dans le doute, le bulletin a raison.
+    return { value: official, computed: false, origin: 'official', official, behind: [] }
+  }
+  return { value: computed, computed: true, origin: 'recomputed', official, behind }
+}
+
+export interface SubjectVerdict {
+  average: SubjectAverage
+  verdict: AverageVerdict
+}
+
+/** Le même arbitrage, matière par matière, sur une période. */
+export function reconcileSubjectAverages(
+  averages: SubjectAverage[],
+  grades: Grade[],
+  periodCode: string,
+): SubjectVerdict[] {
+  return averages
+    .filter((entry) => entry.periodCode === periodCode)
+    .map((entry) => ({
+      average: entry,
+      verdict: reconcileAverage(entry.average, gradesFor(grades, periodCode, entry.subject)),
+    }))
+}
+
+/**
+ * La moyenne générale à partir des moyennes de matières, pondérées par leur coefficient.
+ *
+ * C'est ainsi que le bulletin la fait, et c'est ce qui la distingue d'une moyenne à plat de
+ * toutes les notes : celle-ci ferait peser une matière à six devoirs trois fois plus qu'une
+ * matière à deux, quel que soit son coefficient.
+ */
+export function averageOfSubjects(subjects: SubjectVerdict[]): number | undefined {
+  let total = 0
+  let weight = 0
+  for (const entry of subjects) {
+    // Une sous-matière est déjà comptée dans sa mère : l'ajouter la compterait deux fois.
+    if (isSubSubject(entry.average)) continue
+    const value = entry.verdict.value
+    if (value === undefined) continue
+    const declared = entry.average.coefficient ?? 1
+    const coefficient = declared > 0 ? declared : 1
+    total += value * coefficient
+    weight += coefficient
+  }
+  return weight === 0 ? undefined : total / weight
+}
+
+/**
+ * La moyenne générale de la période.
+ *
+ * Sans moyennes de matières, on retombe sur la moyenne à plat des notes — c'est tout ce
+ * qu'on peut faire. Et dès qu'**une** matière a été notée après le calcul du bulletin, la
+ * moyenne générale qu'il publie est antérieure elle aussi : elle est recalculée.
+ */
 export function generalAverage(
   official: number | undefined,
   grades: Grade[],
   periodCode: string,
-): { value: number | undefined; computed: boolean } {
-  if (official !== undefined) return { value: official, computed: false }
-  return { value: weightedAverage(gradesFor(grades, periodCode)), computed: true }
+  averages: SubjectAverage[] = [],
+): AverageVerdict {
+  const subjects = reconcileSubjectAverages(averages, grades, periodCode)
+  const behind = subjects.flatMap((entry) => entry.verdict.behind).sort(byDateDesc)
+  const mine = averageOfSubjects(subjects) ?? weightedAverage(gradesFor(grades, periodCode))
+
+  if (official === undefined) {
+    return {
+      value: mine,
+      computed: mine !== undefined,
+      origin: mine === undefined ? 'none' : 'computed',
+      official,
+      behind: [],
+    }
+  }
+  if (behind.length === 0 || mine === undefined) {
+    return { value: official, computed: false, origin: 'official', official, behind: [] }
+  }
+  return { value: mine, computed: true, origin: 'recomputed', official, behind }
+}
+
+/** La note qu'on n'a pas encore, telle qu'elle compterait si on l'avait. */
+function hypotheticalGrade(
+  periodCode: string,
+  options: { subject?: string; value: number; scale?: number; coefficient?: number },
+): Grade {
+  return {
+    id: '__simulation__',
+    subject: options.subject ?? '',
+    label: 'Simulation',
+    value: options.value,
+    scale: options.scale ?? 20,
+    coefficient: options.coefficient ?? 1,
+    periodCode,
+    counted: true,
+    comment: '',
+    kind: '',
+    skills: [],
+  }
 }
 
 export interface Simulation {
@@ -130,23 +305,9 @@ export function simulate(
   periodCode: string,
   options: { subject?: string; value: number; scale?: number; coefficient?: number },
 ): Simulation {
-  const scale = options.scale ?? 20
   const existing = gradesFor(grades, periodCode, options.subject)
   const before = weightedAverage(existing)
-  const hypothetical: Grade = {
-    id: '__simulation__',
-    subject: options.subject ?? '',
-    label: 'Simulation',
-    value: options.value,
-    scale,
-    coefficient: options.coefficient ?? 1,
-    periodCode,
-    counted: true,
-    comment: '',
-    kind: '',
-    skills: [],
-  }
-  const after = weightedAverage([...existing, hypothetical])
+  const after = weightedAverage([...existing, hypotheticalGrade(periodCode, options)])
   return {
     before,
     after,

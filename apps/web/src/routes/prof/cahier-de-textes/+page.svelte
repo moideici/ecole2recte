@@ -32,10 +32,10 @@
 </div>
 
 {#if data.groupes.length > 1 || data.groupe !== ''}
-  <div class="defilement" role="group" aria-label="Classe" style="margin-bottom:14px">
-    <a class="pastille" href={lien(data.debut, '')} aria-current={data.groupe === ''}>Toutes</a>
+  <div class="onglets" role="group" aria-label="Classe">
+    <a href={lien(data.debut, '')} aria-current={data.groupe === ''}>Toutes</a>
     {#each data.groupes as groupe (groupe.cle)}
-      <a class="pastille" href={lien(data.debut, groupe.cle)} aria-current={data.groupe === groupe.cle}>{groupe.libelle}</a>
+      <a href={lien(data.debut, groupe.cle)} aria-current={data.groupe === groupe.cle}>{groupe.libelle}</a>
     {/each}
   </div>
 {/if}

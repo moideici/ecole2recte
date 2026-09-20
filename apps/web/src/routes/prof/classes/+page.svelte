@@ -30,7 +30,7 @@
     <article class="carte pile" style="gap:8px">
       <div class="rangee" style="align-items:baseline;flex-wrap:wrap">
         <h2 style="flex:1">{groupe.libelle}</h2>
-        {#if groupe.pp}<span class="badge">Professeur principal</span>{/if}
+        {#if groupe.pp}<span class="jeton accent">Professeur principal</span>{/if}
       </div>
       <p class="discret">
         {groupe.type === 'C' ? 'Classe' : 'Groupe'}{groupe.code ? ` · ${groupe.code}` : ''}{groupe.periode ? ` · ${groupe.periode}` : ''}
@@ -49,12 +49,4 @@
 <style>
   .liste { display: grid; gap: 12px; }
   @media (min-width: 700px) { .liste { grid-template-columns: repeat(2, 1fr); } }
-  .badge {
-    font-size: 0.78rem;
-    font-weight: 650;
-    color: var(--accent);
-    background: var(--accent-doux);
-    border-radius: 999px;
-    padding: 2px 10px;
-  }
 </style>

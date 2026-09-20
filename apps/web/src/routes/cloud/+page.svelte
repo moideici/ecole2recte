@@ -34,26 +34,40 @@
   />
 {/if}
 
-<div class="pile">
-  {#each visibles as fichier (fichier.id)}
-    <a
-      class="carte rangee"
-      href={`/piece-jointe/resource/${fichier.id}?nom=${encodeURIComponent(fichier.name)}&type=CLOUD`}
-      style="align-items:flex-start"
-    >
-      <div style="flex:1;min-width:0">
-        <p style="font-weight:600">{fichier.name}</p>
-        <!-- L'arborescence est aplatie : le chemin reste, la navigation disparaît. -->
-        {#if fichier.folder}<p class="discret">{fichier.folder}</p>{/if}
+<section class="panneau">
+  <div class="corps-panneau serre">
+    {#each visibles as fichier (fichier.id)}
+      <a class="ligne" href={`/piece-jointe/resource/${fichier.id}?nom=${encodeURIComponent(fichier.name)}&type=CLOUD`}>
+        <span class="texte">
+          <span style="font-weight:600">{fichier.name}</span>
+          <!-- L'arborescence est aplatie : le chemin reste, la navigation disparaît. -->
+          {#if fichier.folder}<span class="discret">{fichier.folder}</span>{/if}
+        </span>
+        <span class="meta discret">
+          {#if fichier.date}<span>{longDate(fichier.date)}</span>{/if}
+          {#if fichier.size !== undefined}<span class="nombre">{taille(fichier.size)}</span>{/if}
+        </span>
+      </a>
+    {:else}
+      <div style="padding:14px">
+        <Vide titre="Aucun fichier" description="Rien n’est partagé, ou le module est fermé." />
       </div>
-      <div style="text-align:right">
-        {#if fichier.date}<p class="discret">{longDate(fichier.date)}</p>{/if}
-        {#if fichier.size !== undefined}<p class="discret">{taille(fichier.size)}</p>{/if}
-      </div>
-    </a>
-  {:else}
-    <Vide titre="Aucun fichier" description="Rien n’est partagé, ou le module est fermé." />
-  {/each}
-</div>
+    {/each}
+  </div>
+</section>
 
-<style>a.carte { text-decoration: none; }</style>
+<style>
+  .ligne {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--bordure-douce);
+    text-decoration: none;
+    color: inherit;
+  }
+  .ligne:last-child { border-bottom: 0; }
+  .ligne:hover { background: var(--surface-2); }
+  .texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .meta { text-align: right; display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+</style>

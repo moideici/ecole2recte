@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { parseGrades } from '../src/parse/grades.js'
 import { parseTimetable } from '../src/parse/timetable.js'
 import {
+  averageOfSubjects,
   currentLesson,
   dayProgress,
   gaps,
@@ -9,12 +10,14 @@ import {
   matches,
   nextLesson,
   pendingHomework,
+  reconcileAverage,
+  reconcileSubjectAverages,
   requiredGrade,
   simulate,
   unreadMessages,
   weightedAverage,
 } from '../src/insights.js'
-import type { HomeworkItem, MessageItem } from '../src/models.js'
+import type { Grade, HomeworkItem, MessageItem, SubjectAverage } from '../src/models.js'
 import * as fixtures from './fixtures.js'
 
 const cours = parseTimetable(fixtures.TIMETABLE)
@@ -52,12 +55,15 @@ describe('moyennes', () => {
 
   it('préfère la moyenne de l’établissement à la sienne', () => {
     const officielle = generalAverage(periods[0]?.average, grades, 'A001')
-    expect(officielle).toEqual({ value: 13.42, computed: false })
+    expect(officielle.value).toBe(13.42)
+    expect(officielle.computed).toBe(false)
+    expect(officielle.origin).toBe('official')
   })
 
   it('annonce clairement quand elle calcule', () => {
     const calculee = generalAverage(undefined, grades, 'A001')
     expect(calculee.computed).toBe(true)
+    expect(calculee.origin).toBe('computed')
     expect(calculee.value).toBeCloseTo(15.5, 5)
   })
 
@@ -66,6 +72,118 @@ describe('moyennes', () => {
       { ...(grades[0] as (typeof grades)[number]), id: 'x', value: 5, scale: 5, coefficient: 1 },
     ]
     expect(weightedAverage(surCinq)).toBe(20)
+  })
+})
+
+describe('moyenne publiée en retard', () => {
+  function note(
+    id: string,
+    value: number,
+    date: string | undefined,
+    options: { subject?: string; coefficient?: number } = {},
+  ): Grade {
+    const grade: Grade = {
+      id,
+      subject: options.subject ?? 'Mathématiques',
+      label: `Devoir ${id}`,
+      value,
+      scale: 20,
+      coefficient: options.coefficient ?? 1,
+      periodCode: 'A001',
+      counted: true,
+      comment: '',
+      kind: '',
+      skills: [],
+    }
+    if (date !== undefined) grade.date = date
+    return grade
+  }
+
+  function matiere(subject: string, average: number | undefined, coefficient: number): SubjectAverage {
+    const entry: SubjectAverage = {
+      periodCode: 'A001',
+      subject,
+      teacher: '',
+      teachers: [],
+      appreciation: '',
+      parentSubject: '',
+      coefficient,
+    }
+    if (average !== undefined) entry.average = average
+    return entry
+  }
+
+  const avant = note('1', 12, '2026-09-01')
+  const derniere = note('2', 16, '2026-09-15')
+
+  it('garde celle de l’établissement quand elle connaît la dernière note', () => {
+    const verdict = reconcileAverage(14, [avant, derniere])
+    expect(verdict.origin).toBe('official')
+    expect(verdict.value).toBe(14)
+    expect(verdict.behind).toEqual([])
+  })
+
+  it('tolère l’arrondi du bulletin, qui n’est pas un désaccord', () => {
+    // 14,00 publié « 14,0 » : à 0,05 près, c'est la même moyenne.
+    expect(reconcileAverage(14.04, [avant, derniere]).origin).toBe('official')
+  })
+
+  it('calcule la sienne quand la publiée est celle d’avant la dernière note', () => {
+    const verdict = reconcileAverage(12, [avant, derniere])
+    expect(verdict.origin).toBe('recomputed')
+    expect(verdict.value).toBeCloseTo(14, 5)
+    expect(verdict.official).toBe(12)
+    expect(verdict.behind.map((grade) => grade.id)).toEqual(['2'])
+  })
+
+  it('remonte jusqu’à la dernière moyenne qui colle, fût-ce deux notes en arrière', () => {
+    const encoreAvant = note('0', 10, '2026-08-25')
+    // 10 seule : la publiée ignore les deux notes suivantes.
+    const verdict = reconcileAverage(10, [encoreAvant, avant, derniere])
+    expect(verdict.origin).toBe('recomputed')
+    expect(verdict.behind.map((grade) => grade.id)).toEqual(['2', '1'])
+  })
+
+  it('laisse le bulletin avoir raison sur un écart inexpliqué', () => {
+    // Aucun retrait ne retombe sur 5 : coefficient caché, règle maison. Dans le doute, lui.
+    const verdict = reconcileAverage(5, [avant, derniere])
+    expect(verdict.origin).toBe('official')
+    expect(verdict.value).toBe(5)
+  })
+
+  it('ne dit « après » d’aucune note sans date', () => {
+    const verdict = reconcileAverage(12, [note('1', 12, undefined), note('2', 16, undefined)])
+    expect(verdict.origin).toBe('official')
+  })
+
+  it('calcule et le dit quand l’établissement ne publie rien', () => {
+    const verdict = reconcileAverage(undefined, [avant, derniere])
+    expect(verdict.origin).toBe('computed')
+    expect(verdict.computed).toBe(true)
+    expect(verdict.value).toBeCloseTo(14, 5)
+  })
+
+  it('recalcule la générale dès qu’une matière est en retard', () => {
+    const notes = [avant, derniere, note('3', 8, '2026-09-10', { subject: 'Anglais' })]
+    const matieres = [matiere('Mathématiques', 12, 4), matiere('Anglais', 8, 2)]
+    const verdict = generalAverage(10.67, notes, 'A001', matieres)
+    expect(verdict.origin).toBe('recomputed')
+    // (14 × 4 + 8 × 2) / 6 : une moyenne de moyennes, pondérée par les coefficients.
+    expect(verdict.value).toBeCloseTo(12, 5)
+    expect(verdict.behind.map((grade) => grade.id)).toEqual(['2'])
+  })
+
+  it('garde la générale du bulletin tant qu’aucune matière n’est en retard', () => {
+    const matieres = [matiere('Mathématiques', 14, 4)]
+    const verdict = generalAverage(13.42, [avant, derniere], 'A001', matieres)
+    expect(verdict.origin).toBe('official')
+    expect(verdict.value).toBe(13.42)
+  })
+
+  it('ne compte pas deux fois une spécialité rangée sous son tronc commun', () => {
+    const sous: SubjectAverage = { ...matiere('Spé maths', 18, 2), parentSubject: 'Mathématiques' }
+    const subjects = reconcileSubjectAverages([matiere('Mathématiques', 10, 2), sous], [], 'A001')
+    expect(averageOfSubjects(subjects)).toBeCloseTo(10, 5)
   })
 })
 

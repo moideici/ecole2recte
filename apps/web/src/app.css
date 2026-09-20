@@ -7,77 +7,109 @@
  *
  * Les tailles suivent la même règle que l'application Android : cibles tactiles d'au moins
  * 44 px, contrastes tenus, et rien qui ne dépende de la couleur seule pour être compris.
+ *
+ * La disposition reprend celle d'un logiciel de vie scolaire : un bandeau de marque en haut,
+ * les sections à gauche, et le contenu en panneaux blancs sur fond gris. C'est une habitude
+ * d'usage, pas une coquetterie — on cherche « Notes » là où on a toujours cliqué.
  */
 
 :root {
   color-scheme: light dark;
 
   /* Le nuancier de Pronote : teal de marque, bleu d'info, fond crème plutôt que blanc pur. */
-  --fond: #f8f8f8;
+  --fond: #eef0f2;
   --surface: #ffffff;
-  --surface-2: #f0f0ee;
-  --bordure: #e2e2e2;
-  --encre: #333333;
-  --encre-douce: #6b6e77;
+  --surface-2: #f4f5f7;
+  --surface-3: #e8eaed;
+  --bordure: #dcdfe3;
+  --bordure-douce: #eceef1;
+  --encre: #22262b;
+  --encre-douce: #646b75;
   --accent: #008673;
+  --accent-fort: #00685a;
   --accent-doux: #d9f2ee;
   --accent-encre: #ffffff;
-  --lien: #0e78d5;
+  --bandeau: #00685a;
+  --bandeau-encre: #ffffff;
+  --bandeau-encre-douce: #bfe4de;
+  --lien: #0e6fc4;
   --succes: #1c5700;
-  --succes-doux: #97e47c;
-  --alerte: #643c00;
-  --alerte-doux: #f7c983;
-  --erreur: #720000;
-  --erreur-doux: #ffdbdb;
+  --succes-doux: #d8f3cb;
+  --alerte: #6d4200;
+  --alerte-doux: #fdeccd;
+  --erreur: #8a0b0b;
+  --erreur-doux: #ffe1e1;
 
-  --rayon: 0.7rem;
+  --rayon: 0.6rem;
   --rayon-petit: 0.35rem;
+  --rayon-grand: 0.9rem;
   --marge: 16px;
-  --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 8px 24px rgb(16 24 40 / 5%);
+  --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
+  --ombre-haute: 0 4px 12px rgb(16 24 40 / 10%), 0 12px 32px rgb(16 24 40 / 8%);
 
-  --police: 'Montserrat', Arial, Verdana, Geneva, Helvetica, sans-serif;
+  /*
+   * Montserrat si l'appareil l'a déjà, la police du système sinon : la politique de contenu
+   * n'autorise aucune ressource extérieure, et une police qu'on ne peut pas charger ne doit
+   * pas décider de la mise en page.
+   */
+  --police: 'Montserrat', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto,
+    Arial, Helvetica, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='clair']) {
-    --fond: #1c1c1c;
-    --surface: #282828;
-    --surface-2: #333333;
-    --bordure: #3c3c3c;
+    --fond: #16181b;
+    --surface: #23262a;
+    --surface-2: #2c3035;
+    --surface-3: #363b41;
+    --bordure: #3a3f45;
+    --bordure-douce: #2f3338;
     --encre: #f0efeb;
-    --encre-douce: #a5a5a5;
-    --accent: #11acb1;
-    --accent-doux: #0b3d3e;
-    --accent-encre: #0d1017;
-    --lien: #4ba3e8;
-    --succes: #97e47c;
-    --succes-doux: #1c5700;
+    --encre-douce: #a7aeb6;
+    --accent: #2ab5a3;
+    --accent-fort: #16998a;
+    --accent-doux: #103a36;
+    --accent-encre: #08110f;
+    --bandeau: #10312d;
+    --bandeau-encre: #eafaf7;
+    --bandeau-encre-douce: #8fc7bf;
+    --lien: #62aeec;
+    --succes: #9ee584;
+    --succes-doux: #1d3d12;
     --alerte: #f7c983;
-    --alerte-doux: #643c00;
-    --erreur: #ffdbdb;
-    --erreur-doux: #3c0101;
-    --ombre: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+    --alerte-doux: #43310f;
+    --erreur: #ffb4b4;
+    --erreur-doux: #3c1414;
+    --ombre: 0 1px 2px rgb(0 0 0 / 45%), 0 1px 3px rgb(0 0 0 / 35%);
+    --ombre-haute: 0 4px 12px rgb(0 0 0 / 45%), 0 12px 32px rgb(0 0 0 / 35%);
   }
 }
 
 :root[data-theme='sombre'] {
-  --fond: #1c1c1c;
-  --surface: #282828;
-  --surface-2: #333333;
-  --bordure: #3c3c3c;
+  --fond: #16181b;
+  --surface: #23262a;
+  --surface-2: #2c3035;
+  --surface-3: #363b41;
+  --bordure: #3a3f45;
+  --bordure-douce: #2f3338;
   --encre: #f0efeb;
-  --encre-douce: #a5a5a5;
-  --accent: #11acb1;
-  --accent-doux: #0b3d3e;
-  --accent-encre: #0d1017;
-  --lien: #4ba3e8;
-  --succes: #97e47c;
-  --succes-doux: #1c5700;
+  --encre-douce: #a7aeb6;
+  --accent: #2ab5a3;
+  --accent-fort: #16998a;
+  --accent-doux: #103a36;
+  --accent-encre: #08110f;
+  --bandeau: #10312d;
+  --bandeau-encre: #eafaf7;
+  --bandeau-encre-douce: #8fc7bf;
+  --lien: #62aeec;
+  --succes: #9ee584;
+  --succes-doux: #1d3d12;
   --alerte: #f7c983;
-  --alerte-doux: #643c00;
-  --erreur: #ffdbdb;
-  --erreur-doux: #3c0101;
-  --ombre: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+  --alerte-doux: #43310f;
+  --erreur: #ffb4b4;
+  --erreur-doux: #3c1414;
+  --ombre: 0 1px 2px rgb(0 0 0 / 45%), 0 1px 3px rgb(0 0 0 / 35%);
+  --ombre-haute: 0 4px 12px rgb(0 0 0 / 45%), 0 12px 32px rgb(0 0 0 / 35%);
 }
 
 * { box-sizing: border-box; }
@@ -94,9 +126,9 @@ html, body {
 }
 
 h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
-h1 { font-size: 1.65rem; }
-h2 { font-size: 1.15rem; }
-h3 { font-size: 1rem; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.05rem; }
+h3 { font-size: 0.95rem; }
 p { margin: 0; }
 
 a { color: var(--lien); }
@@ -108,12 +140,14 @@ a { color: var(--lien); }
   border-radius: 4px;
 }
 
+/* ————————————————————————————————————————————————— surfaces */
+
 .carte {
   background: var(--surface);
   border: 1px solid var(--bordure);
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
 
 a.carte, button.carte {
@@ -128,11 +162,40 @@ a.carte, button.carte {
 
 a.carte:hover, button.carte:hover { border-color: var(--accent); }
 
+/*
+ * Le panneau : le bloc de contenu d'une section, avec son titre au-dessus.
+ *
+ * C'est l'unité de lecture de la page — une section ne s'étale pas sur le fond, elle occupe
+ * un panneau, et on voit du premier coup d'œil où elle commence et où elle finit.
+ */
+.panneau {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon-grand);
+  box-shadow: var(--ombre);
+  overflow: hidden;
+}
+
+.panneau > .tete-panneau {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bordure-douce);
+  background: var(--surface-2);
+}
+
+.panneau > .corps-panneau { padding: 14px 16px; }
+.panneau > .corps-panneau.serre { padding: 0; }
+
 .pile { display: flex; flex-direction: column; gap: 10px; }
 .rangee { display: flex; align-items: center; gap: 10px; }
 .espace { flex: 1; }
 .discret { color: var(--encre-douce); font-size: 0.9rem; }
-.minuscule { color: var(--encre-douce); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.minuscule { color: var(--encre-douce); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 650; }
+
+/* ————————————————————————————————————————————————— commandes */
 
 .bouton {
   display: inline-flex;
@@ -148,11 +211,14 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   font: inherit;
   font-weight: 550;
   cursor: pointer;
+  text-decoration: none;
 }
 
-.bouton:hover { border-color: var(--accent); }
+.bouton:hover { border-color: var(--accent); background: var(--surface-2); }
 .bouton[disabled] { opacity: 0.55; cursor: not-allowed; }
 .bouton.primaire { background: var(--accent); border-color: var(--accent); color: var(--accent-encre); }
+.bouton.primaire:hover { background: var(--accent-fort); border-color: var(--accent-fort); }
+.bouton.discret-bouton { border-color: transparent; background: transparent; color: var(--encre-douce); }
 
 .pastille {
   display: inline-flex;
@@ -164,28 +230,71 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   background: var(--surface);
   color: var(--encre);
   font: inherit;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
 }
 
+.pastille:hover { border-color: var(--accent); }
 .pastille[aria-pressed='true'], .pastille[aria-current='true'] {
-  background: var(--accent-doux);
+  background: var(--accent);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-encre);
   font-weight: 600;
+}
+
+/*
+ * Les onglets d'une page : les sous-sections d'un même écran, comme au-dessus d'un cahier de
+ * textes. Le trait sous l'onglet actif dit où l'on est même sans couleur.
+ */
+.onglets {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  /* Le trait de l'onglet actif déborde d'un pixel sur la bordure du groupe : sans ce
+     `hidden`, ce pixel suffit à faire apparaître une barre de défilement verticale. */
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--bordure);
+  margin-bottom: 16px;
+  scrollbar-width: thin;
+}
+
+.onglets > * {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.94rem;
+  color: var(--encre-douce);
+  padding: 10px 14px;
+  min-height: 44px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  text-decoration: none;
+  margin-bottom: -1px;
+}
+
+.onglets > *:hover { color: var(--encre); background: var(--surface-2); }
+.onglets > [aria-pressed='true'], .onglets > [aria-current='true'], .onglets > [aria-current='page'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 650;
 }
 
 .champ {
   width: 100%;
-  min-height: 46px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 12px;
   border-radius: var(--rayon-petit);
   border: 1px solid var(--bordure);
   background: var(--surface);
   color: var(--encre);
   font: inherit;
 }
+
+.champ:hover { border-color: var(--encre-douce); }
 
 .erreur {
   border: 1px solid var(--erreur);
@@ -205,20 +314,61 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   scrollbar-width: thin;
 }
 
+/* ————————————————————————————————————————————————— données */
+
 table.tableau { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
-table.tableau th { text-align: left; color: var(--encre-douce); font-weight: 600; font-size: 0.82rem; }
-table.tableau th, table.tableau td { padding: 8px 10px; border-bottom: 1px solid var(--bordure); }
+table.tableau th {
+  text-align: left;
+  color: var(--encre-douce);
+  font-weight: 650;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--surface-2);
+}
+table.tableau th, table.tableau td { padding: 10px 12px; border-bottom: 1px solid var(--bordure-douce); }
+table.tableau tbody tr:last-child td { border-bottom: 0; }
+table.tableau tbody tr:hover { background: var(--surface-2); }
+.nombre { font-variant-numeric: tabular-nums; }
 
 /* Une matière, une couleur — comme sur Pronote. `couleurMatiere()` fournit les deux jetons. */
 .etiquette-matiere {
   display: inline-block;
-  font-weight: 600;
-  font-size: 0.88rem;
+  font-weight: 650;
+  font-size: 0.8rem;
   padding: 2px 10px;
   border-radius: 999px;
   background: var(--fond-matiere);
   color: var(--encre-matiere);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* Le même code couleur en filet, quand l'étiquette prendrait trop de place. */
+.filet-matiere {
+  border-left: 4px solid var(--encre-matiere, var(--accent));
+}
+
+/* Une mention de statut : « Évaluation », « Non noté », « Recalculée ». */
+.jeton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--encre-douce);
+  white-space: nowrap;
+}
+
+.jeton.accent { background: var(--accent-doux); color: var(--accent-fort); }
+.jeton.alerte { background: var(--alerte-doux); color: var(--alerte); }
+.jeton.erreur-jeton { background: var(--erreur-doux); color: var(--erreur); }
+.jeton.succes { background: var(--succes-doux); color: var(--succes); }
 
 .enveloppe-large { overflow-x: auto; }
 

@@ -86,10 +86,11 @@
     <form method="POST" action="?/demo" class="carte pile demo">
       <p style="font-weight:600">Pas encore de compte branché ?</p>
       <p class="discret">
-        L’espace professeur tourne sur des données entièrement inventées : rien ne part vers
+        L’application tourne sur des données entièrement inventées : rien ne part vers
         ÉcoleDirecte.
       </p>
-      <button class="bouton">Découvrir l’espace professeur</button>
+      <button class="bouton primaire" name="profil" value="eleve">Voir l’espace élève</button>
+      <button class="bouton" name="profil" value="prof">Voir l’espace professeur</button>
     </form>
   {/if}
 {/if}

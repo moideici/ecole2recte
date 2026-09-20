@@ -32,7 +32,7 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 |---|---|
 | `packages/protocol/` | tout le savoir protocolaire : encodages, codes métier, session, client, appels élève, famille et enseignant. Zéro dépendance, tourne en Node comme dans un navigateur. |
 | `tools/probe/` | sondage du service sans compte : la question CORS, et rien d'autre. |
-| `apps/web/` | l'interface et le mandataire : onze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. |
+| `apps/web/` | l'interface et le mandataire : onze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
 | `apps/sessions/` | le Durable Object qui garde les sessions vivantes entre deux requêtes sur Cloudflare — voir « Déploiement ». |
 | `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
 | `tools/har/` | extraction de la *forme* d'un endpoint depuis une capture réseau, sans les valeurs. |
@@ -60,6 +60,31 @@ Le jour où ÉcoleDirecte change, `packages/protocol/` est le seul endroit à re
   cahier de textes, grille de notes, messagerie.
 - **Les modules font foi** : la réponse de connexion dit ce que l'établissement a réellement
   ouvert. Aucune fonctionnalité n'est codée en dur par rôle.
+
+## La moyenne, et quand l'application refait le calcul
+
+**Le bulletin prime.** La moyenne publiée par l'établissement s'affiche telle quelle : tous les
+coefficients ne sont pas exposés, et les règles de calcul lui appartiennent. Une moyenne
+calculée ici s'annonce toujours comme telle.
+
+**Sauf quand elle est en retard.** Une moyenne publiée est un instantané, et la note saisie
+hier n'y est pas toujours. L'afficher revient alors à **cacher la dernière note** — précisément
+celle qu'on est venu voir. ÉcoleDirecte n'expose aucune date de calcul ; la seule façon de le
+savoir sans la deviner est de retirer les notes une à une, de la plus récente à la plus
+ancienne, et de regarder si la moyenne publiée réapparaît. Si oui, elle a été calculée avant
+celles qu'on vient d'ôter : l'application affiche alors la sienne, marquée « recalculée », et
+**dit laquelle manquait**. Le jour où le bulletin rattrape, il reprend la main tout seul.
+
+Trois garde-fous, sans lesquels la règle deviendrait un prétexte à recalculer tout le temps :
+
+- Un écart **inexpliqué** ne recalcule rien. Si aucun retrait ne retombe sur la moyenne
+  publiée, c'est un coefficient caché ou une règle maison, pas un retard : le bulletin a raison.
+- L'arrondi du bulletin n'est pas un désaccord. « 14,3 » et 14,26 sont la même moyenne.
+- Une note **sans date** n'est jamais dite postérieure à quoi que ce soit.
+
+La moyenne générale suit les mêmes règles, et se fait comme le bulletin la fait : une moyenne
+des moyennes de matières, pondérée par leur coefficient — pas une moyenne à plat des notes,
+qui ferait peser une matière à six devoirs trois fois plus qu'une matière à deux.
 
 ## Les règles qui ne se négocient pas
 
@@ -89,9 +114,13 @@ de textes, notes, messagerie. **Tout y est en lecture seule.**
   l'adresse demandée.
 - Les photos d'élèves ne sont pas affichées : leur téléchargement n'est documenté nulle part.
 
-Pour le montrer sans compte, `ED_DEMO=1` ajoute sur la page de connexion un accès à l'espace
-professeur sur des données **entièrement inventées**, servies par un faux serveur local.
-Aucune requête ne part vers ÉcoleDirecte depuis une session de démonstration.
+Pour le montrer sans compte, `ED_DEMO=1` ajoute sur la page de connexion deux accès — espace
+élève et espace professeur — sur des données **entièrement inventées**, servies par un faux
+serveur local. Aucune requête ne part vers ÉcoleDirecte depuis une session de démonstration.
+
+La démonstration élève fabrique **exprès** le cas de la moyenne en retard : une matière dont la
+moyenne publiée ignore la dernière note, et une autre sans moyenne publiée du tout. Une
+démonstration prouve quelque chose ou ne sert à rien.
 
 ## L'écriture, et comment elle sera éprouvée
 
@@ -125,7 +154,7 @@ pnpm test        # sans réseau ni compte
 pnpm typecheck
 pnpm build
 pnpm --filter @ecole2recte/web dev
-ED_DEMO=1 pnpm --filter @ecole2recte/web dev   # avec l'espace professeur sur données inventées
+ED_DEMO=1 pnpm --filter @ecole2recte/web dev   # avec les deux espaces sur données inventées
 
 pnpm probe       # sondage CORS, sans identifiants
 pnpm har capture.har > forme.json   # la forme d'un endpoint, jamais ses valeurs
@@ -137,7 +166,7 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
-178 tests, sans réseau et sans compte — 163 pour le protocole, 15 pour l'application — sur
+193 tests, sans réseau et sans compte — 173 pour le protocole, 20 pour l’application — sur
 quatre niveaux :
 
 1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,
@@ -152,7 +181,9 @@ quatre niveaux :
    absurde.
 4. **Les invariants qui protègent**. La police d'écriture bloque les cinq écritures et rien
    ne sort du moteur. Aucun mot de passe ni couple de confiance n'apparaît dans une trace. Une
-   section qui échoue n'emporte pas les autres. Un sceau modifié d'une lettre est refusé.
+   section qui échoue n'emporte pas les autres. Un sceau modifié d'une lettre est refusé. La
+   moyenne du bulletin l'emporte, sauf sur un retard démontré — et un écart inexpliqué ne
+   suffit pas à la démonter.
 
 La CI ajoute deux garde-fous qui ne sont pas des tests : aucune capture réseau versionnée,
 et l'écriture fermée dans l'exemple de configuration — un fichier qui l'ouvrirait finirait

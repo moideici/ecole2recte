@@ -85,7 +85,7 @@
         </p>
       </div>
 
-      <div class="enveloppe-large carte" style="padding:0">
+      <div class="enveloppe-large panneau">
         <table class="tableau grille">
           <thead>
             <tr>

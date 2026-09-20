@@ -20,68 +20,105 @@
 />
 
 <div class="colonnes">
-  <section class="pile" aria-labelledby="titre-cours">
-    <h2 id="titre-cours">{data.enCours ? 'En ce moment' : 'Prochain cours'}</h2>
-    {#if data.erreurs.edt}
-      <ErreurSection message="L’emploi du temps n’a pas pu être chargé." cause={data.erreurs.edt} />
-    {:else if data.enCours}
-      <Cours cours={data.enCours} actuel />
-    {:else if data.suivant}
-      <Cours cours={data.suivant} />
-      <p class="discret">
-        {relativeDay(data.suivant.start.slice(0, 10), data.jour)} · {relativeTime(data.suivant.start, data.maintenant)}
-      </p>
-    {:else}
-      <Vide titre="Rien à l’horizon" description="Aucun cours dans les deux semaines qui viennent." />
-    {/if}
+  <div class="pile" style="gap:18px">
+    <section class="panneau" aria-labelledby="titre-cours">
+      <div class="tete-panneau"><h2 id="titre-cours">{data.enCours ? 'En ce moment' : 'Prochain cours'}</h2></div>
+      <div class="corps-panneau pile">
+        {#if data.erreurs.edt}
+          <ErreurSection message="L’emploi du temps n’a pas pu être chargé." cause={data.erreurs.edt} />
+        {:else if data.enCours}
+          <Cours cours={data.enCours} actuel />
+        {:else if data.suivant}
+          <Cours cours={data.suivant} />
+          <p class="discret">
+            {relativeDay(data.suivant.start.slice(0, 10), data.jour)} · {relativeTime(data.suivant.start, data.maintenant)}
+          </p>
+        {:else}
+          <Vide titre="Rien à l’horizon" description="Aucun cours dans les deux semaines qui viennent." />
+        {/if}
+      </div>
+    </section>
 
-    {#if data.duJour.length > 0}
-      <h2 style="margin-top:12px">Aujourd’hui</h2>
-      {#each data.duJour as cours (cours.id)}
-        <Cours {cours} actuel={data.enCours?.id === cours.id} />
-      {/each}
-    {:else if data.prochaineJournee}
-      <h2 style="margin-top:12px">{relativeDay(data.prochaineJournee, data.jour)}</h2>
-      {#each data.prochainsCours as cours (cours.id)}
-        <Cours {cours} />
-      {/each}
+    {#if data.duJour.length > 0 || data.prochaineJournee}
+      <section class="panneau" aria-labelledby="titre-journee">
+        <div class="tete-panneau">
+          <h2 id="titre-journee">
+            {data.duJour.length > 0 ? 'Aujourd’hui' : relativeDay(data.prochaineJournee as string, data.jour)}
+          </h2>
+          <span class="espace"></span>
+          <a class="discret" href="/prof/emploi-du-temps">Toute la semaine</a>
+        </div>
+        <div class="corps-panneau pile">
+          {#each data.duJour.length > 0 ? data.duJour : data.prochainsCours as cours (cours.id)}
+            <Cours {cours} actuel={data.enCours?.id === cours.id} />
+          {/each}
+        </div>
+      </section>
     {/if}
-    <a class="pastille" href="/prof/emploi-du-temps" style="align-self:flex-start">Toute la semaine</a>
-  </section>
+  </div>
 
-  <section class="pile" aria-labelledby="titre-messages">
-    <h2 id="titre-messages">
-      {data.nonLusTotal === 0
-        ? 'Messages'
-        : `${data.nonLusTotal} message${data.nonLusTotal > 1 ? 's' : ''} non lu${data.nonLusTotal > 1 ? 's' : ''}`}
-    </h2>
-    {#if data.erreurs.messages}
-      <ErreurSection message="La messagerie n’a pas pu être chargée." cause={data.erreurs.messages} />
-    {:else}
-      {#each data.nonLus as message (message.id)}
-        <a class="carte" href={`/prof/messages/${message.id}`}>
-          <p style="font-weight:600">{message.interlocuteur}</p>
-          <p class="discret">{message.subject}{message.date ? ` · ${listStamp(message.date, data.jour)}` : ''}</p>
-        </a>
-      {:else}
-        <p class="carte discret">Tout est lu.</p>
-      {/each}
-    {/if}
-    <a class="pastille" href="/prof/messages" style="align-self:flex-start">Ouvrir la messagerie</a>
+  <div class="pile" style="gap:18px">
+    <section class="panneau" aria-labelledby="titre-messages">
+      <div class="tete-panneau">
+        <h2 id="titre-messages">
+          {data.nonLusTotal === 0
+            ? 'Messages'
+            : `${data.nonLusTotal} message${data.nonLusTotal > 1 ? 's' : ''} non lu${data.nonLusTotal > 1 ? 's' : ''}`}
+        </h2>
+        <span class="espace"></span>
+        <a class="discret" href="/prof/messages">Ouvrir</a>
+      </div>
+      <div class="corps-panneau serre">
+        {#if data.erreurs.messages}
+          <div style="padding:14px">
+            <ErreurSection message="La messagerie n’a pas pu être chargée." cause={data.erreurs.messages} />
+          </div>
+        {:else}
+          {#each data.nonLus as message (message.id)}
+            <a class="ligne" href={`/prof/messages/${message.id}`}>
+              <span class="filet" aria-hidden="true"></span>
+              <span class="texte">
+                <span style="font-weight:600">{message.interlocuteur}</span>
+                <span class="discret">{message.subject}{message.date ? ` · ${listStamp(message.date, data.jour)}` : ''}</span>
+              </span>
+            </a>
+          {:else}
+            <p class="discret" style="padding:14px">Tout est lu.</p>
+          {/each}
+        {/if}
+      </div>
+    </section>
 
-    <h2 style="margin-top:12px">Vos classes</h2>
-    <div class="rangee" style="flex-wrap:wrap;gap:8px">
-      {#each data.classes as classe (classe.cle)}
-        <a class="pastille" href={`/prof/classes/${classe.cle}`}>{classe.libelle}</a>
-      {:else}
-        <p class="discret">Aucune classe n’est déclarée par le profil de connexion.</p>
-      {/each}
-    </div>
-  </section>
+    <section class="panneau" aria-labelledby="titre-classes">
+      <div class="tete-panneau"><h2 id="titre-classes">Vos classes</h2></div>
+      <div class="corps-panneau">
+        <div class="rangee" style="flex-wrap:wrap;gap:8px">
+          {#each data.classes as classe (classe.cle)}
+            <a class="pastille" href={`/prof/classes/${classe.cle}`}>{classe.libelle}</a>
+          {:else}
+            <p class="discret">Aucune classe n’est déclarée par le profil de connexion.</p>
+          {/each}
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
 
 <style>
-  .colonnes { display: grid; gap: 22px; }
-  @media (min-width: 900px) { .colonnes { grid-template-columns: 3fr 2fr; align-items: start; } }
-  a.carte { text-decoration: none; }
+  .colonnes { display: grid; gap: 18px; align-items: start; }
+  @media (min-width: 900px) { .colonnes { grid-template-columns: 3fr 2fr; } }
+
+  .ligne {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px 10px 0;
+    border-bottom: 1px solid var(--bordure-douce);
+    text-decoration: none;
+    color: inherit;
+  }
+  .ligne:last-child { border-bottom: 0; }
+  .ligne:hover { background: var(--surface-2); }
+  .filet { width: 5px; align-self: stretch; min-height: 34px; background: var(--accent); border-radius: 0 3px 3px 0; flex: none; }
+  .texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 </style>
