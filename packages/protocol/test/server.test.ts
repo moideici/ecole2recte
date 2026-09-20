@@ -16,8 +16,8 @@ afterAll(async () => {
   await serveur.close()
 })
 
-function client(): EcoleDirecteClient {
-  return new EcoleDirecteClient({ engine: fetchEngine(), apiBase: serveur.url, writePolicy: 'allow' })
+function client(autoRenew = false): EcoleDirecteClient {
+  return new EcoleDirecteClient({ engine: fetchEngine(), apiBase: serveur.url, writePolicy: 'allow', autoRenew })
 }
 
 describe('bout en bout, en vrai HTTP', () => {
@@ -104,8 +104,10 @@ describe('une section qui tombe n’emporte pas les autres', () => {
     expect(snapshot.syncedAt.grades).toBeUndefined()
   })
 
-  it('traverse un jeton expiré sans que la personne le voie', async () => {
-    const subject = client()
+  it('traverse un jeton expiré sans que la personne le voie, renouvellement ouvert', async () => {
+    // Ouvert exprès : `autoRenew` est fermé en production tant que `renewtoken.awp` n'aura
+    // pas passé son aller-retour réel. Ce qui suit dit ce que l'ouvrir donnerait.
+    const subject = client(true)
     const outcome = await subject.login('camille', 'secret')
     const compte = (outcome as { accounts: Account[] }).accounts[0] as Account
 

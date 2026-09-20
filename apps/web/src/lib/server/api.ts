@@ -18,7 +18,7 @@ import {
 import { demoEngine } from './demo.js'
 import { activeAccount } from './session.js'
 import { type SessionRecord, sessions } from './store.js'
-import { writePolicy } from './write-policy.js'
+import { autoRenewEnabled, writePolicy } from './write-policy.js'
 
 /** Le catalogue d'un professeur change rarement dans la journée. */
 export const CATALOGUE_TTL_MS = 30 * 60 * 1000
@@ -39,6 +39,7 @@ export function clientFor(record: SessionRecord): { client: EcoleDirecteClient; 
     engine: record.demo ? demoEngine(today()) : fetchEngine(),
     session: record.protocol,
     writePolicy: record.demo ? 'deny' : writePolicy(),
+    autoRenew: record.demo ? false : autoRenewEnabled(),
     apiBase: env['ED_API_BASE'] ?? undefined,
   })
   // Réglable sans redéployer : le jour où la version périme, tout tombe avec le code 517.

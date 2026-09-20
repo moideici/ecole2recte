@@ -6,6 +6,7 @@
  *     pnpm verifier --reponse "2011-02-28,1ERE G2"  les faits, une fois pour toutes
  *     pnpm verifier --questions                     la question tirée cette fois-ci
  *     pnpm verifier --choix 7                       répond avec la 7e proposition
+ *     pnpm verifier --renouvellement                éprouve renewtoken.awp, exprès
  *
  * **La question est tirée au hasard à chaque connexion** — l'année de naissance, le jour, le
  * mois, la date entière, la classe. `--choix N` ne vaut donc que pour la connexion en cours,
@@ -13,9 +14,12 @@
  * deux questions. C'est `--reponse` qui tient, parce qu'il donne les **faits**.
  *
  * **Ce que fait ce script.** Il se connecte à un vrai compte et vérifie ce qu'aucun test
- * hors-ligne ne peut trancher : la **réponse à la question de sécurité** donnée d'avance, et
- * le **renouvellement automatique du jeton**. Il lit ensuite de quoi confirmer que la chaîne
- * complète tient.
+ * hors-ligne ne peut trancher : la **réponse à la question de sécurité** donnée d'avance.
+ * Il lit ensuite de quoi confirmer que la chaîne complète tient.
+ *
+ * **Le renouvellement du jeton n'en fait plus partie.** Le 20 septembre 2026, il a répondu
+ * ici par le message d'activité suspecte du service, alors que le jeton valait encore. On ne
+ * le redemande donc qu'avec `--renouvellement`, quand on cherche exprès à le comprendre.
  *
  * **Ce qu'il n'écrit jamais.** Aucune écriture ne part : la police est sur `deny`, donc même
  * une erreur de code ne pourrait rien modifier. Pour les allers-retours d'écriture, c'est
@@ -258,17 +262,34 @@ async function main() {
 
   // ——————————————————————————————————————————— 2. renouvellement du jeton
 
-  const avant = client.session.token
-  const renouvele = await client.renewToken(client.session.userId ?? compte.id)
-  noter('renewtoken.awp accepté', renouvele.ok ? 'ok' : 'ko', renouvele.ok ? '' : renouvele.message)
-  if (renouvele.ok) {
-    const change = client.session.token !== null && client.session.token !== avant
-    noter('un jeton neuf est rendu', change ? 'ok' : 'ko', change ? '' : 'le jeton n’a pas changé')
+  /*
+   * Cet appel ne se fait plus tout seul.
+   *
+   * Le 20 septembre 2026, ici même, le service y a répondu par son message d'activité
+   * suspecte — « Nous avons enregistré votre adresse IP ainsi que l'ensemble des
+   * informations relatives à vos requêtes » — alors que le jeton valait encore, puisque la
+   * lecture juste après est passée. Insister à chaque essai, c'est se faire remarquer sur
+   * un vrai compte pour éprouver une route dont on ne connaît pas la forme.
+   *
+   * `--renouvellement` la redemande, une fois, quand on cherche exprès à la comprendre.
+   */
+  if (option('renouvellement') !== undefined) {
+    const avant = client.session.token
+    const renouvele = await client.renewToken(client.session.userId ?? compte.id)
+    // Le code compte plus que la phrase : c'est lui qui dit de quelle famille est le refus.
+    const pourquoi = renouvele.ok ? '' : `${renouvele.diagnostic ?? 'sans code'} — ${renouvele.message}`
+    noter('renewtoken.awp accepté', renouvele.ok ? 'ok' : 'ko', pourquoi)
+    if (renouvele.ok) {
+      const change = client.session.token !== null && client.session.token !== avant
+      noter('un jeton neuf est rendu', change ? 'ok' : 'ko', change ? '' : 'le jeton n’a pas changé')
+    }
+  } else {
+    noter('renewtoken.awp', 'skip', 'fermé : refusé par le service, relance avec --renouvellement')
   }
 
-  // Le jeton renouvelé sert-il vraiment ? Sans cette lecture, on ne sait rien.
+  // Le jeton sert-il vraiment ? Sans cette lecture, on ne sait rien.
   const devoirs = await api.homework(compte)
-  noter('lecture après renouvellement', devoirs.ok ? 'ok' : 'ko', devoirs.ok ? `${devoirs.value.length} devoir(s)` : devoirs.message)
+  noter('lecture après connexion', devoirs.ok ? 'ok' : 'ko', devoirs.ok ? `${devoirs.value.length} devoir(s)` : devoirs.message)
 
   // ——————————————————————————————————————————— 3. la chaîne complète, sur les notes
 

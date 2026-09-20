@@ -39,6 +39,7 @@ function clientAvecJeton(moteur: HttpEngine) {
   return new EcoleDirecteClient({
     engine: moteur,
     session: createSession({ token: 'PERIME', userId: '4021' }),
+    autoRenew: true,
   })
 }
 
@@ -87,10 +88,37 @@ describe('renouvellement du jeton', () => {
     expect(moteur.appels('renewtoken.awp')).toBe(1)
   })
 
+  it('ne tente rien tant que le renouvellement n’est pas ouvert', async () => {
+    /*
+     * Le 20 septembre 2026, sur un vrai compte, `renewtoken.awp` a répondu par le message
+     * d'activité suspecte du service — alors que le jeton valait encore, puisque la lecture
+     * suivante est passée. Tant que sa forme n'est pas éprouvée, l'application ne l'appelle
+     * pas : elle rend l'échec d'origine, comme avant qu'on écrive ce renouvellement.
+     */
+    const moteur = new MoteurSequence({
+      'notes.awp': [{ code: 525 }, { code: 200, data: { notes: [] } }],
+      'renewtoken.awp': [{ code: 200 }],
+    })
+    const client = new EcoleDirecteClient({
+      engine: moteur,
+      session: createSession({ token: 'PERIME', userId: '4021' }),
+    })
+    const result = await client.call('/eleves/4021/notes.awp', { verb: 'get' })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.kind).toBe('session-expired')
+    expect(moteur.appels('renewtoken.awp')).toBe(0)
+    expect(moteur.appels('notes.awp')).toBe(1)
+  })
+
   it('ne tente rien sans titulaire connu', async () => {
     // `renewtoken.awp` exige l'identifiant du compte : sans lui, il n'y a rien à tenter.
     const moteur = new MoteurSequence({ 'notes.awp': [{ code: 525 }] })
-    const client = new EcoleDirecteClient({ engine: moteur, session: createSession({ token: 'PERIME' }) })
+    const client = new EcoleDirecteClient({
+      engine: moteur,
+      session: createSession({ token: 'PERIME' }),
+      autoRenew: true,
+    })
     const result = await client.call('/eleves/4021/notes.awp', { verb: 'get' })
 
     expect(result.ok).toBe(false)

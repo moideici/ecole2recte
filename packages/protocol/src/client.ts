@@ -47,6 +47,20 @@ export interface ClientOptions {
    */
   xClient?: string | null
   writePolicy?: WritePolicy
+  /**
+   * Renouveler le jeton tout seul quand il a expiré. **Fermé par défaut.**
+   *
+   * Éprouvé sur un vrai compte le 20 septembre 2026, `renewtoken.awp` a répondu : « Nous
+   * avons enregistré votre adresse IP ainsi que l'ensemble des informations relatives à vos
+   * requêtes pour analyser votre activité. » C'est le message d'activité suspecte du
+   * service. La forme exacte de cet appel n'est donc pas la bonne, ou il ne s'emploie pas
+   * comme on le croyait.
+   *
+   * La règle du projet vaut ici comme pour l'écriture : **son aller-retour réel n'est pas
+   * vert, donc il reste fermé.** Le code et ses tests demeurent, pour le jour où une capture
+   * réseau dira ce que le site envoie vraiment.
+   */
+  autoRenew?: boolean
   onRequest?: (record: RequestRecord) => void
 }
 
@@ -258,12 +272,16 @@ export class EcoleDirecteClient {
 
   writePolicy: WritePolicy
 
+  /** Voir `ClientOptions.autoRenew` : fermé par défaut, parce que son aller-retour est rouge. */
+  autoRenew: boolean
+
   constructor(options: ClientOptions) {
     this.engine = options.engine
     this.apiBase = options.apiBase ?? DEFAULT_API_BASE
     this.teacherApiBase = options.teacherApiBase ?? DEFAULT_TEACHER_API_BASE
     this.xClient = options.xClient ?? null
     this.writePolicy = options.writePolicy ?? 'deny'
+    this.autoRenew = options.autoRenew ?? false
     this.onRequest = options.onRequest
     this.session = options.session ?? createSession({ userAgent: options.userAgent ?? DEFAULT_USER_AGENT })
   }
@@ -366,17 +384,21 @@ export class EcoleDirecteClient {
     if (result.ok || result.kind !== 'session-expired') return result
 
     /*
-     * Le jeton a expiré : on le renouvelle sans repasser par le mot de passe.
+     * Le jeton a expiré : on le renouvellerait sans repasser par le mot de passe.
      *
      * Le service le fait tourner à chaque requête ; il suffit d'une pause pour qu'il périme,
-     * et jusqu'ici cela se voyait comme une déconnexion brutale au milieu d'une consultation.
+     * et cela se voit comme une déconnexion brutale au milieu d'une consultation.
      *
      * Une seule fois, jamais en boucle. Et **on ne rejoue pas une écriture** : si le service
      * avait agi avant de répondre que le jeton ne vaut plus, la rejouer enverrait deux fois
      * le même commentaire ou créerait deux dossiers. Le jeton est quand même renouvelé, si
      * bien que le geste suivant passe — c'est le prix d'un doute qu'on ne peut pas lever.
+     *
+     * Mais `autoRenew` est fermé par défaut, et ce n'est pas un oubli : voir `ClientOptions`.
+     * Fermé, on rend l'échec d'origine — c'est exactement ce que faisait l'application avant
+     * qu'on écrive ce bloc, donc rien n'est perdu.
      */
-    if (options.noRenew === true || !this.session.userId) return result
+    if (this.autoRenew !== true || options.noRenew === true || !this.session.userId) return result
 
     const renouvele = await this.renewToken(this.session.userId)
     if (!renouvele.ok) return result
@@ -540,6 +562,11 @@ export class EcoleDirecteClient {
   /**
    * Renouvelle le jeton sans repasser par le mot de passe. Le service fait tourner
    * `X-Token`, `2FA-Token` et les cookies d'un coup : ils sont tous repris au vol.
+   *
+   * **Cet appel n'est pas éprouvé.** Sur un vrai compte, le service y a répondu par son
+   * message d'activité suspecte. Le corps envoyé ici — `idUser` et `uuid` — est une
+   * hypothèse ; c'est probablement lui qu'une capture réseau viendra corriger. D'ici là,
+   * `autoRenew` reste fermé et personne ne l'appelle tout seul.
    */
   async renewToken(userId: string): Promise<ApiResult<unknown>> {
     return this.call('/renewtoken.awp', { verb: 'post', body: { idUser: userId, uuid: '' }, noRenew: true })

@@ -53,3 +53,20 @@ export function isWriteEnabled(feature: WriteFeature): boolean {
 export function enabledWriteFeatures(): WriteFeature[] {
   return (Object.keys(WRITE_FEATURE_LABELS) as WriteFeature[]).filter((feature) => isWriteEnabled(feature))
 }
+
+/**
+ * Le renouvellement automatique du jeton, **fermé par défaut**.
+ *
+ * Même verrou que l'écriture, et pour la même raison : le 20 septembre 2026, éprouvé sur un
+ * vrai compte, `renewtoken.awp` a répondu « Nous avons enregistré votre adresse IP ainsi que
+ * l'ensemble des informations relatives à vos requêtes pour analyser votre activité ». C'est
+ * le message d'activité suspecte du service, pas une erreur de jeton — le jeton, lui, valait
+ * encore : la lecture suivante est passée.
+ *
+ * Tant qu'une capture réseau n'aura pas montré ce que le site envoie vraiment sur cette
+ * route, l'application ne l'appelle pas. Une session expirée redemande le mot de passe,
+ * comme avant : c'est moins commode, et sans risque pour le compte.
+ */
+export function autoRenewEnabled(): boolean {
+  return (env['ED_AUTO_RENEW'] ?? '').trim() === '1'
+}
