@@ -295,6 +295,10 @@ Deux mécanismes ne peuvent pas être tranchés hors ligne : la **date de naissa
 **renouvellement du jeton**, dont le code exact rendu par le service vient d'un relevé et non
 d'une observation.
 
+`pnpm verifier --config` dit d'abord ce que le script voit, **sans se connecter** : un
+`.env` de la racine est lu (`id`, `mdp`, `naissance`, ou les noms `ED_*`), et ce mode
+n'affiche jamais une valeur, seulement présent ou absent.
+
 `pnpm verifier` les éprouve. Il demande les identifiants **au clavier**, masque le mot de
 passe, n'écrit rien nulle part, et la police d'écriture y reste sur `deny` : même une erreur
 de code ne pourrait rien modifier.

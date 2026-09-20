@@ -21,6 +21,8 @@
  */
 
 import { createInterface } from 'node:readline'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import {
   EcoleDirecteApi,
   EcoleDirecteClient,
@@ -33,6 +35,29 @@ import {
 if (process.env['CI']) {
   console.error("Ce script ne tourne pas en intégration continue : il se connecte à un vrai compte.")
   process.exit(1)
+}
+
+/*
+ * Le `.env` de la racine, s'il existe.
+ *
+ * Node ne charge pas ces fichiers tout seul : sans cette ligne, un identifiant posé là est
+ * simplement ignoré, et le script redemande tout au clavier comme s'il n'y avait rien.
+ * Le fichier est ignoré par git — c'est la première chose que `.gitignore` protège.
+ */
+const racine = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+try {
+  process.loadEnvFile(join(racine, '.env'))
+} catch {
+  // Pas de fichier, ou illisible : on demandera au clavier.
+}
+
+/** La première variable renseignée parmi plusieurs orthographes raisonnables. */
+function lire(...noms) {
+  for (const nom of noms) {
+    const valeur = process.env[nom]
+    if (typeof valeur === 'string' && valeur.trim() !== '') return valeur.trim()
+  }
+  return ''
 }
 
 /** Demande au clavier ce qui n'a pas à traîner dans un fichier ni dans l'historique. */
@@ -69,12 +94,47 @@ function forme(texte) {
     .replace(/[A-Za-zÀ-ÿ]+/gu, (mot) => (mot.length > 2 ? 'Aaa' : 'Aa'))
 }
 
+/**
+ * `--config` : ce que le script voit, avant de toucher au reseau.
+ *
+ * Il n'imprime AUCUNE valeur, pas meme une longueur : seulement present ou absent, et d'ou
+ * cela vient. C'est ce qui manquait ici, car une configuration ignoree ressemblait a un
+ * verificateur casse.
+ */
+function verifierConfig() {
+  const source = (...noms) => noms.find((nom) => lire(nom) !== '') ?? null
+  const lignes = [
+    ['identifiant', source('ED_IDENTIFIANT', 'id', 'ID', 'identifiant')],
+    ['mot de passe', source('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse')],
+    ['date de naissance', source('ED_NAISSANCE', 'naissance')],
+  ]
+  console.log('Configuration lue. Aucune valeur n’est affichee.')
+  console.log('')
+  for (const [nom, cle] of lignes) {
+    const etat = cle ? ' ok   ' : 'absent'
+    console.log(`  ${etat} ${nom.padEnd(18)}${cle ? `depuis ${cle}` : 'sera demande au clavier'}`)
+  }
+
+  const naissance = lire('ED_NAISSANCE', 'naissance')
+  if (naissance !== '') {
+    const bonne = /^\d{4}-\d{2}-\d{2}$/.test(naissance)
+    console.log('')
+    console.log(`  ${bonne ? ' ok   ' : 'ECHEC '} format de la date ${bonne ? 'AAAA-MM-JJ' : '— attendu AAAA-MM-JJ'}`)
+    if (!bonne) process.exitCode = 1
+  }
+  console.log('')
+  console.log('Relance sans --config pour eprouver la connexion.')
+}
+
 async function main() {
   console.log('Vérificateur ecole2recte — lecture seule, aucune écriture ne partira.\n')
 
-  const identifiant = process.env.ED_IDENTIFIANT || (await demander('Identifiant ÉcoleDirecte : '))
-  const motdepasse = process.env.ED_MOTDEPASSE || (await demander('Mot de passe (invisible) : ', true))
-  const naissance = await demander('Date de naissance AAAA-MM-JJ (vide pour ne pas l’utiliser) : ')
+  if (process.argv.includes('--config')) return verifierConfig()
+
+  const identifiant = lire('ED_IDENTIFIANT', 'id', 'ID', 'identifiant') || (await demander('Identifiant ÉcoleDirecte : '))
+  const motdepasse = lire('ED_MOTDEPASSE', 'mdp', 'MDP', 'motdepasse') || (await demander('Mot de passe (invisible) : ', true))
+  const naissance =
+    lire('ED_NAISSANCE', 'naissance') || (await demander('Date de naissance AAAA-MM-JJ (vide pour ne pas l’utiliser) : '))
 
   if (!identifiant || !motdepasse) {
     console.error('Identifiant et mot de passe sont attendus.')
