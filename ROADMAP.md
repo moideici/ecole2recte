@@ -66,6 +66,9 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Commenter un devoir (`POST afaire/commentaires.awp`).
 - [x] Espace de stockage : créer, renommer, supprimer.
 - [x] `tools/smoke` : les allers-retours réels, à lancer à la main, jamais en CI.
+- [x] `tools/verifier` : la vérification en **lecture seule** sur un vrai compte (date de
+      naissance, renouvellement du jeton, chaîne complète), avec un rapport sans valeur
+      personnelle. À lancer à la main, jamais en CI.
 - [x] Interfaces des quatre écritures ouvertes : case à cocher, commentaire de devoir,
       création de dossier, renommage de fichier.
 - [ ] **Éprouver ces fonctions sur un vrai compte.** Elles sont ouvertes en production

@@ -37,6 +37,7 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 | `apps/web/` | l'interface et le mandataire : douze pages élève et famille dont un accueil en widgets, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
 | `apps/sessions/` | le Durable Object qui garde les sessions vivantes entre deux requêtes sur Cloudflare — voir « Déploiement ». |
 | `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
+| `tools/verifier/` | la vérification **en lecture seule** sur un vrai compte : la date de naissance qui répond à la question, le renouvellement du jeton, la chaîne complète. À lancer à la main. |
 | `tools/har/` | extraction de la *forme* d'un endpoint depuis une capture réseau, sans les valeurs. |
 
 Le jour où ÉcoleDirecte change, `packages/protocol/` est le seul endroit à reprendre.
@@ -220,6 +221,7 @@ pnpm --filter @ecole2recte/web dev
 ED_DEMO=1 pnpm --filter @ecole2recte/web dev   # avec les deux espaces sur données inventées
 
 pnpm probe       # sondage CORS, sans identifiants
+pnpm verifier    # vérification en lecture seule, sur un vrai compte, à la main
 pnpm har capture.har > forme.json   # la forme d'un endpoint, jamais ses valeurs
 pnpm smoke       # les allers-retours d'écriture, sur un vrai compte, à la main
 ```
@@ -285,6 +287,22 @@ Pour tester tout ça en local, sans compte Cloudflare :
 cd apps/web
 npx wrangler dev -c wrangler.toml -c ../sessions/wrangler.toml
 ```
+
+## Éprouver sur un vrai compte
+
+Deux mécanismes ne peuvent pas être tranchés hors ligne : la **date de naissance** qui répond
+à la question de sécurité — le format des propositions dépend de l'établissement — et le
+**renouvellement du jeton**, dont le code exact rendu par le service vient d'un relevé et non
+d'une observation.
+
+`pnpm verifier` les éprouve. Il demande les identifiants **au clavier**, masque le mot de
+passe, n'écrit rien nulle part, et la police d'écriture y reste sur `deny` : même une erreur
+de code ne pourrait rien modifier.
+
+Son rapport final ne contient que des **formes** et des **codes**, jamais une valeur : une
+proposition de date y apparaît comme `99/99/9999` ou `99 Aaa 9999`. C'est tout ce qu'il faut
+pour corriger une lecture de date, et cela ne dit rien de la personne — le rapport peut donc
+se recopier tel quel à qui aide.
 
 ## Ce qui n'est pas promis
 
