@@ -8,6 +8,10 @@ sans compte réel », pas « éprouvé sur le terrain ».
 
 - [x] Monorepo, protocole sans dépendance, testable sans réseau ni compte.
 - [x] Connexion complète : jeton GTK, `login.awp`, jetons repris au vol, `renewtoken.awp`.
+- [x] Connexion alignée sur les clients qui se connectent en septembre 2026 : GTK neuf avant
+      chaque login, jetons de la question emportés par le login qui la conclut, `cn`/`cv` à la
+      racine et dans `fa`, version `4.101.4`, code 526, et un couple de confiance périmé oublié
+      au lieu de bloquer la connexion.
 - [x] Question de sécurité : question et propositions décodées, choix renvoyé, couple
       `cn`/`cv` conservé. Jamais devinée, jamais approchée, une seule tentative.
 - [x] Codes métier, dont le **517** (version périmée) que le client Android ne connaît pas.
@@ -64,17 +68,30 @@ que les **noms** de champs, jamais les valeurs, et refuse d'écrire s'il voit pa
       il ne sera pas écrit à l'aveugle.
 - [ ] Archivage et suppression d'un message.
 
-## P5 — Professeur
+## P5 — Professeur · lecture écrite
 
-Conditionné à un compte enseignant. En attendant, la place est réservée et rien n'est deviné.
+La lecture est écrite et couverte par des réponses reconstituées d'après les clients qui lisent
+ces routes en réel (`jeromeboivin/EcoleDirecteMCP`, relevé du trafic du site, septembre 2026).
+**Rien n'a encore été vérifié sur un compte enseignant de ce projet.**
 
-- [x] Second hôte `apip.ecoledirecte.com` prêt dans le client.
-- [x] Rôle reconnu, et page qui explique l'absence de support au lieu d'enchaîner des
-      « accès refusé ».
-- [ ] Lecture : emploi du temps, classes et groupes, messagerie enseignant, cahier de textes.
-      Documenté par **une seule** source de 2025, non corroborée, et la valeur exacte de
-      `typeCompte` pour un enseignant n'est même pas confirmée.
-- [ ] Écriture : saisie de notes, appel, cahier de textes. **Aucune documentation publique.**
+- [x] Compte `typeCompte: "P"` reconnu — plusieurs clients indépendants le lisent ainsi — avec
+      ses classes, groupes (`groupesNiveau`) et matières du login.
+- [x] Hôte `apip.ecoledirecte.com` : emploi du temps, catalogue `niveauxListe.awp`, élèves d'une
+      classe, cahier de textes `loadslots`, grille de notes, messagerie enseignant.
+- [x] Espace `/prof` : accueil, emploi du temps, classes, élèves, cahier de textes, notes et
+      messagerie. Les moyennes sont calculées à partir de la grille et annoncées comme telles.
+- [x] Démonstration sur données inventées (`ED_DEMO=1`), sans aucune requête vers ÉcoleDirecte.
+- [ ] **Premier aller-retour réel**, avec un professeur volontaire qui se connecte lui-même :
+      connexion, catalogue, une grille de notes. Les formes relevées sur son compte par
+      `tools/har/extract.mjs` remplacent alors les fixtures.
+- [ ] Élèves d'un **groupe** : la route n'est vue qu'avec un créneau d'appel dans le corps.
+- [ ] Photos des élèves : leur téléchargement n'est documenté nulle part.
+- [ ] Pièces jointes de la messagerie et du cahier de textes côté enseignant.
+- [ ] Appréciations, conseil de classe, carnet de correspondance : routes connues en lecture.
+- [ ] Compte à double rôle professeur et personnel (`isProfEtPersonnel`, bascule `renewtoken.awp`).
+- [ ] Écriture : saisie de notes, appel, cahier de textes. **Aucune documentation publique
+      fiable**, et chacune touche le dossier scolaire d'élèves : hors de portée tant qu'elle n'a
+      pas été observée et éprouvée avec un professeur, et avec l'accord de l'établissement.
 
 ## P6 — Qualité et exploitation
 

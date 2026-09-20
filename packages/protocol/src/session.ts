@@ -36,8 +36,10 @@ export const DEFAULT_USER_AGENT =
  * Elle suit les mises à jour du site d'ÉcoleDirecte et **périme sans préavis** : le jour où
  * elle ne convient plus, toutes les requêtes échouent avec le code 517. Elle doit donc
  * pouvoir être changée sans redéployer — d'où la lecture d'une variable d'environnement.
+ *
+ * `4.101.4` est celle des clients qui se connectent réellement en septembre 2026.
  */
-export const DEFAULT_API_VERSION = '4.75.0'
+export const DEFAULT_API_VERSION = '4.101.4'
 
 export function createSession(init: Partial<SessionState> = {}): SessionState {
   return {

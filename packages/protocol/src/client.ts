@@ -214,8 +214,13 @@ export class EcoleDirecteClient {
    * Premier temps de la connexion : depuis mars 2025, sans jeton GTK le service répond
    * « identifiant ou mot de passe incorrect », ce qui envoie chercher très loin une panne
    * très proche.
+   *
+   * Le jeton est à usage unique. L'ancien est donc oublié avant d'en demander un neuf, en
+   * en-tête comme en cookie : un jeton usé ne doit jamais repartir faute d'un nouveau.
    */
   async refreshGtk(): Promise<ApiResult<string>> {
+    this.session.gtk = null
+    delete this.session.cookies['GTK']
     const url = `${this.apiBase}/login.awp?gtk=1&v=${encodeURIComponent(this.session.apiVersion)}`
     let response
     try {
@@ -224,46 +229,71 @@ export class EcoleDirecteClient {
       return failure('network', 'Le service est injoignable.')
     }
     absorb(this.session, response.headers)
-    const gtk = this.session.gtk ?? this.session.cookies['GTK'] ?? null
+
+    let body: Record<string, unknown> | null = null
+    try {
+      body = asObject(JSON.parse(response.body))
+    } catch {
+      // Corps vide ou illisible : le jeton est dans les en-têtes ou les cookies.
+    }
+    // Le jeton arrive en en-tête ou en cookie, et parfois dans le corps.
+    const fromBody = typeof body?.['token'] === 'string' && body['token'] !== '' ? (body['token'] as string) : null
+    const gtk = this.session.gtk ?? this.session.cookies['GTK'] ?? fromBody
     if (gtk) {
       this.session.gtk = gtk
       return { ok: true, value: gtk }
     }
     // Pas de jeton : avant de conclure au protocole, on regarde si le service a dit
     // pourquoi. Un 517 annoncé « jeton GTK absent » enverrait chercher au mauvais endroit.
-    try {
-      const body = JSON.parse(response.body) as Record<string, unknown>
-      const code = typeof body['code'] === 'number' ? (body['code'] as number) : ApiCode.OK
-      if (code !== ApiCode.OK) {
-        const { kind, message } = kindForCode(code)
-        return failure(kind, message, `code ${code}`)
-      }
-    } catch {
-      // Corps illisible : on retombe sur le diagnostic générique ci-dessous.
+    const code = typeof body?.['code'] === 'number' ? (body['code'] as number) : ApiCode.OK
+    if (code !== ApiCode.OK) {
+      const { kind, message } = kindForCode(code)
+      return failure(kind, message, `code ${code}`)
     }
     return failure('protocol', "Le service n'a pas fourni de jeton GTK.")
   }
 
-  async login(identifier: string, password: string, answer?: TrustedAnswer): Promise<LoginOutcome> {
-    if (!this.session.gtk) {
-      const gtk = await this.refreshGtk()
-      if (!gtk.ok) return gtk
-    }
+  /**
+   * Le login.
+   *
+   * `answer` est le couple de confiance d'une question de sécurité, et il part sous deux
+   * formes selon d'où il vient. Juste après avoir répondu (`fresh`), le site envoie `cn` et
+   * `cv` à la racine **et** dans `fa` : avec `fa` seul, le service refuse une réponse pourtant
+   * juste en annonçant un mot de passe invalide. Un couple mémorisé d'une connexion
+   * précédente ne part que dans `fa`.
+   */
+  async login(
+    identifier: string,
+    password: string,
+    answer?: TrustedAnswer,
+    options: { fresh?: boolean } = {},
+  ): Promise<LoginOutcome> {
+    const gtk = await this.refreshGtk()
+    if (!gtk.ok) return gtk
+
     // L'ordre des clés est celui du site, et il est reproduit tel quel : le corps est
     // sérialisé dans l'ordre d'insertion.
-    const body: JsonValue = {
-      identifiant: identifier,
-      motdepasse: password,
-      isReLogin: false,
-      uuid: '',
-      fa: answer ? [{ cn: answer.cn, cv: answer.cv }] : [],
-    }
+    const factors = answer ? [{ cn: answer.cn, cv: answer.cv, uniq: false }] : []
+    const body: JsonValue =
+      answer && options.fresh
+        ? {
+            identifiant: identifier,
+            motdepasse: password,
+            isReLogin: false,
+            cn: answer.cn,
+            cv: answer.cv,
+            uuid: '',
+            fa: factors,
+          }
+        : { identifiant: identifier, motdepasse: password, isReLogin: false, uuid: '', fa: factors }
     const url = `${this.apiBase}/login.awp?v=${encodeURIComponent(this.session.apiVersion)}`
     this.onRequest?.({ method: 'POST', url, write: false, body: redactBody(body) })
 
-    const headers = this.browserHeaders()
+    // Comme le site, le login qui conclut une question de sécurité emporte les jetons obtenus
+    // pendant l'échange. Une première connexion n'en a aucun, et n'envoie donc rien de plus.
+    const headers = this.authHeaders()
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    if (this.session.gtk) headers['X-GTK'] = this.session.gtk
+    headers['X-GTK'] = gtk.value
 
     const result = await this.send({ method: 'POST', url, headers, body: formBody(body) })
     if (result.ok) return { ok: true, accounts: parseAccounts(result.value) }
@@ -332,6 +362,6 @@ export class EcoleDirecteClient {
    * `X-Token`, `2FA-Token` et les cookies d'un coup : ils sont tous repris au vol.
    */
   async renewToken(userId: string): Promise<ApiResult<unknown>> {
-    return this.call('/renewtoken.awp', { body: { idUser: userId, uuid: '' } })
+    return this.call('/renewtoken.awp', { verb: 'post', body: { idUser: userId, uuid: '' } })
   }
 }

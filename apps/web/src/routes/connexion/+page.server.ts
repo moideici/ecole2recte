@@ -1,12 +1,16 @@
 import { fail, redirect } from '@sveltejs/kit'
 import type { Actions, PageServerLoad } from './$types'
 import {
+  type Account,
   type TrustedAnswer,
   EcoleDirecteClient,
+  accountRole,
   createSession,
   fetchEngine,
+  parseAccounts,
 } from '@ecole2recte/protocol'
 import { env } from '$env/dynamic/private'
+import { DEMO_LOGIN, demoEnabled } from '$lib/server/demo.js'
 import { seal, unseal } from '$lib/server/seal.js'
 import { setSessionCookie } from '$lib/server/session.js'
 import { sessions } from '$lib/server/store.js'
@@ -31,7 +35,7 @@ function newClient(): EcoleDirecteClient {
 
 export const load: PageServerLoad = ({ locals }) => {
   if (locals.session && locals.session.accounts.length > 0) redirect(303, '/')
-  return {}
+  return { demo: demoEnabled() }
 }
 
 /**
@@ -54,7 +58,15 @@ export const actions: Actions = {
     const client = newClient()
     // Un couple de confiance déjà validé évite de reposer la question à chaque connexion.
     const confiance = unseal<TrustedAnswer>(cookies.get(CONFIANCE))
-    const outcome = await client.login(identifiant, motdepasse, confiance ?? undefined)
+    let outcome = await client.login(identifiant, motdepasse, confiance ?? undefined)
+
+    // Un couple de confiance périmé fait annoncer un mot de passe invalide à un mot de passe
+    // juste. On l'oublie et on retente une seule fois sans lui : au pire, ÉcoleDirecte repose
+    // sa question, ce qui est le comportement attendu d'un appareil qu'il ne reconnaît plus.
+    if (!outcome.ok && outcome.kind === 'invalid-credentials' && confiance) {
+      cookies.delete(CONFIANCE, { path: '/' })
+      outcome = await client.login(identifiant, motdepasse)
+    }
 
     if (outcome.ok) {
       return install(cookies, url, client, outcome.accounts)
@@ -111,7 +123,8 @@ export const actions: Actions = {
       return fail(401, { message: answered.message })
     }
 
-    const outcome = await client.login(attente.identifier, attente.password, answered.value)
+    // `fresh` : juste après la réponse, le couple part à la racine du corps et dans `fa`.
+    const outcome = await client.login(attente.identifier, attente.password, answered.value, { fresh: true })
     // La session d'attente disparaît avec le mot de passe qu'elle portait, réussite ou non.
     sessions.destroy(id)
     if (!outcome.ok) return fail(401, { message: outcome.message })
@@ -131,25 +144,47 @@ export const actions: Actions = {
 
     return install(cookies, url, client, outcome.accounts)
   },
+
+  /**
+   * L'espace professeur sur données inventées. Une session de démonstration n'a ni jeton ni
+   * identifiants, et son moteur ne parle qu'à un faux serveur local.
+   */
+  demo: ({ cookies, url }) => {
+    if (!demoEnabled()) return fail(404, { message: 'La démonstration n’est pas activée sur ce serveur.' })
+    const accounts = parseAccounts(DEMO_LOGIN)
+    const id = sessions.create({
+      protocol: createSession(),
+      accounts,
+      activeAccountId: accounts[0]?.id ?? null,
+      awaitingSecurityAnswer: false,
+      snapshots: {},
+      demo: true,
+    })
+    setSessionCookie(cookies, id, secure(url))
+    redirect(303, '/prof')
+  },
 }
 
 function install(
   cookies: import('@sveltejs/kit').Cookies,
   url: URL,
   client: EcoleDirecteClient,
-  accounts: Array<import('@ecole2recte/protocol').Account>,
+  accounts: Account[],
 ): never {
   if (accounts.length === 0) {
     // Une connexion sans profil lisible n'est pas une réussite, quoi qu'en dise le code 200.
     throw redirect(303, '/connexion?vide=1')
   }
+  // Le profil ouvert d'abord : un élève ou un enseignant, plutôt qu'un rôle que l'application
+  // ne sait pas montrer.
+  const active = accounts.find((account) => accountRole(account) !== 'unknown') ?? accounts[0]
   const id = sessions.create({
     protocol: client.session,
     accounts,
-    activeAccountId: accounts[0]?.id ?? null,
+    activeAccountId: active?.id ?? null,
     awaitingSecurityAnswer: false,
     snapshots: {},
   })
   setSessionCookie(cookies, id, secure(url))
-  redirect(303, '/')
+  redirect(303, active && accountRole(active) === 'teacher' ? '/prof' : '/')
 }

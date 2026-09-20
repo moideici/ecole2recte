@@ -35,6 +35,13 @@ export interface SessionRecord {
    */
   pending?: { identifier: string; password: string }
   snapshots: Record<string, { snapshot: SchoolSnapshot; at: number }>
+  /**
+   * Les lectures de l'espace professeur, par clé d'appel. Un enseignant qui passe d'une classe
+   * à l'autre ne doit pas recharger ce qu'il vient de consulter.
+   */
+  cache?: Record<string, { at: number; value: unknown }>
+  /** Session de démonstration : aucune requête ne part vers ÉcoleDirecte. */
+  demo?: boolean
   createdAt: number
   touchedAt: number
 }

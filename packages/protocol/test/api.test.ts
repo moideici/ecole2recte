@@ -36,55 +36,55 @@ describe('lecture', () => {
     [
       'emploi du temps',
       (subject) => subject.timetable(ELEVE, '2026-09-01', '2026-09-30'),
-      'https://api.ecoledirecte.com/v3/E/4242/emploidutemps.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/E/4242/emploidutemps.awp?verbe=get&v=4.101.4',
       { dateDebut: '2026-09-01', dateFin: '2026-09-30', avecTrous: false },
     ],
     [
       'cahier de textes',
       (subject) => subject.homework(ELEVE),
-      'https://api.ecoledirecte.com/v3/Eleves/4242/cahierdetexte.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/Eleves/4242/cahierdetexte.awp?verbe=get&v=4.101.4',
       {},
     ],
     [
       'détail du jour',
       (subject) => subject.dayContent(ELEVE, '2026-09-08'),
-      'https://api.ecoledirecte.com/v3/Eleves/4242/cahierdetexte/2026-09-08.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/Eleves/4242/cahierdetexte/2026-09-08.awp?verbe=get&v=4.101.4',
       {},
     ],
     [
       'notes',
       (subject) => subject.grades(ELEVE),
-      'https://api.ecoledirecte.com/v3/eleves/4242/notes.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/eleves/4242/notes.awp?verbe=get&v=4.101.4',
       { anneeScolaire: '' },
     ],
     [
       'vie scolaire',
       (subject) => subject.schoolLife(ELEVE),
-      'https://api.ecoledirecte.com/v3/eleves/4242/viescolaire.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/eleves/4242/viescolaire.awp?verbe=get&v=4.101.4',
       {},
     ],
     [
       'documents',
       (subject) => subject.documents(ELEVE),
-      'https://api.ecoledirecte.com/v3/elevesDocuments.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/elevesDocuments.awp?verbe=get&v=4.101.4',
       { anneeScolaire: '', idEleve: '4242' },
     ],
     [
       'actualités',
       (subject) => subject.news(ELEVE),
-      'https://api.ecoledirecte.com/v3/E/4242/viedeletablissement.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/E/4242/viedeletablissement.awp?verbe=get&v=4.101.4',
       {},
     ],
     [
       'manuels',
       (subject) => subject.textbooks(ELEVE),
-      'https://api.ecoledirecte.com/v3/E/4242/manuelsnumeriques.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/E/4242/manuelsnumeriques.awp?verbe=get&v=4.101.4',
       {},
     ],
     [
       'stockage',
       (subject) => subject.cloud(ELEVE),
-      'https://api.ecoledirecte.com/v3/eleves/4242/cloud.awp?verbe=get&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/eleves/4242/cloud.awp?verbe=get&v=4.101.4',
       {},
     ],
   ]
@@ -135,7 +135,7 @@ describe('écriture', () => {
     const { api: subject, engine } = api()
     await subject.setHomeworkDone(ELEVE, ['5001', '5002'], true)
     expect(engine.requests[0]?.url).toBe(
-      'https://api.ecoledirecte.com/v3/Eleves/4242/cahierdetexte.awp?verbe=put&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/Eleves/4242/cahierdetexte.awp?verbe=put&v=4.101.4',
     )
     // Les identifiants partent en nombres : une chaîne serait rejetée en silence.
     expect(engine.sentBody(0)).toEqual({ idDevoirsEffectues: [5001, 5002], idDevoirsNonEffectues: [] })
@@ -223,7 +223,7 @@ describe('téléchargement', () => {
 
     expect(result.ok).toBe(true)
     expect(vue!.url).toBe(
-      'https://api.ecoledirecte.com/v3/telechargement.awp?verbe=get&fichierId=77&leTypeDeFichier=FICHIER_CDT&v=4.75.0',
+      'https://api.ecoledirecte.com/v3/telechargement.awp?verbe=get&fichierId=77&leTypeDeFichier=FICHIER_CDT&v=4.101.4',
     )
     expect(vue!.body).toBe('data=%7B%22forceDownload%22%3A%200%7D')
   })

@@ -22,6 +22,29 @@ describe('connexion', () => {
     expect(outcome.ok && outcome.accounts[0]?.firstName).toBe('Camille')
   })
 
+  it('redemande un GTK neuf à chaque login, même quand la session en garde un', async () => {
+    // Le jeton est à usage unique : le rejouer fait échouer le login qui suit la question.
+    const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
+    const subject = client(engine)
+    subject.session.gtk = 'GTK-USE'
+    subject.session.cookies['GTK'] = 'GTK-USE'
+    await subject.login('camille', 'x')
+
+    expect(engine.requests[0]?.url).toContain('gtk=1')
+    expect(engine.requests[1]?.headers['X-GTK']).toBe('GTK-DE-TEST')
+    expect(engine.requests[1]?.headers['Cookie']).toContain('GTK=GTK-DE-TEST')
+    expect(engine.requests[1]?.headers['Cookie']).not.toContain('GTK-USE')
+  })
+
+  it('prend le GTK dans le corps quand ni en-tête ni cookie ne le portent', async () => {
+    const engine = new FakeEngine([
+      { match: 'gtk=1', body: { code: 200, token: 'GTK-DU-CORPS', data: null } },
+      loginResponse(200, STUDENT_PAYLOAD),
+    ])
+    await client(engine).login('camille', 'x')
+    expect(engine.requests[1]?.headers['X-GTK']).toBe('GTK-DU-CORPS')
+  })
+
   it('envoie le corps de login au caractère près', async () => {
     const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
     await client(engine).login('camille', 'sécret"1')
@@ -34,17 +57,41 @@ describe('connexion', () => {
     )
   })
 
-  it('rejoue la réponse de confiance dans le champ fa', async () => {
+  it('rejoue un couple de confiance mémorisé dans le seul champ fa', async () => {
     const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
     await client(engine).login('camille', 'x', { cn: 'CN1', cv: 'CV1' })
 
-    expect(engine.sentBody(1)).toEqual({
-      identifiant: 'camille',
-      motdepasse: 'x',
-      isReLogin: false,
-      uuid: '',
-      fa: [{ cn: 'CN1', cv: 'CV1' }],
-    })
+    const body = engine.sentBody(1) as Record<string, unknown>
+    expect(Object.keys(body)).toEqual(['identifiant', 'motdepasse', 'isReLogin', 'uuid', 'fa'])
+    expect(body['fa']).toEqual([{ cn: 'CN1', cv: 'CV1', uniq: false }])
+  })
+
+  it('après la question, envoie cn et cv à la racine et dans fa, dans l’ordre du site', async () => {
+    // Avec `fa` seul, le service annonce un mot de passe invalide à une réponse juste.
+    const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
+    await client(engine).login('camille', 'x', { cn: 'CN1', cv: 'CV1' }, { fresh: true })
+
+    const body = engine.sentBody(1) as Record<string, unknown>
+    expect(Object.keys(body)).toEqual(['identifiant', 'motdepasse', 'isReLogin', 'cn', 'cv', 'uuid', 'fa'])
+    expect(body).toMatchObject({ cn: 'CN1', cv: 'CV1', fa: [{ cn: 'CN1', cv: 'CV1', uniq: false }] })
+  })
+
+  it('emporte les jetons de la question de sécurité dans le login qui la conclut', async () => {
+    const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
+    const subject = client(engine)
+    subject.session.token = 'JETON-QUESTION'
+    subject.session.twoFactorToken = 'JETON-2FA-QUESTION'
+    await subject.login('camille', 'x', { cn: 'CN1', cv: 'CV1' }, { fresh: true })
+
+    expect(engine.requests[1]?.headers['X-Token']).toBe('JETON-QUESTION')
+    expect(engine.requests[1]?.headers['2FA-Token']).toBe('JETON-2FA-QUESTION')
+  })
+
+  it('n’envoie aucun jeton sur une première connexion', async () => {
+    const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
+    await client(engine).login('camille', 'x')
+    expect(engine.requests[1]?.headers['X-Token']).toBeUndefined()
+    expect(engine.requests[1]?.headers['2FA-Token']).toBeUndefined()
   })
 
   it('retient les jetons et les cookies rapportés par la réponse', async () => {
@@ -68,6 +115,7 @@ describe('codes métier', () => {
     [517, 'stale-version'],
     [520, 'session-expired'],
     [525, 'session-expired'],
+    [526, 'session-expired'],
     [535, 'account-blocked'],
     [999, 'protocol'],
   ]
@@ -169,7 +217,7 @@ describe("police d'écriture", () => {
 
     expect(result.ok).toBe(true)
     const request = engine.requests[0]
-    expect(request?.url).toBe('https://api.ecoledirecte.com/v3/Eleves/1/cahierdetexte.awp?verbe=put&v=4.75.0')
+    expect(request?.url).toBe('https://api.ecoledirecte.com/v3/Eleves/1/cahierdetexte.awp?verbe=put&v=4.101.4')
     expect(request?.headers['X-Token']).toBe('JETON')
     expect(request?.headers['Content-Type']).toBe('application/x-www-form-urlencoded')
     expect(engine.sentBody(0)).toEqual({ idDevoirsEffectues: [7], idDevoirsNonEffectues: [] })
@@ -191,6 +239,19 @@ describe('traces', () => {
     // La clé reste lisible — c'est la valeur qui ne doit jamais apparaître.
     expect(traces.join('\n')).not.toContain('Tr0ub4dour')
     expect(traces.join('\n')).toContain('expurgé')
+  })
+
+  it('n’écrit jamais le couple de confiance dans une trace', async () => {
+    const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
+    const traces: string[] = []
+    await client(engine, { onRequest: (record) => traces.push(JSON.stringify(record)) }).login(
+      'camille',
+      'x',
+      { cn: 'CN-SECRET', cv: 'CV-SECRET' },
+      { fresh: true },
+    )
+    expect(traces.join('\n')).not.toContain('CN-SECRET')
+    expect(traces.join('\n')).not.toContain('CV-SECRET')
   })
 })
 

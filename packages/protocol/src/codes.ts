@@ -17,6 +17,8 @@ export const ApiCode = {
   STALE_VERSION: 517,
   TOKEN_EXPIRED: 520,
   TOKEN_INVALID: 525,
+  /** Autre forme du jeton expiré, rencontrée par les clients qui tournent en réel. */
+  TOKEN_EXPIRED_ALT: 526,
   BLOCKED_ALT: 535,
 } as const
 
@@ -67,6 +69,7 @@ export function kindForCode(code: number): { kind: ApiErrorKind; message: string
       }
     case ApiCode.TOKEN_EXPIRED:
     case ApiCode.TOKEN_INVALID:
+    case ApiCode.TOKEN_EXPIRED_ALT:
       return { kind: 'session-expired', message: 'La session a expiré.' }
     default:
       return { kind: 'protocol', message: 'Réponse inattendue du service : le protocole a probablement changé.' }

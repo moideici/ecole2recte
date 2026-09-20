@@ -5,10 +5,11 @@ import { requireAccount } from '$lib/server/guard.js'
 
 export const load: PageServerLoad = ({ locals }) => {
   const { account } = requireAccount(locals)
-  // Un profil élève n'a rien à faire ici : cette page explique une absence de support.
+  // Un élève et un enseignant ont chacun leur espace : cette page n'explique qu'une absence
+  // de support.
   if (isStudent(account)) redirect(303, '/')
+  if (accountRole(account) === 'teacher') redirect(303, '/prof')
   return {
-    role: accountRole(account),
     nom: displayName(account),
     type: account.type,
     modules: account.modules.filter((module) => module.enabled).map((module) => module.code),

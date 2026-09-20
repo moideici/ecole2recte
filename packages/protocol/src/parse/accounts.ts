@@ -1,4 +1,5 @@
 import type { Account, AccountModule } from '../models.js'
+import { parseTeacherProfile } from './teacher.js'
 
 /**
  * Lecture des comptes rendus par `login.awp`.
@@ -80,6 +81,20 @@ export function parseAccounts(data: unknown): Account[] {
     const schoolName = text(source['nomEtablissement'])
     if (type.toUpperCase() === 'E') {
       accounts.push(studentFrom(source, schoolName))
+      continue
+    }
+    // Un enseignant n'a ni classe ni enfants : ses classes, groupes et matières sont dans son profil.
+    if (type.toUpperCase() === 'P') {
+      accounts.push({
+        id: text(source['id']),
+        type: 'P',
+        firstName: text(source['prenom']),
+        lastName: text(source['nom']),
+        className: '',
+        schoolName,
+        modules: modules(source),
+        teacher: parseTeacherProfile(source),
+      })
       continue
     }
     const profile = asObject(source['profile'])

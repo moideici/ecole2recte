@@ -5,6 +5,13 @@
 
   let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props()
 
+  interface Entree {
+    href: string
+    libelle: string
+    /** Le module ÉcoleDirecte dont dépend la section : fermé, elle disparaît. */
+    module?: string
+  }
+
   /**
    * La navigation.
    *
@@ -12,7 +19,7 @@
    * basse sur téléphone où les cinq premières entrées tiennent et le reste passe dans un
    * menu. Dupliquer la liste garantirait qu'elles divergent un jour.
    */
-  const entrees = [
+  const entreesEleve: Entree[] = [
     { href: '/', libelle: 'Accueil' },
     { href: '/emploi-du-temps', libelle: 'Emploi du temps' },
     { href: '/devoirs', libelle: 'Devoirs' },
@@ -26,12 +33,28 @@
     { href: '/reglages', libelle: 'Réglages' },
   ]
 
+  /** L'espace professeur, en lecture seule. */
+  const entreesProf: Entree[] = [
+    { href: '/prof', libelle: 'Accueil' },
+    { href: '/prof/classes', libelle: 'Classes' },
+    { href: '/prof/cahier-de-textes', libelle: 'Cahier de textes', module: 'CAHIER_DE_TEXTES' },
+    { href: '/prof/notes', libelle: 'Notes', module: 'CARNET_NOTES' },
+    { href: '/prof/messages', libelle: 'Messages', module: 'MESSAGERIE' },
+    { href: '/prof/emploi-du-temps', libelle: 'Emploi du temps', module: 'EDT' },
+  ]
+
+  const entrees = $derived(
+    (data.profil?.prof ? entreesProf : entreesEleve).filter(
+      (entree) => !entree.module || !data.profil?.modulesFermes.includes(entree.module),
+    ),
+  )
   const principales = $derived(entrees.slice(0, 5))
   const secondaires = $derived(entrees.slice(5))
   let menuOuvert = $state(false)
 
   function actuel(href: string): boolean {
-    return href === '/' ? data.chemin === '/' : data.chemin.startsWith(href)
+    // Un accueil n'est actuel que chez lui : `/prof` ne s'allume pas sur `/prof/notes`.
+    return href === '/' || href === '/prof' ? data.chemin === href : data.chemin.startsWith(href)
   }
 </script>
 
@@ -48,12 +71,16 @@
         <div class="profil carte">
           <p style="font-weight:600">{data.profil.nom}</p>
           <p class="discret">
-            {data.profil.classe}{data.profil.classe && data.profil.etablissement ? ' · ' : ''}{data.profil.etablissement}
+            {#if data.profil.prof}
+              Enseignant{data.profil.etablissement ? ` · ${data.profil.etablissement}` : ''}
+            {:else}
+              {data.profil.classe}{data.profil.classe && data.profil.etablissement ? ' · ' : ''}{data.profil.etablissement}
+            {/if}
           </p>
         </div>
       {/if}
 
-      {#if data.enfants.length > 1}
+      {#if data.enfants.length > 1 && !data.profil?.prof}
         <!-- Un compte parent lit plusieurs enfants : le profil consulté se choisit ici. -->
         <form method="POST" action="/?/changerEnfant" use:enhance class="enfants" aria-label="Enfant consulté">
           <div class="defilement">
@@ -84,7 +111,14 @@
       </form>
     </aside>
 
-    <main id="contenu">{@render children()}</main>
+    <main id="contenu">
+      {#if data.demo}
+        <p class="demo" role="note">
+          <strong>Démo</strong> · données fictives, aucune requête ne part vers ÉcoleDirecte.
+        </p>
+      {/if}
+      {@render children()}
+    </main>
   </div>
 
   <nav class="basse" aria-label="Sections principales">
@@ -122,6 +156,16 @@
   .marque { font-weight: 700; letter-spacing: -0.02em; font-size: 1.05rem; margin-bottom: 4px; }
   .profil { padding: 12px 14px; }
   .enfants { margin: 4px 0; }
+
+  .demo {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--accent);
+    border-radius: var(--rayon-petit);
+    background: var(--accent-doux);
+    color: var(--accent);
+    font-size: 0.9rem;
+  }
 
   nav[aria-label='Sections'] ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
   nav[aria-label='Sections'] a {

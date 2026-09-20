@@ -10,6 +10,8 @@
  * l'établissement est celui de l'élève, jamais celui du serveur.
  */
 
+import type { TeacherProfile } from './teaching.js'
+
 // ————————————————————————————————————————————————————————— comptes
 
 export interface AccountModule {
@@ -19,7 +21,7 @@ export interface AccountModule {
 
 export interface Account {
   id: string
-  /** `typeCompte` tel que rendu : `E` pour un élève, autre chose pour une famille. */
+  /** `typeCompte` tel que rendu : `E` pour un élève, `P` pour un enseignant, autre chose pour une famille. */
   type: string
   firstName: string
   lastName: string
@@ -33,6 +35,8 @@ export interface Account {
    * fonctionnalités : rien ne doit être codé en dur par rôle.
    */
   modules: AccountModule[]
+  /** Renseigné pour un compte enseignant : ses classes, groupes et matières selon le login. */
+  teacher?: TeacherProfile
 }
 
 export function isStudent(account: Account): boolean {
@@ -47,12 +51,10 @@ export type AccountRole = 'student' | 'family' | 'teacher' | 'unknown'
  * `E` pour un élève, c'est établi. Les comptes famille se reconnaissent à leur liste
  * d'enfants, et sont dépliés en un profil par enfant avant d'arriver ici.
  *
- * **Le professeur est une hypothèse, pas un fait.** La documentation publique décrit des
- * routes enseignant sur un autre hôte (`apip.ecoledirecte.com`, segments `/P/{id}` et
- * `/enseignants/{id}`), mais aucune source consultée ne confirme littéralement la valeur de
- * `typeCompte` pour un enseignant. On la reconnaît donc au mieux, et l'application le dit
- * plutôt que de faire semblant : sans compte professeur pour vérifier, écrire du code
- * enseignant reviendrait à deviner.
+ * `P` pour un enseignant : plusieurs clients indépendants qui tournent en réel le lisent
+ * ainsi, et l'un d'eux refuse explicitement ce type comme « compte enseignant ». `A` désigne
+ * un membre du personnel, que l'application ne prend pas en charge. Ce qui reste à vérifier
+ * sur un vrai compte, ce sont les formes des réponses enseignant, pas ce type.
  */
 export function accountRole(account: Account): AccountRole {
   const type = account.type.trim().toUpperCase()

@@ -19,7 +19,7 @@
 <script>
   const sortie = document.getElementById('sortie')
   document.getElementById('lancer').addEventListener('click', async () => {
-    const version = '4.75.0'
+    const version = '4.101.4'
     sortie.textContent = 'Appel en cours…'
     try {
       const response = await fetch(`https://api.ecoledirecte.com/v3/login.awp?gtk=1&v=${version}`, {

@@ -1,18 +1,27 @@
 import { env } from '$env/dynamic/private'
 import {
   type Account,
+  type ApiResult,
   type DataSection,
   type SchoolSnapshot,
   type SyncOutcome,
   EcoleDirecteApi,
   EcoleDirecteClient,
+  TeacherApi,
   emptySnapshot,
   fetchEngine,
   mergeSnapshot,
   syncSections,
 } from '@ecole2recte/protocol'
+import { demoEngine } from './demo.js'
 import { type SessionRecord, sessions } from './store.js'
 import { writePolicy } from './write-policy.js'
+
+/** Le catalogue d'un professeur change rarement dans la journée. */
+export const CATALOGUE_TTL_MS = 30 * 60 * 1000
+
+/** La première page des messages reçus, telle que l'accueil du professeur la garde. */
+export const CLE_MESSAGES_ACCUEIL = 'messages:received:0'
 
 /**
  * Le mandataire.
@@ -23,15 +32,21 @@ import { writePolicy } from './write-policy.js'
  */
 export function clientFor(record: SessionRecord): { client: EcoleDirecteClient; api: EcoleDirecteApi } {
   const client = new EcoleDirecteClient({
-    engine: fetchEngine(),
+    // Une session de démonstration ne sort jamais : son moteur est un faux serveur local.
+    engine: record.demo ? demoEngine(today()) : fetchEngine(),
     session: record.protocol,
-    writePolicy: writePolicy(),
+    writePolicy: record.demo ? 'deny' : writePolicy(),
     apiBase: env['ED_API_BASE'] ?? undefined,
-    // Réglable sans redéployer : le jour où la version périme, tout tombe avec le code 517.
-    ...(env['ED_API_VERSION'] ? {} : {}),
   })
+  // Réglable sans redéployer : le jour où la version périme, tout tombe avec le code 517.
   if (env['ED_API_VERSION']) client.session.apiVersion = env['ED_API_VERSION']
   return { client, api: new EcoleDirecteApi(client) }
+}
+
+/** Le même mandataire, côté enseignant : lecture seule, sur l'hôte enseignant. */
+export function teacherFor(record: SessionRecord): { client: EcoleDirecteClient; api: TeacherApi } {
+  const { client } = clientFor(record)
+  return { client, api: new TeacherApi(client) }
 }
 
 /**
@@ -82,6 +97,34 @@ export async function loadSections(
   record.snapshots[account.id] = { snapshot, at: Date.now() }
   persist(id, record)
   return { snapshot, errors: outcome.errors, fromCache: false }
+}
+
+/**
+ * Une lecture gardée quelques minutes dans la session.
+ *
+ * Seules les réussites sont gardées : un échec doit pouvoir être retenté tout de suite. La
+ * session est réécrite dans tous les cas, parce que les jetons ont tourné même sur un refus.
+ */
+export async function cached<T>(
+  id: string,
+  record: SessionRecord,
+  key: string,
+  load: () => Promise<ApiResult<T>>,
+  ttl = SNAPSHOT_TTL_MS,
+): Promise<ApiResult<T>> {
+  const now = Date.now()
+  const hit = record.cache?.[key]
+  if (hit && now - hit.at < ttl) return { ok: true, value: hit.value as T }
+
+  const result = await load()
+  if (result.ok) {
+    // Les entrées périmées partent au passage : une journée de consultation ne doit pas
+    // faire gonfler la session sans fin.
+    const kept = Object.entries(record.cache ?? {}).filter(([, entry]) => now - entry.at < ttl)
+    record.cache = { ...Object.fromEntries(kept), [key]: { at: now, value: result.value } }
+  }
+  persist(id, record)
+  return result
 }
 
 /** Oublie le cache d'un profil : après une écriture, ce qu'on affichait n'est plus vrai. */

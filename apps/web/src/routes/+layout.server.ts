@@ -1,7 +1,7 @@
 import type { LayoutServerLoad } from './$types'
 import { activeAccount } from '$lib/server/session.js'
 import { enabledWriteFeatures, writePolicy } from '$lib/server/write-policy.js'
-import { displayName, initials, isStudent, viewedByFamily } from '@ecole2recte/protocol'
+import { accountRole, displayName, initials, isStudent, viewedByFamily } from '@ecole2recte/protocol'
 
 /**
  * Ce que toute page connaît : qui est connecté, quels profils sont lisibles, et ce que
@@ -16,6 +16,7 @@ export const load: LayoutServerLoad = ({ locals, url }) => {
   return {
     connecte: record !== null && account !== null,
     chemin: url.pathname,
+    demo: record?.demo === true,
     profil: account
       ? {
           id: account.id,
@@ -26,7 +27,11 @@ export const load: LayoutServerLoad = ({ locals, url }) => {
           eleve: isStudent(account),
           // Un parent ne se voit pas tutoyé : l'application parle de l'enfant.
           parent: viewedByFamily(account),
+          prof: accountRole(account) === 'teacher',
           famille: account.familyName ?? '',
+          // Seuls les modules déclarés fermés masquent une section : un module que le service
+          // ne nomme pas ne prouve rien.
+          modulesFermes: account.modules.filter((module) => !module.enabled).map((module) => module.code.toUpperCase()),
         }
       : null,
     enfants:

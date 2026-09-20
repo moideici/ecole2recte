@@ -1,8 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
-  import type { ActionData } from './$types'
+  import type { ActionData, PageData } from './$types'
 
-  let { form }: { form: ActionData } = $props()
+  let { data, form }: { data: PageData; form: ActionData } = $props()
   let envoi = $state(false)
 
   // Les propositions affichées sont **exactement** celles du serveur : l'application n'en
@@ -15,7 +15,8 @@
 
 <h1>ecole2recte</h1>
 <p class="discret" style="margin-top:6px">
-  Un client ÉcoleDirecte lisible, sur ordinateur comme sur téléphone.
+  Un client ÉcoleDirecte lisible, sur ordinateur comme sur téléphone, pour les élèves, les
+  familles et les professeurs.
 </p>
 
 {#if form && 'message' in form && form.message}
@@ -80,6 +81,17 @@
     Les identifiants servent à la connexion et ne sont pas conservés. Le jeton de session
     reste sur le serveur : le navigateur ne reçoit qu'un identifiant opaque.
   </p>
+
+  {#if data.demo}
+    <form method="POST" action="?/demo" class="carte pile demo">
+      <p style="font-weight:600">Pas encore de compte branché ?</p>
+      <p class="discret">
+        L’espace professeur tourne sur des données entièrement inventées : rien ne part vers
+        ÉcoleDirecte.
+      </p>
+      <button class="bouton">Découvrir l’espace professeur</button>
+    </form>
+  {/if}
 {/if}
 
 <style>
@@ -98,4 +110,5 @@
     cursor: pointer;
   }
   .choix:hover { border-color: var(--accent); }
+  .demo { margin-top: 22px; gap: 8px; }
 </style>

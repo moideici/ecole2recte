@@ -8,6 +8,15 @@ export * from './client.js'
 export * from './api.js'
 export * from './snapshot.js'
 export * from './insights.js'
+export * from './teaching.js'
+export * from './teacher.js'
+export {
+  parseCatalog,
+  parseGradebook,
+  parseLessonSlots,
+  parsePupils,
+  parseTeacherProfile,
+} from './parse/teacher.js'
 export { parseAccounts } from './parse/accounts.js'
 export { parseTimetable } from './parse/timetable.js'
 export { type DayContent, parseDayContent, parseHomeworkSummary } from './parse/homework.js'
