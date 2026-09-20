@@ -61,6 +61,19 @@ export interface ClientOptions {
    * réseau dira ce que le site envoie vraiment.
    */
   autoRenew?: boolean
+  /**
+   * Rouvrir la session quand le jeton a expiré, en refaisant une connexion complète.
+   *
+   * Le protocole ne sait pas comment : il appelle, l'hôte se débrouille. C'est délibéré —
+   * **le mot de passe n'entre jamais dans ce paquet.** Qui le garde, où, et sous quelles
+   * limites, cela regarde l'application, qui a un magasin scellé pour ça.
+   *
+   * Rendre `true` veut dire « la session que tu tiens porte un jeton neuf » : la fonction
+   * doit avoir rempli `session` sur place, sans quoi l'appel rejoué échouera pareil.
+   *
+   * Appelée **une fois** par appel expiré, jamais deux, jamais pour une écriture.
+   */
+  reauthenticate?: () => Promise<boolean>
   onRequest?: (record: RequestRecord) => void
 }
 
@@ -275,6 +288,9 @@ export class EcoleDirecteClient {
   /** Voir `ClientOptions.autoRenew` : fermé par défaut, parce que son aller-retour est rouge. */
   autoRenew: boolean
 
+  /** Voir `ClientOptions.reauthenticate`. Absent, une session expirée le reste. */
+  reauthenticate: (() => Promise<boolean>) | undefined
+
   constructor(options: ClientOptions) {
     this.engine = options.engine
     this.apiBase = options.apiBase ?? DEFAULT_API_BASE
@@ -282,6 +298,7 @@ export class EcoleDirecteClient {
     this.xClient = options.xClient ?? null
     this.writePolicy = options.writePolicy ?? 'deny'
     this.autoRenew = options.autoRenew ?? false
+    this.reauthenticate = options.reauthenticate
     this.onRequest = options.onRequest
     this.session = options.session ?? createSession({ userAgent: options.userAgent ?? DEFAULT_USER_AGENT })
   }
@@ -395,15 +412,35 @@ export class EcoleDirecteClient {
      * bien que le geste suivant passe — c'est le prix d'un doute qu'on ne peut pas lever.
      *
      * Mais `autoRenew` est fermé par défaut, et ce n'est pas un oubli : voir `ClientOptions`.
-     * Fermé, on rend l'échec d'origine — c'est exactement ce que faisait l'application avant
-     * qu'on écrive ce bloc, donc rien n'est perdu.
+     * Reste alors `reauthenticate` — une connexion complète, que l'hôte sait faire s'il a
+     * gardé de quoi. Sans l'un ni l'autre, on rend l'échec d'origine : c'est exactement ce
+     * que faisait l'application avant qu'on écrive ce bloc, donc rien n'est perdu.
      */
-    if (this.autoRenew !== true || options.noRenew === true || !this.session.userId) return result
+    if (options.noRenew === true) return result
 
-    const renouvele = await this.renewToken(this.session.userId)
-    if (!renouvele.ok) return result
-    if (write) return failure('session-expired', 'La session a été renouvelée : recommence ce geste.')
+    // Le renouvellement d'abord : une requête légère, là où se reconnecter en coûte trois.
+    if (this.autoRenew === true && this.session.userId) {
+      const renouvele = await this.renewToken(this.session.userId)
+      if (renouvele.ok) return this.rejouer(path, options, write)
+    }
 
+    if (this.reauthenticate) {
+      const rouverte = await this.reauthenticate()
+      if (rouverte) return this.rejouer(path, options, write)
+    }
+
+    return result
+  }
+
+  /**
+   * Le second essai, après un jeton refait. Il n'y en a jamais un troisième.
+   *
+   * Une écriture ne se rejoue pas : si le service avait agi avant de répondre que le jeton
+   * ne vaut plus, la rejouer enverrait deux fois le même commentaire. La session est quand
+   * même rouverte, si bien que le geste repris à la main passe du premier coup.
+   */
+  private async rejouer(path: string, options: CallOptions, write: boolean): Promise<ApiResult<unknown>> {
+    if (write) return failure('session-expired', 'La session a été rouverte : recommence ce geste.')
     return this.call(path, { ...options, noRenew: true })
   }
 

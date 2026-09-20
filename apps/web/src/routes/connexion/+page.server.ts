@@ -12,6 +12,7 @@ import {
 } from '@ecole2recte/protocol'
 import { env } from '$env/dynamic/private'
 import { DEMO_LOGIN, DEMO_STUDENT_LOGIN, demoEnabled } from '$lib/server/demo.js'
+import { reconnexionDisponible, retenirIdentifiants } from '$lib/server/reconnexion.js'
 import { seal, unseal } from '$lib/server/seal.js'
 import { setSessionCookie } from '$lib/server/session.js'
 import { sessions } from '$lib/server/store.js'
@@ -70,6 +71,16 @@ export const actions: Actions = {
       .map((entree) => entree.trim())
       .filter((entree) => entree !== '')
 
+    /*
+     * « Rester connecté » : ce qui autorise l'application à rouvrir la session toute seule.
+     *
+     * Coché, le mot de passe est **scellé** dans le magasin de sessions — jamais en clair,
+     * jamais dans un cookie — pour refaire une connexion quand le jeton meurt. Décoché, rien
+     * n'est gardé et une session expirée ramène ici. C'est un choix à chaque connexion, et
+     * c'est le seul endroit où il se fait.
+     */
+    const garder = form.get('rester') !== null && reconnexionDisponible()
+
     const client = newClient()
     // Un couple de confiance déjà validé évite de reposer la question à chaque connexion.
     const confiance = unseal<TrustedAnswer>(cookies.get(CONFIANCE))
@@ -84,7 +95,8 @@ export const actions: Actions = {
     }
 
     if (outcome.ok) {
-      return await install(cookies, url, client, outcome.accounts)
+      const retenu = garder ? retenirIdentifiants(identifiant, motdepasse) : undefined
+      return await install(cookies, url, client, outcome.accounts, retenu, confiance ?? undefined)
     }
 
     if (outcome.kind !== 'two-factor') {
@@ -113,7 +125,8 @@ export const actions: Actions = {
       if (!conclu.ok) return fail(401, { message: conclu.message })
 
       retenirConfiance(cookies, url, repondu.value)
-      return await install(cookies, url, client, conclu.accounts)
+      const retenu = garder ? retenirIdentifiants(identifiant, motdepasse) : undefined
+      return await install(cookies, url, client, conclu.accounts, retenu, repondu.value)
     }
 
     // Le mot de passe reste en mémoire du serveur le temps de l'échange, et **uniquement**
@@ -124,7 +137,9 @@ export const actions: Actions = {
       accounts: [],
       activeAccountId: null,
       awaitingSecurityAnswer: true,
-      pending: { identifier: identifiant, password: motdepasse },
+      // Le choix « rester connecté » voyage avec l'attente : sans lui, il serait perdu pour
+      // qui répond à la main — c'est-à-dire précisément la première connexion.
+      pending: { identifier: identifiant, password: motdepasse, remember: garder },
       snapshots: {},
     })
     setSessionCookie(cookies, id, secure(url))
@@ -168,7 +183,8 @@ export const actions: Actions = {
 
     retenirConfiance(cookies, url, answered.value)
 
-    return await install(cookies, url, client, outcome.accounts)
+    const retenu = attente.remember ? retenirIdentifiants(attente.identifier, attente.password) : undefined
+    return await install(cookies, url, client, outcome.accounts, retenu, answered.value)
   },
 
   /**
@@ -215,6 +231,9 @@ async function install(
   url: URL,
   client: EcoleDirecteClient,
   accounts: Account[],
+  /** Les identifiants scellés, si la personne a demandé à rester connectée. */
+  remembered?: string,
+  trusted?: TrustedAnswer,
 ): Promise<never> {
   if (accounts.length === 0) {
     // Une connexion sans profil lisible n'est pas une réussite, quoi qu'en dise le code 200.
@@ -229,6 +248,10 @@ async function install(
     activeAccountId: active?.id ?? null,
     awaitingSecurityAnswer: false,
     snapshots: {},
+    // Le couple de confiance voyage avec la session : rouvrir la session le rejoue, sinon
+    // ÉcoleDirecte reposerait sa question à un moment où personne n'est là pour répondre.
+    ...(trusted ? { trusted } : {}),
+    ...(remembered ? { remembered } : {}),
   })
   setSessionCookie(cookies, id, secure(url))
   redirect(303, active && accountRole(active) === 'teacher' ? '/prof' : '/')

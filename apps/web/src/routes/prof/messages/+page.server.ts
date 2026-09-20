@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   const dossier: MessageFolder = demande && MESSAGE_FOLDERS.includes(demande) ? demande : 'received'
   const page = Math.max(0, Number(url.searchParams.get('page') ?? '0') || 0)
 
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   const result = await api.messages(account, { folder: dossier, page })
   await persist(id, record)
 

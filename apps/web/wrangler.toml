@@ -29,6 +29,14 @@ ED_API_VERSION = "4.101.4"
 ED_TIMEZONE = "Europe/Paris"
 ED_DEMO = "0"
 
+# « Rester connecté ». Déclaré ici pour être visible et coupable d'un mot : passer à "0" et
+# redéployer retire la case et stoppe toute reconnexion automatique, sans toucher au code.
+#
+# Le renouvellement du jeton (`ED_AUTO_RENEW`) reste absent, donc fermé : le service l'a pris
+# pour une activité suspecte. C'est la connexion complète qui rouvre une session, avec ses
+# garde-fous contre la rafale — voir `reconnexion.ts`.
+ED_REMEMBER = "1"
+
 # L'écriture, ouverte fonction par fonction.
 #
 # `cloud-delete` reste fermée : une suppression de fichier ne se défait pas, et aucune de ces

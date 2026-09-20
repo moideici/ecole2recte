@@ -5,7 +5,7 @@ import { requireTeacher } from '$lib/server/guard.js'
 
 export const load: PageServerLoad = async ({ locals, url }) => {
   const { id, record, account } = requireTeacher(locals)
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   const jour = today()
 
   // La date consultée vit dans l'URL : un emploi du temps se partage, se recharge et se met

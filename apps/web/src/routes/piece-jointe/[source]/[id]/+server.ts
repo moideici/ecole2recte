@@ -28,7 +28,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
     downloadType: url.searchParams.get('type') ?? '',
   }
 
-  const { api } = clientFor(record)
+  const { api } = clientFor(record, id)
   const result = await api.download(attachment)
   await persist(id, record)
   if (!result.ok) error(result.kind === 'access-denied' ? 403 : 502, result.message)

@@ -18,6 +18,7 @@ import {
 import { demoEngine } from './demo.js'
 import { activeAccount } from './session.js'
 import { type SessionRecord, sessions } from './store.js'
+import { reconnecteur } from './reconnexion.js'
 import { autoRenewEnabled, writePolicy } from './write-policy.js'
 
 /** Le catalogue d'un professeur change rarement dans la journée. */
@@ -33,13 +34,15 @@ export const CLE_MESSAGES_ACCUEIL = 'messages:received:0'
  * ne connaît que nos propres routes : il n'existe pas d'entrée « transmets ce que je te
  * donne », sans quoi on publierait un relais anonyme vers ÉcoleDirecte.
  */
-export function clientFor(record: SessionRecord): { client: EcoleDirecteClient; api: EcoleDirecteApi } {
+export function clientFor(record: SessionRecord, id?: string): { client: EcoleDirecteClient; api: EcoleDirecteApi } {
   const client = new EcoleDirecteClient({
     // Une session de démonstration ne sort jamais : son moteur est un faux serveur local.
     engine: record.demo ? demoEngine(today()) : fetchEngine(),
     session: record.protocol,
     writePolicy: record.demo ? 'deny' : writePolicy(),
     autoRenew: record.demo ? false : autoRenewEnabled(),
+    // Sans identifiant de session, rien à rouvrir : on ne saurait pas où réécrire le jeton.
+    ...(id ? { reauthenticate: reconnecteur(id, record) } : {}),
     apiBase: env['ED_API_BASE'] ?? undefined,
   })
   // Réglable sans redéployer : le jour où la version périme, tout tombe avec le code 517.
@@ -61,8 +64,8 @@ export function clientFor(record: SessionRecord): { client: EcoleDirecteClient; 
 }
 
 /** Le même mandataire, côté enseignant : lecture seule, sur l'hôte enseignant. */
-export function teacherFor(record: SessionRecord): { client: EcoleDirecteClient; api: TeacherApi } {
-  const { client } = clientFor(record)
+export function teacherFor(record: SessionRecord, id?: string): { client: EcoleDirecteClient; api: TeacherApi } {
+  const { client } = clientFor(record, id)
   return { client, api: new TeacherApi(client) }
 }
 
@@ -108,7 +111,7 @@ export async function loadSections(
   }
 
   const wanted = options.force || stale ? sections : missing
-  const { api } = clientFor(record)
+  const { api } = clientFor(record, id)
   const outcome = await syncSections(api, account, { today: options.today, sections: wanted })
   const snapshot = mergeSnapshot(base, outcome)
   record.snapshots[account.id] = { snapshot, at: Date.now() }
@@ -161,7 +164,7 @@ export async function loadDays(
   account: Account,
   dates: string[],
 ): Promise<Record<string, DayContent>> {
-  const { api } = clientFor(record)
+  const { api } = clientFor(record, id)
   const voulues = [...new Set(dates)].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
   const jours: Record<string, DayContent> = {}
 

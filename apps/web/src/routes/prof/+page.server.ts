@@ -21,7 +21,7 @@ import { requireTeacher } from '$lib/server/guard.js'
  */
 export const load: PageServerLoad = async ({ locals }) => {
   const { id, record, account } = requireTeacher(locals)
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   const jour = today()
   const maintenant = nowLocal()
   const debut = startOfWeek(jour)

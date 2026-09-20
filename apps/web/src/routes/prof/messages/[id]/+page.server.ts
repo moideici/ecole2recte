@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
   const demande = url.searchParams.get('dossier') as MessageFolder | null
   const dossier: MessageFolder = demande && MESSAGE_FOLDERS.includes(demande) ? demande : 'received'
 
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   // Cet appel est celui du site : il marque aussi le message lu côté ÉcoleDirecte, et le
   // compte de messages non lus gardé pour l'accueil n'est donc plus juste.
   const result = await api.messageDetail(account, params.id, dossier, today())

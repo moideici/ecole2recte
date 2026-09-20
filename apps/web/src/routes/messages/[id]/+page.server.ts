@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
   const demande = url.searchParams.get('dossier') as MessageFolder | null
   const dossier: MessageFolder = demande && MESSAGE_FOLDERS.includes(demande) ? demande : 'received'
 
-  const { api } = clientFor(record)
+  const { api } = clientFor(record, id)
   // Cet appel est celui du site : il marque aussi le message lu côté ÉcoleDirecte.
   const result = await api.messageDetail(account, params.id, dossier)
   await persist(id, record)

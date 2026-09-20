@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
   const cible = parseGroupKey(params.groupe)
   if (!cible) error(404, 'Classe inconnue.')
 
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   const catalogue = await cached(id, record, 'catalogue', () => api.catalog(account), CATALOGUE_TTL_MS)
   const duCatalogue = catalogue.ok
     ? catalogue.value.groups.find((groupe) => groupKey(groupe) === params.groupe)

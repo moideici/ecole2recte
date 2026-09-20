@@ -75,6 +75,21 @@
       <input class="champ" name="motdepasse" type="password" autocomplete="current-password" required />
     </label>
     <!--
+      Rester connecté scelle le mot de passe dans le magasin de sessions, pour rouvrir la
+      session quand le jeton d'ÉcoleDirecte meurt — ce qui arrive après une simple pause.
+      C'est dit sans détour : un mot de passe gardé est un mot de passe gardé.
+    -->
+    <label class="rester">
+      <input type="checkbox" name="rester" />
+      <span>
+        <strong>Rester connecté</strong>
+        <span class="discret" style="display:block;font-size:0.82rem">
+          Le mot de passe est chiffré sur le serveur pour rouvrir la session toute seule
+          quand elle expire. Se déconnecter l’efface.
+        </span>
+      </span>
+    </label>
+    <!--
       ÉcoleDirecte pose une question de sécurité sur un appareil qu'il ne connaît pas, et il
       la **tire au hasard à chaque connexion** : l'année de naissance, le jour, le mois, la
       date entière, la classe. D'où deux champs et non un seul — c'est un compte réel qui
@@ -144,5 +159,17 @@
     padding: 10px 14px;
   }
   .avance summary { cursor: pointer; font-weight: 600; font-size: 0.92rem; min-height: 24px; }
+  .rester {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 48px;
+    padding: 12px 14px;
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon-petit);
+    background: var(--surface);
+    cursor: pointer;
+  }
+  .rester input { margin-top: 3px; flex: none; }
   .avance[open] summary { margin-bottom: 2px; }
 </style>

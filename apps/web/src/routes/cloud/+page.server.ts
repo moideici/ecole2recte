@@ -36,7 +36,7 @@ export const actions: Actions = {
     if (parent === '') return fail(400, { message: 'Choisis un dossier où créer.' })
     if (nom === '') return fail(400, { message: 'Le nom est vide.' })
 
-    const { api } = clientFor(record) as { api: EcoleDirecteApi }
+    const { api } = clientFor(record, id) as { api: EcoleDirecteApi }
     const result = await api.createCloudFolder(account, parent, nom)
     if (!result.ok) return fail(502, { message: result.message })
     await invalidate(id, record, account.id)
@@ -55,7 +55,7 @@ export const actions: Actions = {
     if (noeud === '') return fail(400, { message: 'Fichier inconnu.' })
     if (nom === '') return fail(400, { message: 'Le nom est vide.' })
 
-    const { api } = clientFor(record) as { api: EcoleDirecteApi }
+    const { api } = clientFor(record, id) as { api: EcoleDirecteApi }
     const result = await api.renameCloudNode(account, noeud, nom)
     if (!result.ok) return fail(502, { message: result.message })
     await invalidate(id, record, account.id)

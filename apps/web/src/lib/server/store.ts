@@ -36,7 +36,19 @@ export interface SessionRecord {
    * et il est effacé dès la validation. Il n'est jamais écrit sur disque, jamais journalisé,
    * et n'existe pas une fois la session ouverte.
    */
-  pending?: { identifier: string; password: string }
+  pending?: { identifier: string; password: string; remember?: boolean }
+  /**
+   * Les identifiants **scellés**, quand la personne a demandé à rester connectée.
+   *
+   * Ils servent à rouvrir la session quand le jeton meurt, sans rien redemander. Chiffrés
+   * par `SESSION_SECRET` (AES-256-GCM), ils ne quittent jamais le magasin : ni cookie, ni
+   * journal, ni réponse. Se déconnecter détruit l'enregistrement, donc eux avec.
+   *
+   * Voir `reconnexion.ts` — c'est là que sont les garde-fous, et ils ne sont pas décoratifs.
+   */
+  remembered?: string
+  /** Quand et combien de fois la session a été rouverte. Le garde-fou contre la rafale. */
+  reauth?: { at: number; count: number }
   snapshots: Record<string, { snapshot: SchoolSnapshot; at: number }>
   /**
    * Les lectures de l'espace professeur, par clé d'appel. Un enseignant qui passe d'une classe

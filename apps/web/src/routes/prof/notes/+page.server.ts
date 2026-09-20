@@ -35,7 +35,7 @@ interface Grille {
  */
 export const load: PageServerLoad = async ({ locals, url }) => {
   const { id, record, account } = requireTeacher(locals)
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   const jour = today()
   const catalogue = await cached(id, record, 'catalogue', () => api.catalog(account), CATALOGUE_TTL_MS)
 

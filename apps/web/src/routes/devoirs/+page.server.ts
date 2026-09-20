@@ -67,7 +67,7 @@ export const actions: Actions = {
     const fait = String(form.get('fait') ?? '') === 'true'
     if (devoir === '') return fail(400, { message: 'Devoir inconnu.' })
 
-    const { api } = clientFor(record) as { api: EcoleDirecteApi }
+    const { api } = clientFor(record, id) as { api: EcoleDirecteApi }
     const result = await api.setHomeworkDone(account, [devoir], fait)
     if (!result.ok) return fail(502, { message: result.message })
 

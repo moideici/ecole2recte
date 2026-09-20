@@ -66,7 +66,7 @@ export const actions: Actions = {
     const fait = String(form.get('fait') ?? '') === 'true'
     if (devoir === '') return fail(400, { message: 'Devoir inconnu.' })
 
-    const { api } = clientFor(record) as { api: EcoleDirecteApi }
+    const { api } = clientFor(record, id) as { api: EcoleDirecteApi }
     const result = await api.setHomeworkDone(account, [devoir], fait)
     if (!result.ok) return fail(502, { message: result.message })
     await invalidate(id, record, account.id)
@@ -89,7 +89,7 @@ export const actions: Actions = {
     if (contenu === '') return fail(400, { message: 'Devoir inconnu.' })
     if (message === '') return fail(400, { message: 'Le commentaire est vide.' })
 
-    const { api } = clientFor(record) as { api: EcoleDirecteApi }
+    const { api } = clientFor(record, id) as { api: EcoleDirecteApi }
     const result = await api.commentHomework(account, contenu, message)
     if (!result.ok) return fail(502, { message: result.message })
     await invalidate(id, record, account.id)

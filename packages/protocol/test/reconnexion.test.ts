@@ -138,6 +138,120 @@ describe('renouvellement du jeton', () => {
   })
 })
 
+describe('rouvrir la session quand le jeton est mort', () => {
+  /*
+   * `renewtoken.awp` étant refusé par le service, il reste la connexion complète — mais le
+   * protocole ne la fait pas lui-même : il appelle `reauthenticate` et l'hôte se débrouille.
+   * Le mot de passe n'entre jamais dans ce paquet, et c'est le point.
+   */
+  function clientQuiRouvre(moteur: HttpEngine, rouvrir: () => Promise<boolean>) {
+    return new EcoleDirecteClient({
+      engine: moteur,
+      session: createSession({ token: 'PERIME', userId: '4021' }),
+      reauthenticate: rouvrir,
+    })
+  }
+
+  it('rouvre et rejoue la lecture, une seule fois', async () => {
+    const moteur = new MoteurSequence({ 'notes.awp': [{ code: 525 }, { code: 200, data: { notes: [] } }] })
+    let appels = 0
+    const result = await clientQuiRouvre(moteur, async () => {
+      appels += 1
+      return true
+    }).call('/eleves/4021/notes.awp', { verb: 'get' })
+
+    expect(result.ok).toBe(true)
+    expect(appels).toBe(1)
+    expect(moteur.appels('notes.awp')).toBe(2)
+  })
+
+  it('n’insiste pas quand l’hôte n’a rien à rouvrir', async () => {
+    // Pas de mot de passe gardé, ou plafond atteint : l'échec d'origine revient tel quel.
+    const moteur = new MoteurSequence({ 'notes.awp': [{ code: 525 }] })
+    const result = await clientQuiRouvre(moteur, async () => false).call('/eleves/4021/notes.awp', { verb: 'get' })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.kind).toBe('session-expired')
+    expect(moteur.appels('notes.awp')).toBe(1)
+  })
+
+  it('ne tourne jamais en boucle si le second essai échoue aussi', async () => {
+    const moteur = new MoteurSequence({ 'notes.awp': [{ code: 525 }] })
+    let appels = 0
+    const result = await clientQuiRouvre(moteur, async () => {
+      appels += 1
+      return true
+    }).call('/eleves/4021/notes.awp', { verb: 'get' })
+
+    expect(result.ok).toBe(false)
+    expect(appels).toBe(1)
+    expect(moteur.appels('notes.awp')).toBe(2)
+  })
+
+  it('ne rejoue pas une écriture', async () => {
+    // La session est rouverte — le geste, lui, se reprend à la main : le service a pu agir
+    // avant d'annoncer que le jeton ne valait plus.
+    const moteur = new MoteurSequence({ 'cahierdetexte.awp': [{ code: 525 }, { code: 200 }] })
+    let appels = 0
+    const client = clientQuiRouvre(moteur, async () => {
+      appels += 1
+      return true
+    })
+    client.writePolicy = 'allow'
+    const result = await client.call('/Eleves/4021/cahierdetexte.awp', { verb: 'put', write: true, body: {} })
+
+    expect(result.ok).toBe(false)
+    expect(appels).toBe(1)
+    expect(moteur.appels('cahierdetexte.awp')).toBe(1)
+  })
+
+  it('préfère le renouvellement quand il est ouvert, parce qu’il coûte moins cher', async () => {
+    // Une requête légère contre trois : si `renewtoken.awp` suffit, on ne se reconnecte pas.
+    const moteur = new MoteurSequence({
+      'notes.awp': [{ code: 525 }, { code: 200, data: { notes: [] } }],
+      'renewtoken.awp': [{ code: 200 }],
+    })
+    let appels = 0
+    const client = new EcoleDirecteClient({
+      engine: moteur,
+      session: createSession({ token: 'PERIME', userId: '4021' }),
+      autoRenew: true,
+      reauthenticate: async () => {
+        appels += 1
+        return true
+      },
+    })
+    const result = await client.call('/eleves/4021/notes.awp', { verb: 'get' })
+
+    expect(result.ok).toBe(true)
+    expect(appels).toBe(0)
+    expect(moteur.appels('renewtoken.awp')).toBe(1)
+  })
+
+  it('se rabat sur la reconnexion quand le renouvellement est refusé', async () => {
+    // C'est la situation réelle : le service refuse `renewtoken.awp`.
+    const moteur = new MoteurSequence({
+      'notes.awp': [{ code: 525 }, { code: 200, data: { notes: [] } }],
+      'renewtoken.awp': [{ code: 535 }],
+    })
+    let appels = 0
+    const client = new EcoleDirecteClient({
+      engine: moteur,
+      session: createSession({ token: 'PERIME', userId: '4021' }),
+      autoRenew: true,
+      reauthenticate: async () => {
+        appels += 1
+        return true
+      },
+    })
+    const result = await client.call('/eleves/4021/notes.awp', { verb: 'get' })
+
+    expect(result.ok).toBe(true)
+    expect(appels).toBe(1)
+    expect(moteur.appels('notes.awp')).toBe(2)
+  })
+})
+
 describe('date de naissance et question de sécurité', () => {
   it('reconnaît la date sous les écritures du service', () => {
     // Le service écrit ses dates de plusieurs façons ; les comparer après lecture n'est pas

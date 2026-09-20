@@ -9,7 +9,7 @@ import { requireTeacher } from '$lib/server/guard.js'
  */
 export const load: PageServerLoad = async ({ locals, url }) => {
   const { id, record } = requireTeacher(locals)
-  const { api } = teacherFor(record)
+  const { api } = teacherFor(record, id)
   const jour = today()
 
   const demande = url.searchParams.get('semaine')
