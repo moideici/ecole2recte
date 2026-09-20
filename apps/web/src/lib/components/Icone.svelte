@@ -26,6 +26,9 @@
     | 'profil'
     | 'plus'
     | 'sortie'
+    | 'soleil'
+    | 'lune'
+    | 'auto'
 
   const TRACES: Record<NomIcone, string> = {
     accueil: 'M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5M9.5 20v-5.5h5V20',
@@ -44,6 +47,9 @@
     profil: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c0-3.6 3.4-6 7.5-6s7.5 2.4 7.5 6',
     plus: 'M5 12h.01M12 12h.01M19 12h.01',
     sortie: 'M14 4h5v16h-5M10 8l-4 4 4 4M6 12h9',
+    soleil: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4',
+    lune: 'M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z',
+    auto: 'M12 3a9 9 0 1 0 0 18zM12 3a9 9 0 0 1 0 18',
   }
 </script>
 

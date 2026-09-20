@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate } from '@ecole2recte/protocol'
@@ -10,7 +11,10 @@
 
 <svelte:head><title>Actualités — ecole2recte</title></svelte:head>
 
-<EnTete surtitre="Vie de l’établissement" titre="Actualités" />
+<EnTete surtitre="Vie de l’établissement" titre="Actualités"
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 {#if data.erreur}
   <!-- Un module fermé n'est pas une panne : le dire une fois, ici, suffit. -->

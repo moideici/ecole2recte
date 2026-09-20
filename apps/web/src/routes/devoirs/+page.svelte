@@ -1,6 +1,7 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate, matches, relativeDay } from '@ecole2recte/protocol'
@@ -49,7 +50,11 @@
   soustitre={restants === 0
     ? 'Rien à faire pour l’instant'
     : `${restants} devoir${restants > 1 ? 's' : ''}${evaluations > 0 ? ` · ${evaluations} évaluation${evaluations > 1 ? 's' : ''}` : ''}`}
-/>
+>
+  {#snippet actions()}
+    <Actualiser />
+  {/snippet}
+</EnTete>
 
 <div class="onglets" role="group" aria-label="Filtre">
   {#each FILTRES as [valeur, libelle] (valeur)}
@@ -79,14 +84,13 @@
       <h2>{relativeDay(date, data.jour)}</h2>
       <span class="discret">{longDate(date)}</span>
       <span class="espace"></span>
-      <span class="jeton">{devoirs.length}</span>
+      <a class="pastille" href={`/devoirs/${date}`}>Ouvrir la journée</a>
     </div>
     <div class="corps-panneau serre">
       {#each devoirs as devoir (devoir.id)}
         {@const couleur = couleurMatiere(devoir.subject)}
-        <article
+        <div
           class="devoir"
-          id={devoir.id}
           style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
           class:fait={devoir.done}
         >
@@ -100,28 +104,28 @@
               </button>
             </form>
           {/if}
-          <div class="texte">
-            <p class="rangee" style="gap:6px;flex-wrap:wrap">
+          <!-- Cliquer ouvre la journée sur ce devoir : l'énoncé complet, ses pièces jointes
+               et ce qui a été fait en cours y sont. -->
+          <a class="texte" href={`/devoirs/${date}#${devoir.id}`}>
+            <span class="rangee" style="gap:6px;flex-wrap:wrap">
               <span class="etiquette-matiere">{devoir.subject}</span>
               {#if devoir.exam}<span class="jeton alerte">Évaluation</span>{/if}
               {#if devoir.done}<span class="jeton succes">Fait</span>{/if}
-            </p>
-            {#if devoir.content}<p class="contenu">{devoir.content}</p>{/if}
-            {#if devoir.givenOn}<p class="discret">Donné le {longDate(devoir.givenOn)}</p>{/if}
-            {#if devoir.onlineSubmission}
-              <!-- Le taire serait pire : on cocherait une case en croyant avoir rendu. -->
-              <p class="jeton erreur-jeton">
-                Copie à déposer en ligne — l’application ne sait pas déposer
-              </p>
+              {#if devoir.onlineSubmission}<span class="jeton erreur-jeton">À déposer en ligne</span>{/if}
+            </span>
+            {#if devoir.content}
+              <span class="contenu">{devoir.content}</span>
+            {:else if devoir.detaille}
+              <span class="discret">Aucun énoncé saisi.</span>
+            {:else}
+              <span class="discret">Ouvrir pour lire l’énoncé.</span>
             {/if}
-            {#each devoir.attachments as piece (piece.id)}
-              <a
-                class="piece"
-                href={`/piece-jointe/${piece.source}/${piece.id}?nom=${encodeURIComponent(piece.name)}&type=${encodeURIComponent(piece.downloadType)}`}
-              >{piece.name}</a>
-            {/each}
-          </div>
-        </article>
+            {#if devoir.attachments.length > 0}
+              <span class="jeton">{devoir.attachments.length} pièce{devoir.attachments.length > 1 ? 's' : ''} jointe{devoir.attachments.length > 1 ? 's' : ''}</span>
+            {/if}
+          </a>
+          <span class="chevron" aria-hidden="true">›</span>
+        </div>
       {/each}
     </div>
   </section>
@@ -139,22 +143,41 @@
 
   .devoir {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
-    padding: 12px 14px 12px 0;
+    padding-right: 12px;
     border-bottom: 1px solid var(--bordure-douce);
   }
   .devoir:last-child { border-bottom: 0; }
-  .filet { width: 5px; align-self: stretch; background: var(--encre-matiere); border-radius: 0 3px 3px 0; flex: none; }
-  .texte { flex: 1; min-width: 0; }
-  .contenu { margin-top: 4px; white-space: pre-wrap; }
+  .devoir:hover { background: var(--surface-2); }
+  .filet { width: 5px; align-self: stretch; min-height: 48px; background: var(--encre-matiere); border-radius: 0 3px 3px 0; flex: none; }
+
+  .texte {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-start;
+    padding: 12px 0;
+    text-decoration: none;
+    color: inherit;
+  }
+  .contenu {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: pre-wrap;
+  }
   .fait .contenu { color: var(--encre-douce); }
+  .chevron { color: var(--encre-douce); font-size: 1.3rem; flex: none; }
 
   .case {
     width: 28px;
     height: 28px;
     min-width: 28px;
-    margin-top: 2px;
     border-radius: 8px;
     border: 2px solid var(--bordure);
     background: var(--surface);
@@ -164,5 +187,4 @@
     line-height: 1;
   }
   .case[aria-pressed='true'] { background: var(--accent); border-color: var(--accent); }
-  .piece { display: inline-block; margin-top: 6px; margin-right: 10px; font-size: 0.88rem; }
 </style>

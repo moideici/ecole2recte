@@ -620,7 +620,10 @@ interface DemoGrade {
 function gradesOf(subject: DemoSubject, periodIndex: number, from: string, to: string, today: string): DemoGrade[] {
   const fin = today < to ? today : to
   if (fin < from) return []
-  const rand = random(subject.code.charCodeAt(0) * 977 + subject.code.charCodeAt(1) * 31 + periodIndex * 7919)
+  // Le rang dans la liste, et pas une lettre du code : « SVT » et « SES » commencent
+  // pareil, et deux notes qui partagent un identifiant cassent tout affichage par clé.
+  const rang = SUBJECTS.indexOf(subject)
+  const rand = random((rang + 1) * 977 + periodIndex * 7919)
   const semaines = Math.max(1, Math.floor(daysBetween(from, fin) / 7))
   // Trois notes au moins, sans quoi la démonstration n'a rien à montrer : la première ne
   // compte pas dans la moyenne, et il en faut deux pour qu'une moyenne en retard se voie.
@@ -635,7 +638,7 @@ function gradesOf(subject: DemoSubject, periodIndex: number, from: string, to: s
     const sur20 = Math.min(20, Math.max(2, Math.round(cible * 2) / 2))
     const absent = !dernier && rand() < 0.07
     const grade: DemoGrade = {
-      id: 60000 + subject.code.charCodeAt(0) * 100 + periodIndex * 10 + index,
+      id: 60000 + rang * 1000 + periodIndex * 100 + index,
       libelle: entry.libelle,
       type: entry.type,
       coef: entry.coef,
@@ -800,8 +803,6 @@ function homeworkOn(date: string, today: string) {
         codeMatiere: subject.code,
         nomProf: subject.teacher,
         interrogation: (Number(date.replaceAll('-', '')) + index) % 7 === 0,
-        // L'objet `aFaire` est l'une des deux formes rendues par le service — celle qui
-        // porte l'énoncé. Le lecteur accepte l'autre, où il n'y a qu'un booléen.
         aFaire: {
           idDevoir: Number(date.replaceAll('-', '')) * 10 + index,
           contenu: base64Encode(`<p>${texte}</p>`),
@@ -814,11 +815,30 @@ function homeworkOn(date: string, today: string) {
     })
 }
 
+/**
+ * Le résumé du cahier de textes, tel que le service le rend vraiment : il dit **quelles**
+ * matières ont du travail, et **pas lequel**.
+ *
+ * L'énoncé n'arrive qu'avec le détail d'un jour. Le mettre ici rendrait la démonstration plus
+ * jolie et l'application fausse : on croirait tenir les énoncés alors qu'en réel l'écran
+ * resterait vide.
+ */
 function studentHomework(today: string) {
   const resume: Record<string, unknown> = {}
   for (let offset = -10; offset <= 21; offset += 1) {
     const date = addDays(today, offset)
-    const devoirs = homeworkOn(date, today)
+    const devoirs = homeworkOn(date, today).map((devoir) => ({
+      idDevoir: devoir.idDevoir,
+      matiere: devoir.matiere,
+      codeMatiere: devoir.codeMatiere,
+      nomProf: devoir.nomProf,
+      interrogation: devoir.interrogation,
+      aFaire: true,
+      documentsAFaire: false,
+      donneLe: devoir.aFaire.donneLe,
+      effectue: devoir.aFaire.effectue,
+      rendreEnLigne: devoir.aFaire.rendreEnLigne,
+    }))
     if (devoirs.length > 0) resume[date] = devoirs
   }
   return resume
@@ -941,6 +961,7 @@ function studentCloud(today: string) {
   return {
     ressources: [
       {
+        id: 8610,
         libelle: 'Mes documents',
         typeRessource: 'folder',
         children: [
@@ -949,6 +970,7 @@ function studentCloud(today: string) {
         ],
       },
       {
+        id: 8611,
         libelle: 'Partagé avec la classe',
         typeRessource: 'folder',
         children: [{ id: 8603, libelle: 'Fiche de révisions.pdf', type: 'file', date: addDays(today, -2), taille: 91002 }],

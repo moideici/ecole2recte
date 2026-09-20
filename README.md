@@ -7,8 +7,10 @@ protocolaire — durement acquis — sans en reprendre le code.
 
 > **État : P0 à P3 écrits, et l'espace professeur en lecture.** Le protocole, la lecture
 > complète élève et famille, l'application, l'écriture documentée, et la lecture enseignant.
-> Aucune écriture n'est **ouverte**, et rien de l'espace professeur n'a encore été vérifié sur
-> un compte enseignant. Voir [ROADMAP.md](ROADMAP.md).
+> **Quatre écritures sont ouvertes en production** — cocher et commenter un devoir, créer un
+> dossier, renommer un fichier — à la demande du propriétaire du dépôt et **avant** leur
+> aller-retour réel ; la suppression de fichier reste fermée. Rien de l'espace professeur n'a
+> encore été vérifié sur un compte enseignant. Voir [ROADMAP.md](ROADMAP.md).
 
 ## Ce qui commande l'architecture
 
@@ -32,7 +34,7 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 |---|---|
 | `packages/protocol/` | tout le savoir protocolaire : encodages, codes métier, session, client, appels élève, famille et enseignant. Zéro dépendance, tourne en Node comme dans un navigateur. |
 | `tools/probe/` | sondage du service sans compte : la question CORS, et rien d'autre. |
-| `apps/web/` | l'interface et le mandataire : onze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
+| `apps/web/` | l'interface et le mandataire : douze pages élève et famille, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
 | `apps/sessions/` | le Durable Object qui garde les sessions vivantes entre deux requêtes sur Cloudflare — voir « Déploiement ». |
 | `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
 | `tools/har/` | extraction de la *forme* d'un endpoint depuis une capture réseau, sans les valeurs. |
@@ -60,6 +62,20 @@ Le jour où ÉcoleDirecte change, `packages/protocol/` est le seul endroit à re
   cahier de textes, grille de notes, messagerie.
 - **Les modules font foi** : la réponse de connexion dit ce que l'établissement a réellement
   ouvert. Aucune fonctionnalité n'est codée en dur par rôle.
+
+## Le cahier de textes se lit en deux temps, et l'application fait les deux
+
+Le résumé (`cahierdetexte.awp`) dit **quelles** matières ont du travail pour une date. Il ne
+dit **pas lequel** : les énoncés, les pièces jointes et le contenu de séance n'arrivent
+qu'avec le détail d'un jour (`cahierdetexte/{date}.awp`). C'est voulu côté service — charger
+l'année entière avec les énoncés serait énorme.
+
+Une application qui ne lit que le résumé affiche donc « Mathématiques, pour mardi » et rien
+d'autre, ce qui est exactement l'information dont on n'a pas besoin. Les journées se chargent
+donc à part, en parallèle et en cache : celles du travail qui vient pour la liste et le fil
+d'accueil, et la sienne pour la fiche d'une journée. **Un devoir, un cours de l'emploi du
+temps et une ligne du fil mènent tous à cette fiche**, qui porte l'énoncé complet, les pièces
+jointes, ce qui a été fait en classe et les cours de la journée.
 
 ## La moyenne, et quand l'application refait le calcul
 
@@ -137,8 +153,20 @@ Une fonction d'écriture ne passe en `allow` qu'après son **aller-retour réel*
 puis sa lecture depuis le serveur pour vérifier que ce qui est arrivé est bien ce qu'on a
 envoyé. Le test d'envoi de message s'adresse **à soi-même** et compare le corps caractère par
 caractère — c'est ce qui prouve qu'un accent, un retour à la ligne ou un message long ne sont
-pas mutilés en route. Tant que cet aller-retour n'est pas vert, la fonction reste absente de
-l'interface. Un professeur n'est pas une cible de test.
+pas mutilés en route. Un professeur n'est pas une cible de test.
+
+**Ce qui est ouvert en production**, dans `apps/web/wrangler.toml` : cocher un devoir,
+commenter un devoir, créer un dossier, renommer un fichier. `cloud-delete` reste fermée —
+une suppression ne se défait pas. Ces quatre-là ont été ouvertes **à la demande du
+propriétaire du dépôt, avant leur aller-retour réel** : c'est sa décision et elle est
+consignée ici, pas un feu vert du projet. L'exemple de configuration, lui, reste fermé : un
+fichier qui ouvrirait l'écriture finirait un jour copié tel quel ailleurs, et la CI le
+vérifie.
+
+Trois verrous gardent chaque geste, et il les faut tous : la **fonction** déclarée ouverte,
+le profil **élève** — depuis une vue parent, cocher enverrait un geste que l'enfant n'a pas
+fait —, et une session qui n'est pas une **démonstration**, dont le moteur refuse d'écrire.
+Un bouton qui échouerait à chaque clic ne s'affiche pas.
 
 ## Tu débutes ? Commence par [`DEMARRER/`](DEMARRER/)
 
@@ -166,7 +194,7 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
-193 tests, sans réseau et sans compte — 173 pour le protocole, 20 pour l’application — sur
+200 tests, sans réseau et sans compte — 176 pour le protocole, 24 pour l’application — sur
 quatre niveaux :
 
 1. **Ce qu'on envoie**, et pas seulement ce qu'on comprend. Chaque appel est figé — chemin,

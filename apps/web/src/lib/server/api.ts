@@ -3,6 +3,7 @@ import {
   type Account,
   type ApiResult,
   type DataSection,
+  type DayContent,
   type SchoolSnapshot,
   type SyncOutcome,
   EcoleDirecteApi,
@@ -127,9 +128,49 @@ export async function cached<T>(
   return result
 }
 
-/** Oublie le cache d'un profil : après une écriture, ce qu'on affichait n'est plus vrai. */
+/**
+ * Le détail d'une journée du cahier de textes.
+ *
+ * Le résumé (`cahierdetexte.awp`) dit **quelles** matières ont du travail, mais pas lequel :
+ * les énoncés et le contenu de séance n'arrivent qu'avec le détail d'un jour. Sans cet
+ * appel, l'application affiche « Mathématiques, pour mardi » et rien d'autre — ce qui est
+ * exactement l'information dont on n'a pas besoin.
+ *
+ * Les journées se chargent donc en parallèle, et chacune reste en cache : passer d'une fiche
+ * à la liste et revenir ne redemande rien.
+ */
+export async function loadDays(
+  id: string,
+  record: SessionRecord,
+  account: Account,
+  dates: string[],
+): Promise<Record<string, DayContent>> {
+  const { api } = clientFor(record)
+  const voulues = [...new Set(dates)].filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date))
+  const jours: Record<string, DayContent> = {}
+
+  await Promise.all(
+    voulues.map(async (date) => {
+      // Un jour illisible n'emporte pas les autres : au pire, sa fiche reste sans énoncé.
+      const result = await cached(id, record, `jour:${account.id}:${date}`, () => api.dayContent(account, date))
+      if (result.ok) jours[date] = result.value
+    }),
+  )
+  return jours
+}
+
+/**
+ * Oublie le cache d'un profil : après une écriture, ce qu'on affichait n'est plus vrai.
+ *
+ * Les journées du cahier de textes partent avec l'instantané. Les garder ferait réapparaître
+ * un devoir décoché une seconde après l'avoir coché, et on croirait l'écriture cassée.
+ */
 export async function invalidate(id: string, record: SessionRecord, accountId: string): Promise<void> {
   delete record.snapshots[accountId]
+  const prefixe = `jour:${accountId}:`
+  for (const cle of Object.keys(record.cache ?? {})) {
+    if (cle.startsWith(prefixe)) delete (record.cache as Record<string, unknown>)[cle]
+  }
   await persist(id, record)
 }
 

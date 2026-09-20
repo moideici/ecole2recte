@@ -1,7 +1,8 @@
 import { redirect } from '@sveltejs/kit'
-import { type Account, accountRole, isStudent } from '@ecole2recte/protocol'
+import { type Account, accountRole, isStudent, viewedByFamily } from '@ecole2recte/protocol'
 import { activeAccount } from './session.js'
 import type { SessionRecord } from './store.js'
+import { type WriteFeature, isWriteEnabled } from './write-policy.js'
 
 export interface Guarded {
   id: string
@@ -49,6 +50,20 @@ export function requireTeacher(locals: App.Locals): Guarded {
   const guarded = requireAccount(locals)
   if (accountRole(guarded.account) !== 'teacher') redirect(303, '/')
   return guarded
+}
+
+/**
+ * Une écriture est-elle réellement possible ici ?
+ *
+ * Trois conditions, et il les faut toutes. La **fonction** doit être ouverte. On doit être
+ * l'**élève** : depuis une vue parent, cocher enverrait un geste que l'enfant n'a pas fait.
+ * Et la session ne doit pas être une **démonstration** : son moteur refuse toute écriture, et
+ * proposer un bouton qui échoue à chaque clic est pire que ne rien proposer.
+ */
+export function peutEcrire(guarded: Guarded, feature: WriteFeature): boolean {
+  if (guarded.record.demo === true) return false
+  if (viewedByFamily(guarded.account)) return false
+  return isWriteEnabled(feature)
 }
 
 export function roleOf(locals: App.Locals): string {

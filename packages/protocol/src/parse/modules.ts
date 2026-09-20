@@ -98,6 +98,10 @@ export function parseTextbooks(data: unknown): Textbook[] {
  * Le service rend un arbre ; un téléphone n'a pas la place d'un explorateur de fichiers. Le
  * chemin du dossier est conservé sur chaque fichier, ce qui garde l'information sans imposer
  * la navigation.
+ *
+ * Les dossiers sont rendus **en plus** des fichiers, avec `file: false` : sans leur
+ * identifiant, on ne peut rien créer dedans — et créer un dossier est une des rares écritures
+ * réversibles que le service documente.
  */
 export function parseCloud(data: unknown): CloudFile[] {
   const files: CloudFile[] = []
@@ -115,6 +119,11 @@ function walk(value: unknown, path: string, into: CloudFile[]): void {
     const children = raw['children'] ?? raw['ressources'] ?? raw['contenu']
     const isFolder = type.includes('folder') || type.includes('dossier') || Array.isArray(children)
     if (isFolder) {
+      const id = pickText(raw, 'id')
+      // Un dossier sans identifiant ne sert à rien : on ne peut ni le viser, ni y créer.
+      if (id !== '') {
+        into.push({ id, name, folder: path, ownerId: pickText(raw, 'idProprietaire', 'ownerId'), file: false })
+      }
       walk(children, path === '' ? name : `${path} / ${name}`, into)
       continue
     }

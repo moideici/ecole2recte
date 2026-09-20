@@ -19,6 +19,7 @@
     mention,
     titre,
     teinte,
+    lienCours,
   }: {
     jours: Array<{ date: string; lecons: Lesson[] }>
     /** Bornes de la grille, en minutes depuis minuit. */
@@ -38,6 +39,8 @@
      */
     titre?: (cours: Lesson) => string
     teinte?: (cours: Lesson) => string
+    /** Où mène un cours quand on clique dessus — sa journée, par défaut. */
+    lienCours?: (date: string, cours: Lesson) => string
   } = $props()
 
   const NOMS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
@@ -109,9 +112,10 @@
           {#each placer(journee.lecons) as bloc (bloc.cours.id)}
             {@const couleur = couleurMatiere(teinte?.(bloc.cours) ?? bloc.cours.subject)}
             {@const marque = mention?.(journee.date, bloc.cours) ?? ''}
-            <article
+            <a
               class="bloc"
               class:annule={bloc.cours.canceled}
+              href={lienCours?.(journee.date, bloc.cours) ?? lien(journee.date)}
               style={`top:${bloc.haut}px;height:${bloc.hauteur}px;left:calc(${(bloc.colonne * 100) / bloc.colonnes}% + 2px);width:calc(${100 / bloc.colonnes}% - 4px);--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
             >
               <p class="bloc-heure">{timeOf(bloc.cours.start)}</p>
@@ -127,7 +131,7 @@
               {:else if marque}
                 <p class="bloc-mention">{marque}</p>
               {/if}
-            </article>
+            </a>
           {/each}
         </div>
       </div>
@@ -172,6 +176,7 @@
 
   .bloc {
     position: absolute;
+    display: block;
     overflow: hidden;
     padding: 4px 6px;
     border-radius: var(--rayon-petit);
@@ -180,7 +185,9 @@
     color: var(--encre-matiere);
     font-size: 0.76rem;
     line-height: 1.2;
+    text-decoration: none;
   }
+  .bloc:hover { filter: brightness(0.96); box-shadow: inset 0 0 0 1px var(--encre-matiere); }
   .bloc-heure { font-variant-numeric: tabular-nums; font-size: 0.7rem; opacity: 0.85; }
   .bloc-matiere { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bloc-detail { opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

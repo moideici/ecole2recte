@@ -61,6 +61,16 @@ describe('cahier de textes', () => {
     expect(jour.homework[0]?.attachments[0]?.source).toBe('homework')
   })
 
+  it('donne le même identifiant au résumé et au détail', () => {
+    // Le détail porte `idDevoir` dans `aFaire`, et un identifiant de séance à la racine.
+    // Lire la racine en premier ferait deux devoirs là où il n'y en a qu'un, et l'énoncé
+    // ne rejoindrait jamais la ligne du résumé.
+    const resume = parseHomeworkSummary(fixtures.HOMEWORK_SUMMARY).find((devoir) => devoir.subject === 'Mathématiques')
+    const detail = parseDayContent(fixtures.DAY_CONTENT, '2026-09-08').homework[0]
+    expect(detail?.id).toBe('5001')
+    expect(detail?.id).toBe(resume?.id)
+  })
+
   it('n’invente pas de séance vide', () => {
     const jour = parseDayContent(fixtures.DAY_CONTENT, '2026-09-08')
     expect(jour.sessions).toHaveLength(1)
@@ -70,6 +80,19 @@ describe('cahier de textes', () => {
 
 describe('notes', () => {
   const { periods, grades, subjectAverages } = parseGrades(fixtures.GRADES)
+
+  it('ne rend jamais deux fois la même note ni la même matière', () => {
+    // Un doublon suffit à faire tomber tout affichage qui s'appuie sur l'identité des
+    // éléments : mieux vaut l'écarter à la lecture qu'écrouler la page.
+    const double = {
+      ...fixtures.GRADES,
+      notes: [...fixtures.GRADES.notes, fixtures.GRADES.notes[0]],
+    }
+    const lu = parseGrades(double)
+    expect(lu.grades.filter((note) => note.id === '8001')).toHaveLength(1)
+    const cles = lu.subjectAverages.map((entry) => `${entry.periodCode}/${entry.subject}`)
+    expect(new Set(cles).size).toBe(cles.length)
+  })
 
   it('lit les périodes et le conseil de classe', () => {
     expect(periods).toHaveLength(2)
@@ -165,8 +188,19 @@ describe('modules optionnels', () => {
     expect(manuels[1]?.url).toBe('')
   })
 
+  it('rend aussi les dossiers, sans quoi on ne peut rien y créer', () => {
+    // Créer un dossier exige l'identifiant du parent : le taire fermait l'écriture par
+    // manque d'information, pas par prudence.
+    const dossiers = parseCloud(fixtures.CLOUD).filter((entree) => !entree.file)
+    expect(dossiers.map((dossier) => `${dossier.folder}/${dossier.name}`)).toEqual([
+      '/Documents',
+      'Documents/Archives',
+    ])
+    expect(dossiers[0]?.id).toBe('d1')
+  })
+
   it('aplatit l’arborescence du stockage en gardant le chemin', () => {
-    const fichiers = parseCloud(fixtures.CLOUD)
+    const fichiers = parseCloud(fixtures.CLOUD).filter((entree) => entree.file)
     expect(fichiers.map((fichier) => `${fichier.folder}/${fichier.name}`)).toEqual([
       'Documents/cours.pdf',
       'Documents / Archives/ancien.pdf',

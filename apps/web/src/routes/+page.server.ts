@@ -12,7 +12,7 @@ import {
   unreadMessages,
   upcomingExams,
 } from '@ecole2recte/protocol'
-import { loadSections, nowLocal, today } from '$lib/server/api.js'
+import { loadDays, loadSections, nowLocal, today } from '$lib/server/api.js'
 import { requireAccount, requireStudent } from '$lib/server/guard.js'
 import { persist } from '$lib/server/api.js'
 
@@ -22,17 +22,19 @@ import { persist } from '$lib/server/api.js'
  * Ce qu'on veut savoir en trois secondes : le cours en cours ou le prochain, ce qui est à
  * faire, ce qui a été noté, ce qui attend d'être lu. Le reste a ses propres pages.
  */
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
   const { id, record, account } = requireStudent(locals)
   const jour = today()
   const maintenant = nowLocal()
+  // « Actualiser » force la relecture : les données dorment cinq minutes en session.
+  const force = url.searchParams.get('rafraichir') === '1'
 
   const { snapshot, errors } = await loadSections(
     id,
     record,
     account,
     ['timetable', 'homework', 'grades', 'messages', 'schoolLife', 'news'],
-    { today: jour },
+    { today: jour, force },
   )
 
   const duJour = lessonsOn(snapshot.lessons, jour)
@@ -53,6 +55,21 @@ export const load: PageServerLoad = async ({ locals }) => {
     snapshot.subjectAverages,
   )
 
+  // Le fil doit dire **ce qu'il y a à faire**, pas seulement qu'il y en a : les énoncés ne
+  // sont pas dans le résumé du cahier de textes, ils se chargent par journée.
+  const aFaire = pendingHomework(snapshot.homework, jour).slice(0, 6)
+  const evaluations = upcomingExams(snapshot.homework, jour).slice(0, 4)
+  const jours = await loadDays(id, record, account, [...aFaire, ...evaluations].map((item) => item.dueDate))
+  const avecEnonce = aFaire.map((item) => ({
+    ...item,
+    content:
+      item.content ||
+      jours[item.dueDate]?.homework.find(
+        (entry) => entry.id === item.id || (entry.subject === item.subject && entry.content !== ''),
+      )?.content ||
+      '',
+  }))
+
   return {
     periode,
     moyenne,
@@ -65,8 +82,8 @@ export const load: PageServerLoad = async ({ locals }) => {
     duJour,
     prochaineJournee,
     prochainsCours: prochaineJournee ? lessonsOn(snapshot.lessons, prochaineJournee) : [],
-    aFaire: pendingHomework(snapshot.homework, jour).slice(0, 6),
-    evaluations: upcomingExams(snapshot.homework, jour).slice(0, 4),
+    aFaire: avecEnonce,
+    evaluations,
     dernieresNotes: snapshot.grades.slice(0, 5),
     nonLus: unreadMessages(snapshot.messages).slice(0, 4),
     nonLusTotal: unreadMessages(snapshot.messages).length,

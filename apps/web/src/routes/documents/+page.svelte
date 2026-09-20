@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate } from '@ecole2recte/protocol'
@@ -15,7 +16,9 @@
   surtitre="Espace numérique"
   titre="Documents"
   soustitre={`${data.documents.length} document${data.documents.length > 1 ? 's' : ''}`}
-/>
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 {#if data.erreur}
   <ErreurSection message="Les documents n’ont pas pu être chargés." cause={data.erreur.message} />

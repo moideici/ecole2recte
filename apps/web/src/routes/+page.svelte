@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Cours from '$lib/components/Cours.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
@@ -21,7 +22,9 @@
   surtitre={longDate(data.jour)}
   titre={parent ? (data.profil?.nom ?? 'Accueil') : 'Bonjour'}
   soustitre={parent ? 'Vue parent' : (data.profil?.classe ?? '')}
-/>
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 {#if data.erreurs.timetable}
   <ErreurSection message="L'emploi du temps n'a pas pu être chargé." cause={data.erreurs.timetable.message} />
@@ -111,9 +114,10 @@
     <div class="corps-panneau serre">
       {#each data.aFaire as devoir (devoir.id)}
         {@const couleur = couleurMatiere(devoir.subject)}
+        <!-- Cliquer ouvre la journée sur ce devoir : énoncé complet, pièces jointes, séance. -->
         <a
           class="ligne"
-          href={`/devoirs#${devoir.id}`}
+          href={`/devoirs/${devoir.dueDate}#${devoir.id}`}
           style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
         >
           <span class="filet" aria-hidden="true"></span>
@@ -121,9 +125,15 @@
             <span class="rangee" style="gap:6px">
               <span class="etiquette-matiere">{devoir.subject}</span>
               <span class="discret">{relativeDay(devoir.dueDate, data.jour)}</span>
+              {#if devoir.exam}<span class="jeton alerte">Évaluation</span>{/if}
             </span>
-            {#if devoir.content}<span class="extrait">{devoir.content}</span>{/if}
+            {#if devoir.content}
+              <span class="extrait">{devoir.content}</span>
+            {:else}
+              <span class="discret">Aucun énoncé saisi.</span>
+            {/if}
           </span>
+          <span class="chevron" aria-hidden="true">›</span>
         </a>
       {:else}
         <div style="padding:14px"><Vide titre="Rien à faire" description="Tous les devoirs connus sont cochés." /></div>
@@ -139,7 +149,7 @@
           {@const couleur = couleurMatiere(devoir.subject)}
           <a
             class="ligne"
-            href={`/devoirs#${devoir.id}`}
+            href={`/devoirs/${devoir.dueDate}#${devoir.id}`}
             style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
           >
             <span class="filet" aria-hidden="true"></span>
@@ -149,6 +159,7 @@
                 <span class="discret">{relativeDay(devoir.dueDate, data.jour)}</span>
               </span>
             </span>
+            <span class="chevron" aria-hidden="true">›</span>
           </a>
         {/each}
       </div>
@@ -259,6 +270,7 @@
   .ligne-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
   .note-valeur { font-weight: 700; font-size: 1.15rem; }
   .sur { font-size: 0.7em; color: var(--encre-douce); }
+  .chevron { color: var(--encre-douce); font-size: 1.3rem; flex: none; }
 
   .extrait {
     color: var(--encre-douce);

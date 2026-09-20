@@ -1,26 +1,13 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import { THEMES, theme } from '$lib/theme.svelte.js'
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
-  let theme = $state<'systeme' | 'clair' | 'sombre'>('systeme')
 
-  // Le thème est une préférence de cet appareil : il n'a rien à faire sur le serveur.
-  $effect(() => {
-    const memorise = localStorage.getItem('e2r-theme')
-    if (memorise === 'clair' || memorise === 'sombre' || memorise === 'systeme') theme = memorise
-  })
-
-  function appliquer(valeur: typeof theme) {
-    theme = valeur
-    try {
-      localStorage.setItem('e2r-theme', valeur)
-    } catch {
-      // Navigation privée, stockage refusé : le thème vaut pour cette visite, et c'est tout.
-    }
-    if (valeur === 'systeme') document.documentElement.removeAttribute('data-theme')
-    else document.documentElement.setAttribute('data-theme', valeur)
-  }
+  // Le même état que le bouton du bandeau : deux contrôles pour un seul réglage finissent
+  // toujours par se contredire, et c'est celui qu'on regarde qui a l'air cassé.
+  $effect(() => theme.relire())
 
   const POLICES: Record<string, string> = {
     deny: 'Fermée — aucune écriture ne part',
@@ -36,8 +23,8 @@
 <section class="carte" style="margin-bottom:18px">
   <h2>Thème</h2>
   <div class="defilement" style="margin-top:10px" role="group" aria-label="Thème">
-    {#each [['systeme', 'Système'], ['clair', 'Clair'], ['sombre', 'Sombre']] as [valeur, libelle] (valeur)}
-      <button class="pastille" aria-pressed={theme === valeur} onclick={() => appliquer(valeur as typeof theme)}>
+    {#each THEMES as [valeur, libelle] (valeur)}
+      <button class="pastille" aria-pressed={theme.valeur === valeur} onclick={() => theme.appliquer(valeur)}>
         {libelle}
       </button>
     {/each}

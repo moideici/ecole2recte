@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate, timeOf } from '@ecole2recte/protocol'
@@ -44,7 +45,9 @@
   surtitre="Vie scolaire"
   titre="Absences et retards"
   soustitre={`${data.compteurs.absences} absence${data.compteurs.absences > 1 ? 's' : ''} · ${data.compteurs.retards} retard${data.compteurs.retards > 1 ? 's' : ''}`}
-/>
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 {#if data.compteurs.nonJustifiees > 0}
   <p class="erreur" style="margin-bottom:14px">

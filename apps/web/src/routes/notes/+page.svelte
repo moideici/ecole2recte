@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate, shortDate } from '@ecole2recte/protocol'
@@ -7,6 +8,9 @@
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
+
+  /** Le relevé par matière, ou la chronologie : deux questions, deux lectures. */
+  let vue = $state<'releve' | 'dernieres'>('releve')
 
   function arrondi(valeur: number | undefined | null): string {
     return valeur === undefined || valeur === null ? '—' : valeur.toFixed(2).replace('.', ',')
@@ -27,7 +31,10 @@
 
 <svelte:head><title>Notes — ecole2recte</title></svelte:head>
 
-<EnTete surtitre="Relevé de notes" titre="Notes" soustitre={data.periode?.name ?? ''} />
+<EnTete surtitre="Relevé de notes" titre="Notes" soustitre={data.periode?.name ?? ''}
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 {#if data.periodes.length > 1}
   <div class="onglets" role="group" aria-label="Période">
@@ -82,7 +89,9 @@
           ? `les ${data.generale.behind.length} dernières notes`
           : 'la dernière note'} :
         {#each data.generale.behind.slice(0, 3) as note, index (note.id)}
-          {index > 0 ? ', ' : ''}<a href={`#note-${note.id}`}
+          <!-- Le lien bascule sur la chronologie : la note visée dormirait sinon dans une
+               matière repliée, et cliquer ne montrerait rien. -->
+          {index > 0 ? ', ' : ''}<a href={`#note-${note.id}`} onclick={() => (vue = 'dernieres')}
             >{note.subject}{note.value !== undefined ? ` ${brut(note.value)}/${note.scale}` : ''}{note.date
               ? ` du ${shortDate(note.date)}`
               : ''}</a
@@ -114,10 +123,56 @@
 {/if}
 
 <!--
-  Le relevé : une ligne par matière, qui se déplie sur ses notes. C'est la forme d'un bulletin,
-  et elle évite la page à rallonge où l'on cherche sa matière au milieu de quarante notes.
+  Deux façons de lire les mêmes notes, parce qu'on vient chercher deux choses différentes :
+  « où j'en suis dans cette matière » (le relevé), et « qu'est-ce qui vient de tomber »
+  (les dernières). N'offrir que la première oblige à ouvrir huit matières pour le savoir.
 -->
-<section class="panneau" style="margin-top:18px" aria-labelledby="t-releve">
+<div class="onglets" style="margin-top:18px" role="group" aria-label="Affichage">
+  <button aria-pressed={vue === 'releve'} onclick={() => (vue = 'releve')}>Par matière</button>
+  <button aria-pressed={vue === 'dernieres'} onclick={() => (vue = 'dernieres')}>Dernières notes</button>
+</div>
+
+{#if vue === 'dernieres'}
+  <section class="panneau" aria-labelledby="t-dernieres">
+    <div class="tete-panneau">
+      <h2 id="t-dernieres">Dernières notes</h2>
+      <span class="espace"></span>
+      <span class="discret">{data.notes.length} note{data.notes.length > 1 ? 's' : ''}</span>
+    </div>
+    <div class="corps-panneau serre">
+      {#each data.notes as note (note.id)}
+        {@const couleur = couleurMatiere(note.subject)}
+        <article
+          class="note recente"
+          id={`note-${note.id}`}
+          style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
+        >
+          <span class="filet" aria-hidden="true"></span>
+          <div class="note-texte">
+            <span class="etiquette-matiere">{note.subject}</span>
+            <p class="note-titre">{note.label || 'Évaluation'}</p>
+            <p class="discret">
+              {[note.kind, note.date ? longDate(note.date) : '', `coef. ${note.coefficient}`].filter(Boolean).join(' · ')}
+            </p>
+            {#if !note.counted}<p class="jeton alerte">Ne compte pas dans la moyenne</p>{/if}
+            {#if note.comment}<p class="discret" style="margin-top:4px">{note.comment}</p>{/if}
+          </div>
+          <div class="note-valeur">
+            <p class="valeur nombre">{brut(note.value)}<span class="sur">/{note.scale}</span></p>
+            {#if note.classAverage !== undefined}
+              <p class="discret nombre">classe {arrondi(note.classAverage)}</p>
+            {/if}
+          </div>
+        </article>
+      {:else}
+        <div style="padding:14px">
+          <Vide titre="Aucune note" description="Rien n’a encore été saisi pour cette période." />
+        </div>
+      {/each}
+    </div>
+  </section>
+{:else}
+<section class="panneau" aria-labelledby="t-releve">
   <div class="tete-panneau">
     <h2 id="t-releve">Par matière</h2>
     <span class="espace"></span>
@@ -203,6 +258,7 @@
     {/each}
   </div>
 </section>
+{/if}
 
 <section class="panneau" style="margin-top:18px" aria-labelledby="t-simul">
   <div class="tete-panneau"><h2 id="t-simul">Simulation</h2></div>
@@ -330,6 +386,18 @@
   }
   .note-texte { flex: 1; min-width: 0; }
   .note-titre { font-weight: 600; font-size: 0.94rem; }
+
+  /* En chronologie, la note porte son filet de matière : sans lui, tout se ressemble. */
+  .note.recente { padding: 11px 14px 11px 0; border-top: 0; border-bottom: 1px solid var(--bordure-douce); }
+  .note.recente:last-child { border-bottom: 0; }
+  .note.recente .filet {
+    width: 5px;
+    align-self: stretch;
+    min-height: 44px;
+    background: var(--encre-matiere);
+    border-radius: 0 3px 3px 0;
+    flex: none;
+  }
   .note-valeur { text-align: right; }
   .valeur { font-weight: 700; font-size: 1.25rem; }
   .competence { font-size: 0.82rem; color: var(--encre-douce); margin-top: 2px; }

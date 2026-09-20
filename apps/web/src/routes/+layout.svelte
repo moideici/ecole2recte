@@ -1,10 +1,16 @@
 <script lang="ts">
   import '../app.css'
   import { enhance } from '$app/forms'
+  import { navigating } from '$app/state'
+  import { LIBELLE_THEME, theme } from '$lib/theme.svelte.js'
   import Icone, { type NomIcone } from '$lib/components/Icone.svelte'
   import type { LayoutData } from './$types'
 
   let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props()
+
+  // Le thème est à portée de main dans le bandeau : c'est un geste qu'on fait le soir, pas
+  // une préférence qu'on va chercher dans un écran de réglages.
+  $effect(() => theme.relire())
 
   interface Entree {
     href: string
@@ -76,6 +82,14 @@
     compte on regarde la scolarité. Sur un compte parent qui suit deux enfants, le confondre
     coûte cher.
   -->
+  <!--
+    La barre de progression. Chaque clic est un aller-retour serveur : sans elle, un lien
+    lent est indiscernable d'un lien mort, et on reclique.
+  -->
+  {#if navigating.to}
+    <div class="progression" role="status" aria-label="Chargement en cours"></div>
+  {/if}
+
   <header class="bandeau">
     <p class="marque">ecole2recte</p>
     <span class="espace"></span>
@@ -94,6 +108,14 @@
         </span>
       </a>
     {/if}
+    <button
+      class="sortir"
+      onclick={() => theme.basculer()}
+      title={LIBELLE_THEME[theme.valeur]}
+      aria-label={LIBELLE_THEME[theme.valeur]}
+    >
+      <Icone nom={theme.valeur === 'sombre' ? 'lune' : theme.valeur === 'clair' ? 'soleil' : 'auto'} />
+    </button>
     <form method="POST" action="/deconnexion" use:enhance>
       <button class="sortir" title="Se déconnecter">
         <Icone nom="sortie" />
@@ -176,6 +198,21 @@
 
 <style>
   .seul { max-width: 460px; margin: 0 auto; padding: 48px 20px; }
+
+  .progression {
+    position: fixed;
+    inset: 0 auto auto 0;
+    height: 3px;
+    width: 100%;
+    z-index: 40;
+    background: linear-gradient(90deg, transparent, var(--accent) 45%, var(--accent) 55%, transparent);
+    background-size: 220% 100%;
+    animation: glisse 1.1s linear infinite;
+  }
+  @keyframes glisse {
+    from { background-position: 120% 0; }
+    to { background-position: -20% 0; }
+  }
 
   /* ——————————————————————————————————————————— bandeau */
 

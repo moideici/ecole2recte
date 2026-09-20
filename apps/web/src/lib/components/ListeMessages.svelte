@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import type { MessageFolder, MessageItem } from '@ecole2recte/protocol'
@@ -44,7 +45,9 @@
     : nonLus === 0
       ? 'Tout est lu'
       : `${nonLus} message${nonLus > 1 ? 's' : ''} non lu${nonLus > 1 ? 's' : ''}`}
-/>
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 <div class="onglets" role="group" aria-label="Dossier">
   {#each MESSAGE_FOLDERS as entree (entree)}

@@ -41,7 +41,10 @@ describe('bout en bout, en vrai HTTP', () => {
     expect(snapshot.documents).toHaveLength(2)
     expect(snapshot.news).toHaveLength(2)
     expect(snapshot.textbooks).toHaveLength(2)
-    expect(snapshot.cloudFiles).toHaveLength(3)
+    // Trois fichiers et les deux dossiers qui les portent : sans l'identifiant d'un dossier,
+    // on ne pourrait rien y créer.
+    expect(snapshot.cloudFiles.filter((entree) => entree.file)).toHaveLength(3)
+    expect(snapshot.cloudFiles.filter((entree) => !entree.file)).toHaveLength(2)
     // Chaque section porte son propre horodatage.
     expect(Object.keys(snapshot.syncedAt).sort()).toEqual([...ALL_SECTIONS].sort())
   })

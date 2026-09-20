@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import type { PageData } from './$types'
@@ -9,7 +10,10 @@
 
 <svelte:head><title>Manuels numériques — ecole2recte</title></svelte:head>
 
-<EnTete surtitre="Ressources" titre="Manuels numériques" />
+<EnTete surtitre="Ressources" titre="Manuels numériques"
+>
+  {#snippet actions()}<Actualiser />{/snippet}
+</EnTete>
 
 {#if data.erreur}
   <ErreurSection

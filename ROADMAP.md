@@ -41,6 +41,11 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Onze pages, barre latérale sur ordinateur et barre basse sur téléphone.
 - [x] Les habitudes d'un logiciel de vie scolaire : bandeau de marque, sections à icônes,
       emploi du temps en grille hebdomadaire, relevé de notes dépliable par matière.
+- [x] **La fiche d'une journée** (`/devoirs/{date}`) : énoncés, pièces jointes, contenu de
+      séance et cours du jour. Le détail d'un jour était lu par le protocole et affiché nulle
+      part ; un devoir, un cours de la grille et une ligne du fil y mènent maintenant.
+- [x] Barre de progression, bouton « Actualiser », thème appliqué avant le premier pixel et
+      réglable depuis le bandeau.
 - [x] Compte parent : un profil par enfant, sélecteur, messagerie de la famille.
 - [x] Compte enseignant **reconnu et annoncé comme non pris en charge** — voir P5.
 - [x] Téléchargement des pièces jointes par le serveur.
@@ -52,8 +57,12 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Commenter un devoir (`POST afaire/commentaires.awp`).
 - [x] Espace de stockage : créer, renommer, supprimer.
 - [x] `tools/smoke` : les allers-retours réels, à lancer à la main, jamais en CI.
-- [ ] **Ouvrir ces fonctions.** Aucune ne passe en `allow` avant que son aller-retour ne soit
-      vert sur un vrai compte. C'est la seule étape qui ne peut pas être faite ici.
+- [x] Interfaces des quatre écritures ouvertes : case à cocher, commentaire de devoir,
+      création de dossier, renommage de fichier.
+- [ ] **Éprouver ces fonctions sur un vrai compte.** Elles sont ouvertes en production
+      (`homework-done`, `homework-comment`, `cloud-folder`, `cloud-rename`) à la demande du
+      propriétaire du dépôt, **avant** leur aller-retour réel : c'est sa décision, et elle
+      inverse la règle du projet. `pnpm smoke` reste à passer, et `cloud-delete` reste fermée.
 - [ ] Téléversement de fichier (`televersement.awp`, `multipart/form-data`).
 
 ## P4 — Écriture non documentée

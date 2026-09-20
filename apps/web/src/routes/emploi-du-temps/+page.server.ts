@@ -11,7 +11,9 @@ function minutes(instant: string): number {
 export const load: PageServerLoad = async ({ locals, url }) => {
   const { id, record, account } = requireStudent(locals)
   const jour = today()
-  const { snapshot, errors } = await loadSections(id, record, account, ['timetable', 'homework'], { today: jour })
+  // « Actualiser » force la relecture : les données dorment cinq minutes en session.
+  const force = url.searchParams.get('rafraichir') === '1'
+  const { snapshot, errors } = await loadSections(id, record, account, ['timetable', 'homework'], { today: jour, force })
 
   // La date consultée vit dans l'URL : un emploi du temps se partage, se recharge et se
   // met en favori. Un état local ne survivrait à aucun des trois.

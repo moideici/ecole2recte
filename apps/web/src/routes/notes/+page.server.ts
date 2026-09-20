@@ -24,7 +24,9 @@ function nombre(valeur: string | null): number | undefined {
 export const load: PageServerLoad = async ({ locals, url }) => {
   const { id, record, account } = requireStudent(locals)
   const jour = today()
-  const { snapshot, errors } = await loadSections(id, record, account, ['grades'], { today: jour })
+  // « Actualiser » force la relecture : les données dorment cinq minutes en session.
+  const force = url.searchParams.get('rafraichir') === '1'
+  const { snapshot, errors } = await loadSections(id, record, account, ['grades'], { today: jour, force })
 
   const demande = url.searchParams.get('periode')
   const periode =

@@ -31,7 +31,18 @@ function homeworkFrom(raw: Json, dueDate: string, content: string): HomeworkItem
   const source = todo ?? raw
   const body = content !== '' ? content : decodeContent(source)
   const item: HomeworkItem = {
-    id: pickText(raw, 'idDevoir', 'id') || `${dueDate}-${pickText(raw, 'matiere', 'codeMatiere')}`,
+    /*
+     * `idDevoir` d'abord, où qu'il soit.
+     *
+     * Le résumé le porte à la racine, le détail d'un jour le porte dans `aFaire` — et la
+     * racine y porte un identifiant de **séance**, différent. Lire la racine en premier
+     * donnerait deux identifiants pour un même devoir, et le détail ne se raccrocherait
+     * jamais à la ligne du résumé.
+     */
+    id:
+      pickText(source, 'idDevoir') ||
+      pickText(raw, 'idDevoir', 'id') ||
+      `${dueDate}-${pickText(raw, 'matiere', 'codeMatiere')}`,
     subject: pickText(raw, 'matiere', 'libelleMatiere') || pickText(source, 'matiere'),
     dueDate,
     content: body,

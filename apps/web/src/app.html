@@ -14,6 +14,20 @@
       donc rien — tout en annonçant l'adresse de qui visite à un tiers. La pile de polices de
       `app.css` prend Montserrat si l'appareil l'a déjà, et celle du système sinon.
     -->
+    <!--
+      Le thème choisi, appliqué **avant** le premier pixel.
+      Sans ce script, la préférence ne reprenait effet qu'en arrivant sur la page Réglages :
+      partout ailleurs, un rechargement revenait au thème du système. Il est en ligne parce
+      qu'un fichier séparé arriverait trop tard — l'écran aurait déjà clignoté.
+    -->
+    <script>
+      try {
+        var t = localStorage.getItem('e2r-theme')
+        if (t === 'clair' || t === 'sombre') document.documentElement.setAttribute('data-theme', t)
+      } catch (e) {
+        // Navigation privée, stockage refusé : le thème du système fera l'affaire.
+      }
+    </script>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

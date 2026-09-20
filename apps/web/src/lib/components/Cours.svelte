@@ -3,12 +3,16 @@
   import { timeOf } from '@ecole2recte/protocol'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
 
-  let { cours, actuel = false }: { cours: Lesson; actuel?: boolean } = $props()
+  /** `href` rend le cours cliquable : il mène à sa journée, contenu de séance compris. */
+  let { cours, actuel = false, href = '' }: { cours: Lesson; actuel?: boolean; href?: string } = $props()
   const couleur = $derived(couleurMatiere(cours.subject))
 </script>
 
-<article
+<svelte:element
+  this={href ? 'a' : 'article'}
+  href={href || undefined}
   class="cours"
+  class:lien={href !== ''}
   class:actuel
   class:annule={cours.canceled}
   style={`--fond-matiere:${couleur.fond};--encre-matiere:${couleur.encre}`}
@@ -27,7 +31,8 @@
       <p class="jeton alerte">Évaluation</p>
     {/if}
   </div>
-</article>
+  {#if href}<span class="chevron" aria-hidden="true">›</span>{/if}
+</svelte:element>
 
 <style>
   .cours {
@@ -52,6 +57,9 @@
   .debut { font-weight: 700; font-size: 0.98rem; }
   .fin { color: var(--encre-douce); font-size: 0.82rem; }
   .corps { flex: 1; min-width: 0; }
+  .lien { text-decoration: none; color: inherit; }
+  .lien:hover { border-color: var(--encre-matiere); background: var(--surface-2); }
+  .chevron { align-self: center; color: var(--encre-douce); font-size: 1.3rem; flex: none; }
   .titre { font-weight: 650; color: var(--encre); }
   .detail { color: var(--encre-douce); font-size: 0.86rem; }
   .jeton { margin-top: 4px; }

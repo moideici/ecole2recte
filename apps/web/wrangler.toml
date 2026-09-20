@@ -28,5 +28,15 @@ custom_domain = true
 ED_API_VERSION = "4.101.4"
 ED_TIMEZONE = "Europe/Paris"
 ED_DEMO = "0"
-ED_WRITE_POLICY = "deny"
-ED_WRITE_FEATURES = ""
+
+# L'écriture, ouverte fonction par fonction.
+#
+# `cloud-delete` reste fermée : une suppression de fichier ne se défait pas, et aucune de ces
+# fonctions n'a encore passé son aller-retour réel (`pnpm smoke`). Les quatre ouvertes ici se
+# rattrapent — décocher un devoir, supprimer un dossier créé, renommer à nouveau — sauf le
+# commentaire, qui part chez le professeur et que l'interface annonce comme tel avant l'envoi.
+#
+# Le déverrouillage est ici et **pas** dans `.env.example`, qui reste fermé : un fichier
+# d'exemple qui ouvrirait l'écriture finirait un jour copié tel quel ailleurs.
+ED_WRITE_POLICY = "allow"
+ED_WRITE_FEATURES = "homework-done,homework-comment,cloud-folder,cloud-rename"

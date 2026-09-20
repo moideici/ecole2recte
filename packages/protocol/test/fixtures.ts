@@ -241,11 +241,13 @@ export const TEXTBOOKS = {
 export const CLOUD = {
   ressources: [
     {
+      id: 'd1',
       libelle: 'Documents',
       typeRessource: 'folder',
       children: [
         { id: 'f1', libelle: 'cours.pdf', taille: 20480, date: '2026-09-05' },
         {
+          id: 'd2',
           libelle: 'Archives',
           typeRessource: 'folder',
           children: [{ id: 'f2', libelle: 'ancien.pdf', taille: 1024 }],
