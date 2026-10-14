@@ -1,5 +1,6 @@
 <script lang="ts">
   import { enhance } from '$app/forms'
+  import Lapin from '$lib/components/Lapin.svelte'
   import type { ActionData, PageData } from './$types'
 
   let { data, form }: { data: PageData; form: ActionData } = $props()
@@ -13,8 +14,11 @@
 
 <svelte:head><title>Connexion — ecole2recte</title></svelte:head>
 
-<h1>ecole2recte</h1>
-<p class="discret" style="margin-top:6px">
+<div class="marque-connexion">
+  <span class="pastille-lapin"><Lapin taille={64} /></span>
+  <h1>ecole2recte</h1>
+</div>
+<p class="discret" style="margin-top:6px;text-align:center">
   Un client ÉcoleDirecte lisible, sur ordinateur comme sur téléphone, pour les élèves, les
   familles et les professeurs.
 </p>
@@ -141,6 +145,17 @@
 {/if}
 
 <style>
+  .marque-connexion { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .pastille-lapin {
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    border-radius: 24px;
+    background: var(--bandeau);
+    color: #fff;
+    box-shadow: var(--ombre-haute);
+  }
   fieldset { border: 0; margin: 0; padding: 0; }
   legend { padding: 0; }
   .choix {

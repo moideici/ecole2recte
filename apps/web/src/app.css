@@ -16,7 +16,7 @@
 :root {
   color-scheme: light dark;
 
-  /* Le nuancier de Pronote : teal de marque, bleu d'info, fond crème plutôt que blanc pur. */
+  /* Le nuancier de la marque : le bleu prend la place du vert de Pronote ; fond gris clair, panneaux blancs. */
   --fond: #eef0f2;
   --surface: #ffffff;
   --surface-2: #f4f5f7;
@@ -25,14 +25,19 @@
   --bordure-douce: #eceef1;
   --encre: #22262b;
   --encre-douce: #646b75;
-  --accent: #008673;
-  --accent-fort: #00685a;
-  --accent-doux: #d9f2ee;
+  --accent: #1d63c4;
+  --accent-fort: #154c9b;
+  --accent-doux: #dce9fb;
   --accent-encre: #ffffff;
-  --bandeau: #00685a;
+  --bandeau: #154c9b;
+  --rail: #0f3a78;
+  --rail-encre: #ffffff;
+  --rail-encre-douce: #b4cdf0;
+  --rail-actif: rgb(255 255 255 / 16%);
+  --lapin-trait: #154c9b;
   --bandeau-encre: #ffffff;
-  --bandeau-encre-douce: #bfe4de;
-  --lien: #0e6fc4;
+  --bandeau-encre-douce: #c3d8f5;
+  --lien: #1d63c4;
   --succes: #1c5700;
   --succes-doux: #d8f3cb;
   --alerte: #6d4200;
@@ -66,13 +71,18 @@
     --bordure-douce: #2f3338;
     --encre: #f0efeb;
     --encre-douce: #a7aeb6;
-    --accent: #2ab5a3;
-    --accent-fort: #16998a;
-    --accent-doux: #103a36;
-    --accent-encre: #08110f;
-    --bandeau: #10312d;
-    --bandeau-encre: #eafaf7;
-    --bandeau-encre-douce: #8fc7bf;
+    --accent: #6aa6f5;
+    --accent-fort: #4a8ce0;
+    --accent-doux: #12294d;
+    --accent-encre: #07152b;
+    --bandeau: #0d2347;
+  --rail: #0a1a36;
+  --rail-encre: #eaf2ff;
+  --rail-encre-douce: #8fb0e0;
+  --rail-actif: rgb(255 255 255 / 12%);
+  --lapin-trait: #0d2347;
+    --bandeau-encre: #eaf2ff;
+    --bandeau-encre-douce: #8fb0e0;
     --lien: #62aeec;
     --succes: #9ee584;
     --succes-doux: #1d3d12;
@@ -94,13 +104,18 @@
   --bordure-douce: #2f3338;
   --encre: #f0efeb;
   --encre-douce: #a7aeb6;
-  --accent: #2ab5a3;
-  --accent-fort: #16998a;
-  --accent-doux: #103a36;
-  --accent-encre: #08110f;
-  --bandeau: #10312d;
-  --bandeau-encre: #eafaf7;
-  --bandeau-encre-douce: #8fc7bf;
+  --accent: #6aa6f5;
+  --accent-fort: #4a8ce0;
+  --accent-doux: #12294d;
+  --accent-encre: #07152b;
+  --bandeau: #0d2347;
+  --rail: #0a1a36;
+  --rail-encre: #eaf2ff;
+  --rail-encre-douce: #8fb0e0;
+  --rail-actif: rgb(255 255 255 / 12%);
+  --lapin-trait: #0d2347;
+  --bandeau-encre: #eaf2ff;
+  --bandeau-encre-douce: #8fb0e0;
   --lien: #62aeec;
   --succes: #9ee584;
   --succes-doux: #1d3d12;
@@ -173,6 +188,7 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   border: 1px solid var(--bordure);
   border-radius: var(--rayon-grand);
   box-shadow: var(--ombre);
+  border-top: 3px solid var(--accent);
   overflow: hidden;
 }
 

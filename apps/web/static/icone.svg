@@ -1,4 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ecole2recte">
-  <rect width="64" height="64" rx="14" fill="#1d4ed8"/>
-  <path d="M18 20h28M18 32h20M18 44h24" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  <rect width="64" height="64" rx="14" fill="#154c9b"/>
+  <g transform="translate(0 2)">
+    <ellipse cx="24" cy="15" rx="6.5" ry="15" transform="rotate(-8 24 15)" fill="#fff"/>
+    <ellipse cx="40" cy="15" rx="6.5" ry="15" transform="rotate(8 40 15)" fill="#fff"/>
+    <ellipse cx="24.4" cy="16" rx="2.8" ry="10" transform="rotate(-8 24.4 16)" fill="#154c9b"/>
+    <ellipse cx="39.6" cy="16" rx="2.8" ry="10" transform="rotate(8 39.6 16)" fill="#154c9b"/>
+    <ellipse cx="32" cy="40" rx="19" ry="16.5" fill="#fff"/>
+    <circle cx="25" cy="38" r="2.4" fill="#154c9b"/>
+    <circle cx="39" cy="38" r="2.4" fill="#154c9b"/>
+    <ellipse cx="32" cy="43.5" rx="2.8" ry="1.9" fill="#154c9b"/>
+    <path d="M32 45.4v2.2M32 47.6q-3 3-6.2 1M32 47.6q3 3 6.2 1" fill="none" stroke="#154c9b" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
 </svg>

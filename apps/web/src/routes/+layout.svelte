@@ -4,6 +4,7 @@
   import { navigating } from '$app/state'
   import { LIBELLE_THEME, theme } from '$lib/theme.svelte.js'
   import Icone, { type NomIcone } from '$lib/components/Icone.svelte'
+  import Lapin from '$lib/components/Lapin.svelte'
   import type { LayoutData } from './$types'
 
   let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props()
@@ -91,7 +92,10 @@
   {/if}
 
   <header class="bandeau">
-    <p class="marque">ecole2recte</p>
+    <a class="marque" href={data.profil?.prof ? '/prof' : '/'} aria-label="ecole2recte, accueil">
+      <Lapin taille={34} />
+      <span>ecole2recte</span>
+    </a>
     <span class="espace"></span>
     {#if data.profil}
       <a class="identite" href={data.profil.prof ? '/prof' : '/profil'}>
@@ -230,7 +234,16 @@
     box-shadow: var(--ombre);
   }
 
-  .marque { font-weight: 700; letter-spacing: -0.01em; font-size: 1.1rem; }
+  .marque {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-size: 1.1rem;
+    color: inherit;
+    text-decoration: none;
+  }
 
   .identite {
     display: flex;
@@ -294,6 +307,7 @@
 
   .laterale { display: none; }
   .enfants { margin-bottom: 8px; }
+  .enfants .minuscule { color: var(--rail-encre-douce); }
 
   .enfant {
     display: flex;
@@ -330,18 +344,18 @@
     gap: 10px;
     padding: 9px 12px;
     border-radius: var(--rayon-petit);
-    color: var(--encre);
+    color: var(--rail-encre-douce);
     text-decoration: none;
     min-height: 44px;
     font-size: 0.94rem;
     border-left: 3px solid transparent;
   }
-  nav[aria-label='Sections'] a:hover { background: var(--surface-3); }
+  nav[aria-label='Sections'] a:hover { background: var(--rail-actif); color: var(--rail-encre); }
   nav[aria-label='Sections'] a[aria-current='page'] {
-    background: var(--accent-doux);
-    color: var(--accent-fort);
+    background: var(--rail-actif);
+    color: var(--rail-encre);
     font-weight: 650;
-    border-left-color: var(--accent);
+    border-left-color: var(--rail-encre);
   }
 
   /* ——————————————————————————————————————————— barre basse */
@@ -402,8 +416,9 @@
       height: calc(100vh - 56px);
       padding: 16px 10px;
       overflow-y: auto;
-      border-right: 1px solid var(--bordure);
-      background: var(--surface);
+      border-right: 0;
+      background: var(--rail);
+      color: var(--rail-encre);
     }
     main { padding: 24px 28px 56px; }
     .basse, .tiroir { display: none; }
