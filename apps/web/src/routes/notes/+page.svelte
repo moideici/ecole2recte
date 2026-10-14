@@ -178,6 +178,11 @@
     <span class="espace"></span>
     <span class="discret">{data.notes.length} note{data.notes.length > 1 ? 's' : ''}</span>
   </div>
+  <div class="colonnes" aria-hidden="true">
+    <span class="c-matiere">Matière</span>
+    <span class="c-moyenne">Élève</span>
+    <span class="c-classe">Classe</span>
+  </div>
   <div class="corps-panneau serre">
     {#each data.matieres as matiere (matiere.subject)}
       {@const couleur = couleurMatiere(matiere.subject)}
@@ -195,6 +200,19 @@
               <span class="jeton accent">Recalculée · bulletin {arrondi(matiere.verdict.official)}</span>
             {:else if matiere.verdict.origin === 'computed'}
               <span class="jeton">Calculée</span>
+            {/if}
+            {#if matiere.notes.length > 0}
+              <!-- Pronote montre les notes sur la ligne même : on n'ouvre pas huit matières pour les lire. -->
+              <span class="pastilles-notes">
+                {#each matiere.notes.slice(0, 8) as note (note.id)}
+                  <span
+                    class="pastille-note nombre"
+                    class:hors={!note.counted}
+                    title={`${note.label || 'Évaluation'}${note.date ? ` · ${shortDate(note.date)}` : ''} · coef. ${note.coefficient}`}
+                  >{brut(note.value)}{#if note.scale !== 20}<small>/{note.scale}</small>{/if}</span>
+                {/each}
+                {#if matiere.notes.length > 8}<span class="discret">+{matiere.notes.length - 8}</span>{/if}
+              </span>
             {/if}
           </span>
           <span class="moyenne nombre">{arrondi(matiere.verdict.value)}</span>
@@ -324,7 +342,16 @@
 
 <style>
   .generale .chiffres { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
-  .grande { font-size: 2.6rem; font-weight: 700; line-height: 1; color: var(--accent); }
+  .grande {
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--accent-encre);
+    background: var(--accent);
+    padding: 12px 18px;
+    border-radius: var(--rayon);
+  }
+  .grande .sur { color: inherit; opacity: 0.8; }
   .sur { font-size: 0.5em; color: var(--encre-douce); font-weight: 600; }
   .reperes { display: flex; gap: 20px; margin: 0; }
   .reperes div { display: flex; flex-direction: column; gap: 2px; }
@@ -357,6 +384,37 @@
   }
   .matiere summary::-webkit-details-marker { display: none; }
   .matiere summary:hover { background: var(--surface-2); }
+
+  .colonnes {
+    display: flex;
+    gap: 10px;
+    padding: 6px 14px 6px 19px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--bordure);
+    color: var(--encre-douce);
+    font-size: 0.74rem;
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .c-matiere { flex: 1; }
+  .c-moyenne, .c-classe { min-width: 3.4rem; text-align: right; }
+
+  .pastilles-notes { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 3px; }
+  .pastille-note {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--surface-3);
+    color: var(--encre);
+    font-size: 0.82rem;
+    font-weight: 650;
+  }
+  .pastille-note small { font-size: 0.68em; color: var(--encre-douce); font-weight: 500; }
+  /* Une note hors moyenne ne se confond pas avec les autres. */
+  .pastille-note.hors { background: transparent; border: 1px dashed var(--bordure); color: var(--encre-douce); }
 
   .filet { width: 5px; align-self: stretch; background: var(--encre-matiere); border-radius: 0 3px 3px 0; flex: none; }
   .nom { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }

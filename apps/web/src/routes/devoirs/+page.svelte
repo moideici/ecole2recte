@@ -4,7 +4,7 @@
   import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
-  import { longDate, matches, relativeDay } from '@ecole2recte/protocol'
+  import { longDate, matches, relativeDay, shortDate } from '@ecole2recte/protocol'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
   import type { PageData } from './$types'
 
@@ -81,9 +81,10 @@
 {#each Object.entries(parJour) as [date, devoirs] (date)}
   <section class="panneau jour" class:passe={date < data.jour}>
     <div class="tete-panneau">
-      <h2>{relativeDay(date, data.jour)}</h2>
-      <span class="discret">{longDate(date)}</span>
+      <h2>Pour {longDate(date)}</h2>
+      <span class="jeton" class:erreur-jeton={date < data.jour} class:accent={date >= data.jour}>{relativeDay(date, data.jour)}</span>
       <span class="espace"></span>
+      <span class="discret">{devoirs.length} devoir{devoirs.length > 1 ? 's' : ''}</span>
       <a class="pastille" href={`/devoirs/${date}`}>Ouvrir la journée</a>
     </div>
     <div class="corps-panneau serre">
@@ -96,12 +97,13 @@
         >
           <span class="filet" aria-hidden="true"></span>
           {#if data.cochable}
-            <form method="POST" action="?/cocher" use:enhance>
+            <form method="POST" action="?/cocher" use:enhance class="coche">
               <input type="hidden" name="devoir" value={devoir.id} />
               <input type="hidden" name="fait" value={String(!devoir.done)} />
               <button class="case" aria-pressed={devoir.done} aria-label={devoir.done ? 'Marquer à faire' : 'Marquer fait'}>
                 {devoir.done ? '✓' : ''}
               </button>
+              <span class="legende-case" aria-hidden="true">{devoir.done ? 'Fait' : 'À faire'}</span>
             </form>
           {/if}
           <!-- Cliquer ouvre la journée sur ce devoir : l'énoncé complet, ses pièces jointes
@@ -119,6 +121,9 @@
               <span class="discret">Aucun énoncé saisi.</span>
             {:else}
               <span class="discret">Ouvrir pour lire l’énoncé.</span>
+            {/if}
+            {#if devoir.givenOn}
+              <span class="donne">Donné le {shortDate(devoir.givenOn)}</span>
             {/if}
             {#if devoir.attachments.length > 0}
               <span class="jeton">{devoir.attachments.length} pièce{devoir.attachments.length > 1 ? 's' : ''} jointe{devoir.attachments.length > 1 ? 's' : ''}</span>
@@ -173,12 +178,16 @@
   }
   .fait .contenu { color: var(--encre-douce); }
   .chevron { color: var(--encre-douce); font-size: 1.3rem; flex: none; }
+  .donne { font-size: 0.78rem; color: var(--encre-douce); }
+  .coche { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+  .legende-case { font-size: 0.64rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.04em; color: var(--encre-douce); }
+  .devoir.fait { opacity: 0.8; }
 
   .case {
     width: 28px;
     height: 28px;
     min-width: 28px;
-    border-radius: 8px;
+    border-radius: 999px;
     border: 2px solid var(--bordure);
     background: var(--surface);
     color: var(--accent-encre);
