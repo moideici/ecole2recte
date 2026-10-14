@@ -45,9 +45,9 @@
   --erreur: #8a0b0b;
   --erreur-doux: #ffe1e1;
 
-  --rayon: 0.6rem;
-  --rayon-petit: 0.35rem;
-  --rayon-grand: 0.9rem;
+  --rayon: 0.4rem;
+  --rayon-petit: 0.25rem;
+  --rayon-grand: 0.45rem;
   --marge: 16px;
   --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --ombre-haute: 0 4px 12px rgb(16 24 40 / 10%), 0 12px 32px rgb(16 24 40 / 8%);
@@ -199,7 +199,14 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   flex-wrap: wrap;
   padding: 12px 16px;
   border-bottom: 1px solid var(--bordure-douce);
-  background: var(--surface-2);
+  background: var(--surface);
+}
+
+/* Le titre d'un widget : franc, dans la couleur de la marque, comme l'en-tête d'un widget Pronote. */
+.panneau > .tete-panneau h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent-fort);
 }
 
 .panneau > .corps-panneau { padding: 14px 16px; }

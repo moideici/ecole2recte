@@ -43,6 +43,29 @@
     lienCours?: (date: string, cours: Lesson) => string
   } = $props()
 
+  /**
+   * L'heure qu'il est, à Paris, en minutes depuis minuit : la ligne rouge de Pronote.
+   *
+   * Lue côté navigateur seulement : le serveur ne sait pas à quelle seconde la page sera lue,
+   * et un écart entre les deux ferait clignoter la ligne à l'hydratation.
+   */
+  let maintenant = $state<number | null>(null)
+  $effect(() => {
+    const lire = () => {
+      const parts = new Intl.DateTimeFormat('fr-FR', {
+        timeZone: 'Europe/Paris',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).formatToParts(new Date())
+      const valeur = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0)
+      maintenant = (valeur('hour') % 24) * 60 + valeur('minute')
+    }
+    lire()
+    const minuterie = setInterval(lire, 60_000)
+    return () => clearInterval(minuterie)
+  })
+
   const NOMS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
   const HAUTEUR_HEURE = 56
 
@@ -109,6 +132,10 @@
             <div class="trait" style={`top:${rang * HAUTEUR_HEURE}px`}></div>
           {/each}
 
+          {#if journee.date === aujourdhui && maintenant !== null && maintenant >= debut && maintenant <= fin}
+            <div class="maintenant" style={`top:${((maintenant - debut) / 60) * HAUTEUR_HEURE}px`} aria-hidden="true"></div>
+          {/if}
+
           {#each placer(journee.lecons) as bloc (bloc.cours.id)}
             {@const couleur = couleurMatiere(teinte?.(bloc.cours) ?? bloc.cours.subject)}
             {@const marque = mention?.(journee.date, bloc.cours) ?? ''}
@@ -154,7 +181,9 @@
   .heure-graduee span { position: relative; top: -7px; }
 
   .colonne { flex: 1; min-width: 0; border-left: 1px solid var(--bordure-douce); }
-  .colonne.aujourdhui { background: var(--accent-doux); }
+  .colonne.aujourdhui { background: color-mix(in srgb, var(--accent-doux) 55%, transparent); }
+  .colonne.aujourdhui .tete-jour { background: var(--accent); color: var(--accent-encre); }
+  .colonne.aujourdhui .date-jour { color: inherit; opacity: 0.9; }
 
   .tete-jour {
     display: flex;
@@ -168,10 +197,30 @@
     line-height: 1.1;
   }
   .tete-jour:hover { background: var(--surface-2); }
+  .colonne.aujourdhui .tete-jour:hover { background: var(--accent-fort); }
   .nom-jour { font-weight: 650; font-size: 0.85rem; }
   .date-jour { font-size: 0.72rem; color: var(--encre-douce); }
 
   .piste { position: relative; height: var(--hauteur); }
+  .maintenant {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--erreur);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .maintenant::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--erreur);
+  }
   .trait { position: absolute; left: 0; right: 0; height: 1px; background: var(--bordure-douce); }
 
   .bloc {

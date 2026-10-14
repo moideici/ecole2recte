@@ -35,8 +35,9 @@
     flex-wrap: wrap;
     margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 2px solid var(--bordure);
+    border-bottom: 1px solid var(--bordure);
   }
-  .texte { flex: 1; min-width: 200px; }
+  .texte { flex: 1; min-width: 200px; padding-left: 12px; border-left: 5px solid var(--accent); }
+  h1 { color: var(--accent-fort); }
   .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 </style>
