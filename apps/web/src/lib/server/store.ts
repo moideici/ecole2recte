@@ -55,6 +55,12 @@ export interface SessionRecord {
    * à l'autre ne doit pas recharger ce qu'il vient de consulter.
    */
   cache?: Record<string, { at: number; value: unknown }>
+  /**
+   * La session est morte pour de bon : jeton périmé, et rien de gardé pour la rouvrir (ou ce
+   * qui l'était vient d'être refusé). Posé par `api.ts`, lu par `hooks.server.ts`, qui efface
+   * la session et renvoie à la connexion au lieu de laisser des pages d'erreurs.
+   */
+  expired?: boolean
   /** Session de démonstration : aucune requête ne part vers ÉcoleDirecte. */
   demo?: boolean
   createdAt: number
@@ -70,6 +76,20 @@ export interface SessionStore {
 
 /** Douze heures : au-delà, le jeton ÉcoleDirecte a de toute façon toutes les chances d'être mort. */
 export const SESSION_TTL_MS = 12 * 60 * 60 * 1000
+
+/**
+ * Trente jours, pour une session « rester connecté ».
+ *
+ * Douze heures suffisaient à tuer la fonction : la session (cookie, magasin, Durable Object)
+ * disparaissait avec les identifiants scellés qu'elle portait, avant qu'on ait pu s'en servir
+ * le lendemain. Le délai glisse : chaque écriture le repousse.
+ */
+export const SESSION_LONGUE_TTL_MS = 30 * 24 * 60 * 60 * 1000
+
+/** La durée de vie qui convient à cette session. */
+export function ttlFor(record: Pick<SessionRecord, 'remembered'>): number {
+  return record.remembered ? SESSION_LONGUE_TTL_MS : SESSION_TTL_MS
+}
 
 /** 32 octets d'aléa : l'identifiant est la seule chose que le navigateur détient. */
 function newSessionId(): string {
@@ -90,7 +110,7 @@ class MemorySessionStore implements SessionStore {
   async read(id: string): Promise<SessionRecord | null> {
     const record = this.records.get(id)
     if (!record) return null
-    if (Date.now() - record.touchedAt > SESSION_TTL_MS) {
+    if (Date.now() - record.touchedAt > ttlFor(record)) {
       this.records.delete(id)
       return null
     }
@@ -107,9 +127,9 @@ class MemorySessionStore implements SessionStore {
   }
 
   private sweep(): void {
-    const limit = Date.now() - SESSION_TTL_MS
+    const now = Date.now()
     for (const [id, record] of this.records) {
-      if (record.touchedAt < limit) this.records.delete(id)
+      if (now - record.touchedAt > ttlFor(record)) this.records.delete(id)
     }
   }
 }
@@ -157,7 +177,7 @@ class DurableSessionStore implements SessionStore {
       const now = Date.now()
       await this.request(id, 'write', {
         method: 'PUT',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-session-ttl': String(ttlFor(record)) },
         body: JSON.stringify({ ...record, createdAt: now, touchedAt: now }),
       })
       return id
@@ -180,7 +200,7 @@ class DurableSessionStore implements SessionStore {
     try {
       await this.request(id, 'write', {
         method: 'PUT',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', 'x-session-ttl': String(ttlFor(record)) },
         body: JSON.stringify({ ...record, touchedAt: Date.now() }),
       })
     } catch {

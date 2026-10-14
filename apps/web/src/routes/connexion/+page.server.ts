@@ -35,9 +35,9 @@ function newClient(): EcoleDirecteClient {
   return client
 }
 
-export const load: PageServerLoad = ({ locals }) => {
+export const load: PageServerLoad = ({ locals, url }) => {
   if (locals.session && locals.session.accounts.length > 0) redirect(303, '/')
-  return { demo: demoEnabled() }
+  return { demo: demoEnabled(), expiree: url.searchParams.has('expiree') }
 }
 
 /**
@@ -253,6 +253,6 @@ async function install(
     ...(trusted ? { trusted } : {}),
     ...(remembered ? { remembered } : {}),
   })
-  setSessionCookie(cookies, id, secure(url))
+  setSessionCookie(cookies, id, secure(url), remembered !== undefined)
   redirect(303, active && accountRole(active) === 'teacher' ? '/prof' : '/')
 }

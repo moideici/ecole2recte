@@ -18,7 +18,7 @@ import {
 import { demoEngine } from './demo.js'
 import { activeAccount } from './session.js'
 import { type SessionRecord, sessions } from './store.js'
-import { reconnecteur } from './reconnexion.js'
+import { reconnecteur, reconnexionDisponible } from './reconnexion.js'
 import { autoRenewEnabled, writePolicy } from './write-policy.js'
 
 /** Le catalogue d'un professeur change rarement dans la journée. */
@@ -42,7 +42,7 @@ export function clientFor(record: SessionRecord, id?: string): { client: EcoleDi
     writePolicy: record.demo ? 'deny' : writePolicy(),
     autoRenew: record.demo ? false : autoRenewEnabled(),
     // Sans identifiant de session, rien à rouvrir : on ne saurait pas où réécrire le jeton.
-    ...(id ? { reauthenticate: reconnecteur(id, record) } : {}),
+    ...(id && !record.demo ? { reauthenticate: rouvrirOuMourir(id, record) } : {}),
     apiBase: env['ED_API_BASE'] ?? undefined,
   })
   // Réglable sans redéployer : le jour où la version périme, tout tombe avec le code 517.
@@ -61,6 +61,27 @@ export function clientFor(record: SessionRecord, id?: string): { client: EcoleDi
     if (actif) client.session.userId = mailboxId(actif)
   }
   return { client, api: new EcoleDirecteApi(client) }
+}
+
+/**
+ * Rouvrir la session, ou constater qu'elle est morte.
+ *
+ * Le client n'appelle ceci que sur un jeton refusé. Si la réouverture échoue **et** qu'il ne
+ * reste rien de gardé pour réessayer — session sans « rester connecté », ou mot de passe
+ * refusé donc oublié —, la session est perdue : on la marque, et `hooks.server.ts` renvoie à la
+ * connexion. Sans cela, la personne restait devant des sections en erreur, cookie valide, sans
+ * jamais comprendre qu'il suffisait de se reconnecter.
+ *
+ * Quand il reste de quoi réessayer (délai de garde, plafond horaire, service en panne), on ne
+ * marque rien : la session reprendra plus tard, et la détruire perdrait les identifiants.
+ */
+function rouvrirOuMourir(id: string, record: SessionRecord): () => Promise<boolean> {
+  const rouvrir = reconnecteur(id, record)
+  return async () => {
+    const rouverte = rouvrir ? await rouvrir() : false
+    if (!rouverte && (!record.remembered || !reconnexionDisponible())) record.expired = true
+    return rouverte
+  }
 }
 
 /** Le même mandataire, côté enseignant : lecture seule, sur l'hôte enseignant. */

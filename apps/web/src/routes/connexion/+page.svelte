@@ -19,6 +19,12 @@
   familles et les professeurs.
 </p>
 
+{#if data.expiree && !form}
+  <p class="erreur" role="alert" style="margin-top:18px">
+    Ta session a expiré. Reconnecte-toi — coche « Rester connecté » pour ne plus avoir à le faire.
+  </p>
+{/if}
+
 {#if form && 'message' in form && form.message}
   <p class="erreur" role="alert" style="margin-top:18px">{form.message}</p>
 {/if}

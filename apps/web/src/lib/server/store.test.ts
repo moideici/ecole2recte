@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { sessions } from './store.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { SESSION_LONGUE_TTL_MS, SESSION_TTL_MS, sessions, ttlFor } from './store.js'
 import { createSession } from '@ecole2recte/protocol'
 
 function creer() {
@@ -39,6 +39,43 @@ describe('magasin de sessions', () => {
     await sessions.destroy(id)
     await sessions.write(id, record)
     // Sans cette garde, se déconnecter puis finir une requête en vol ressusciterait la session.
+    expect(await sessions.read(id)).toBeNull()
+  })
+})
+
+describe('durée de vie', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const ouvrir = (remembered?: string) =>
+    sessions.create({
+      protocol: createSession({ token: 'JETON' }),
+      accounts: [],
+      activeAccountId: null,
+      awaitingSecurityAnswer: false,
+      snapshots: {},
+      ...(remembered ? { remembered } : {}),
+    })
+
+  it('une session ordinaire vit douze heures, une session « rester connecté » trente jours', () => {
+    expect(ttlFor({})).toBe(SESSION_TTL_MS)
+    expect(ttlFor({ remembered: 'scelle' })).toBe(SESSION_LONGUE_TTL_MS)
+    expect(SESSION_LONGUE_TTL_MS).toBeGreaterThan(SESSION_TTL_MS)
+  })
+
+  it('la session ordinaire meurt après douze heures sans écriture', async () => {
+    vi.useFakeTimers()
+    const id = await ouvrir()
+    vi.advanceTimersByTime(SESSION_TTL_MS + 1000)
+    expect(await sessions.read(id)).toBeNull()
+  })
+
+  it('la session « rester connecté » survit au lendemain, et s’éteint après trente jours', async () => {
+    // C'était le bug : douze heures pour tout le monde, identifiants scellés compris.
+    vi.useFakeTimers()
+    const id = await ouvrir('scelle')
+    vi.advanceTimersByTime(3 * 24 * 60 * 60 * 1000)
+    expect(await sessions.read(id)).not.toBeNull()
+    vi.advanceTimersByTime(SESSION_LONGUE_TTL_MS)
     expect(await sessions.read(id)).toBeNull()
   })
 })

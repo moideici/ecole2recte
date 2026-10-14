@@ -1,6 +1,6 @@
 import type { Cookies } from '@sveltejs/kit'
 import type { Account } from '@ecole2recte/protocol'
-import type { SessionRecord, SessionStore } from './store.js'
+import { SESSION_LONGUE_TTL_MS, SESSION_TTL_MS, type SessionRecord, type SessionStore } from './store.js'
 
 export const COOKIE_NAME = 'e2r'
 
@@ -12,13 +12,15 @@ export const COOKIE_NAME = 'e2r'
  * `secure` hors développement : il ne voyage pas en clair. Il ne contient qu'un identifiant
  * opaque — ni jeton, ni identifiant ÉcoleDirecte, ni rien qui se relise.
  */
-export function setSessionCookie(cookies: Cookies, id: string, secure: boolean): void {
+export function setSessionCookie(cookies: Cookies, id: string, secure: boolean, remembered = false): void {
   cookies.set(COOKIE_NAME, id, {
     path: '/',
     httpOnly: true,
     sameSite: 'strict',
     secure,
-    maxAge: 12 * 60 * 60,
+    // Aligné sur la vie du magasin : un cookie qui meurt avant la session rend « rester
+    // connecté » sans effet, et c'est exactement ce qui se produisait à douze heures.
+    maxAge: Math.floor((remembered ? SESSION_LONGUE_TTL_MS : SESSION_TTL_MS) / 1000),
   })
 }
 
