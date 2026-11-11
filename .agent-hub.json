@@ -1,0 +1,6 @@
+{
+  "test": "pnpm typecheck && pnpm test",
+  "setup": null,
+  "link": ["node_modules", "apps/web/node_modules", "apps/sessions/node_modules", "packages/protocol/node_modules"],
+  "sandbox": "workspace-write"
+}
