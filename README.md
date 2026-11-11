@@ -2,7 +2,7 @@
 
 Un client ÉcoleDirecte pour le navigateur, pensé pour l'ordinateur **et** le téléphone, et
 pour les trois profils : élève, parent, professeur. Frère du client Android
-[`ecole2rect`](https://github.com/moidefr/ecole2rect), dont il reprend le savoir
+[`ecole2rect`](https://github.com/moideici/ecole2rect), dont il reprend le savoir
 protocolaire — durement acquis — sans en reprendre le code.
 
 > **État : P0 à P3 écrits, et l'espace professeur en lecture.** Le protocole, la lecture

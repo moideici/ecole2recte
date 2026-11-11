@@ -33,7 +33,7 @@ Rien d'autre. Pas de base de données, pas de Docker, pas de compte à créer.
 Ouvre un terminal (PowerShell sous Windows, Terminal sous macOS/Linux) et colle :
 
 ```sh
-git clone https://github.com/moidefr/ecole2recte
+git clone https://github.com/moideici/ecole2recte
 cd ecole2recte
 git checkout claude/ecole2rect-app-refactor-x70q66
 ```
