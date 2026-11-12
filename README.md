@@ -131,6 +131,16 @@ La moyenne générale suit les mêmes règles, et se fait comme le bulletin la f
 des moyennes de matières, pondérée par leur coefficient — pas une moyenne à plat des notes,
 qui ferait peser une matière à six devoirs trois fois plus qu'une matière à deux.
 
+La page Notes propose des courbes cumulées par matière et générale en SVG avec résumé
+texte accessible, calculées sur les notes datées, chiffrées et comptées. La générale pondère
+les matières par leurs coefficients ; la courbe ne constitue pas un historique du bulletin.
+Les moyennes de classe et extrêmes fournis sont affichés, ainsi que l’écart de chaque note
+à sa classe sur le barème du devoir. Les moyennes sont étiquetées « Officielle » ou
+« Calculée par l’appli », avec une explication du retard possible du bulletin.
+La pastille « Nouveau » dure trois jours calendaires, jour de saisie compris ; sans date de
+saisie, elle utilise la date du devoir, ce qui peut masquer une saisie tardive. La démo
+fournit des saisies du jour pour illustrer ces indicateurs.
+
 ## Les règles qui ne se négocient pas
 
 - **Aucune protection n'est contournée.** La réponse à une question de sécurité n'est jamais
@@ -223,6 +233,9 @@ les étapes dans l'ordre, sans supposer de connaissances en développement. Un s
 tout : `bash DEMARRER/demarrer.sh`, ou `DEMARRER\demarrer.ps1` sous Windows.
 
 ## Développement
+
+La configuration SvelteKit résout `@ecole2recte/protocol` depuis les sources du même
+worktree, y compris lorsque `node_modules` est partagé avec un autre répertoire.
 
 ```sh
 pnpm install

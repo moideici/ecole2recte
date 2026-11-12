@@ -68,6 +68,11 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Cartes harmonisées par jetons, focus visible, cibles mobiles et mouvements réduits.
 
 
+- [x] Notes : courbes cumulées par matière et générale en SVG, avec résumé accessible.
+- [x] Notes : moyenne de classe et extrêmes disponibles, écart par devoir sur son barème.
+- [x] Notes : pastille « Nouveau » pendant trois jours depuis la saisie, sinon le devoir.
+- [x] Notes : étiquettes officielle/calculée et explication du retard possible du bulletin.
+
 ## P3 — Écriture documentée
 
 - [x] Cocher et décocher un devoir (`PUT cahierdetexte.awp`).

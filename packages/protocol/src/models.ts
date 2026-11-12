@@ -183,6 +183,8 @@ export interface Grade {
   scale: number
   coefficient: number
   classAverage?: number
+  /** Date de saisie distincte du devoir, pour signaler les ajouts récents. */
+  enteredOn?: string
   date?: string
   periodCode: string
   /** Fausse quand la note ne compte pas dans la moyenne : le dire évite un calcul faux. */

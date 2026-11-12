@@ -703,7 +703,7 @@ function studentGrades(today: string) {
           minClasse: comma(grade.min),
           maxClasse: comma(grade.max),
           date: grade.date,
-          dateSaisie: grade.date,
+          dateSaisie: today >= periode.from && today <= periode.to && grade === grades[grades.length - 1] ? today : grade.date,
           typeDevoir: grade.type,
           nonSignificatif: grade.horsMoyenne,
           commentaire: grade.horsMoyenne ? 'Évaluation diagnostique, non comptée.' : '',

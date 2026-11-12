@@ -1,9 +1,11 @@
 <script lang="ts">
+  import CourbeMoyenne from '$lib/components/CourbeMoyenne.svelte'
+  import ReperesNote from '$lib/components/ReperesNote.svelte'
   import EnTete from '$lib/components/EnTete.svelte'
   import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
-  import { longDate, shortDate } from '@ecole2recte/protocol'
+  import { longDate, shortDate, isNewGrade, averageLabel } from '@ecole2recte/protocol'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
   import type { PageData } from './$types'
 
@@ -56,13 +58,7 @@
   <div class="tete-panneau">
     <h2 id="t-generale">Moyenne générale</h2>
     <span class="espace"></span>
-    {#if data.generale.origin === 'recomputed'}
-      <span class="jeton accent">Recalculée</span>
-    {:else if data.generale.origin === 'computed'}
-      <span class="jeton">Calculée</span>
-    {:else if data.generale.origin === 'official'}
-      <span class="jeton succes">Bulletin</span>
-    {/if}
+    <span class="jeton">{averageLabel(data.generale.origin)}</span>
   </div>
 
   <div class="corps-panneau">
@@ -77,6 +73,7 @@
       </dl>
     </div>
 
+    <CourbeMoyenne points={data.courbeGenerale} />
     {#if data.generale.origin === 'recomputed'}
       <!--
         Le point de la demande : la moyenne publiée est celle d'avant la dernière note. La
@@ -150,7 +147,7 @@
           <span class="filet" aria-hidden="true"></span>
           <div class="note-texte">
             <span class="etiquette-matiere">{note.subject}</span>
-            <p class="note-titre">{note.label || 'Évaluation'}</p>
+            <p class="note-titre">{note.label || 'Évaluation'} {#if isNewGrade(note, data.jour)}<span class="jeton accent">Nouveau</span>{/if}</p>
             <p class="discret">
               {[note.kind, note.date ? longDate(note.date) : '', `coef. ${note.coefficient}`].filter(Boolean).join(' · ')}
             </p>
@@ -159,9 +156,7 @@
           </div>
           <div class="note-valeur">
             <p class="valeur nombre">{brut(note.value)}<span class="sur">/{note.scale}</span></p>
-            {#if note.classAverage !== undefined}
-              <p class="discret nombre">classe {arrondi(note.classAverage)}</p>
-            {/if}
+            <ReperesNote {note} />
           </div>
         </article>
       {:else}
@@ -196,11 +191,7 @@
                 .filter(Boolean)
                 .join(' · ')}
             </span>
-            {#if matiere.verdict.origin === 'recomputed'}
-              <span class="jeton accent">Recalculée · bulletin {arrondi(matiere.verdict.official)}</span>
-            {:else if matiere.verdict.origin === 'computed'}
-              <span class="jeton">Calculée</span>
-            {/if}
+            <span class="jeton">{averageLabel(matiere.verdict.origin)}</span>
             {#if matiere.notes.length > 0}
               <!-- Pronote montre les notes sur la ligne même : on n'ouvre pas huit matières pour les lire. -->
               <span class="pastilles-notes">
@@ -209,7 +200,7 @@
                     class="pastille-note nombre"
                     class:hors={!note.counted}
                     title={`${note.label || 'Évaluation'}${note.date ? ` · ${shortDate(note.date)}` : ''} · coef. ${note.coefficient}`}
-                  >{brut(note.value)}{#if note.scale !== 20}<small>/{note.scale}</small>{/if}</span>
+                  >{brut(note.value)}{#if isNewGrade(note, data.jour)}<small> · Nouveau</small>{/if}{#if note.scale !== 20}<small>/{note.scale}</small>{/if}</span>
                 {/each}
                 {#if matiere.notes.length > 8}<span class="discret">+{matiere.notes.length - 8}</span>{/if}
               </span>
@@ -220,6 +211,8 @@
         </summary>
 
         <div class="detail-matiere">
+          <CourbeMoyenne points={matiere.courbe} />
+          <p class="discret">{[matiere.minimum !== undefined ? `Minimum ${arrondi(matiere.minimum)}/20` : '', matiere.maximum !== undefined ? `Maximum ${arrondi(matiere.maximum)}/20` : ''].filter(Boolean).join(' · ')}</p>
           {#if matiere.minimum !== undefined && matiere.maximum !== undefined && matiere.verdict.value !== undefined}
             <div
               class="echelle"
@@ -242,7 +235,7 @@
           {#each matiere.notes as note (note.id)}
             <article class="note" id={`note-${note.id}`}>
               <div class="note-texte">
-                <p class="note-titre">{note.label || 'Évaluation'}</p>
+                <p class="note-titre">{note.label || 'Évaluation'} {#if isNewGrade(note, data.jour)}<span class="jeton accent">Nouveau</span>{/if}</p>
                 <p class="discret">
                   {[note.kind, note.date ? longDate(note.date) : '', `coef. ${note.coefficient}`]
                     .filter(Boolean)
@@ -259,9 +252,7 @@
               </div>
               <div class="note-valeur">
                 <p class="valeur nombre">{brut(note.value)}<span class="sur">/{note.scale}</span></p>
-                {#if note.classAverage !== undefined}
-                  <p class="discret nombre">classe {arrondi(note.classAverage)}</p>
-                {/if}
+                <ReperesNote {note} />
               </div>
             </article>
           {:else}
@@ -277,6 +268,13 @@
   </div>
 </section>
 {/if}
+
+<details class="panneau" style="margin-top:18px;padding:14px">
+  <summary>Comprendre les moyennes et les nouveautés</summary>
+  <p>Une moyenne officielle est fournie par ÉcoleDirecte. Une moyenne calculée par l’appli utilise les notes et coefficients connus ; elle peut différer du bulletin. Le bulletin peut être en retard sur les dernières notes saisies : si l’application détecte ce retard, elle affiche son calcul en attendant sa mise à jour.</p>
+  <p>Les courbes sont des moyennes cumulées calculées, regroupées par date de devoir. La générale pondère les moyennes de matières par leur coefficient. Les notes sans date, sans valeur ou hors moyenne sont exclues des courbes ; celles-ci peuvent donc différer de la moyenne affichée.</p>
+  <p>« Nouveau » apparaît le jour de saisie et les deux jours suivants. Sans date de saisie, la date du devoir sert de repli : une note ancienne saisie tardivement peut alors ne pas être signalée. Les écarts à la classe sont en points sur le barème du devoir. Les repères de classe fournis par ÉcoleDirecte sont officiels.</p>
+</details>
 
 <section class="panneau" style="margin-top:18px" aria-labelledby="t-simul">
   <div class="tete-panneau"><h2 id="t-simul">Simulation</h2></div>

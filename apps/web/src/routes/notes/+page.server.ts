@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types'
 import {
   type SubjectAverage,
+  averageSeries,
   averageOfSubjects,
   generalAverage,
   reconcileSubjectAverages,
@@ -51,6 +52,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   const matieres = arbitrees.map((entry) => ({
     ...entry.average,
     verdict: entry.verdict,
+    courbe: averageSeries(notes, code, toutes, entry.average.subject),
     notes: notes.filter((note) => note.subject === entry.average.subject),
   }))
 
@@ -86,6 +88,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     notes,
     matieres,
     generale,
+    courbeGenerale: averageSeries(notes, code, toutes),
     erreur: errors.grades ?? null,
     simulation,
     // Ce qui a été saisi revient dans le formulaire : une page rechargée ne doit pas
