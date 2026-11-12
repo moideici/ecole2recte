@@ -1,5 +1,7 @@
 # ecole2recte — client web
 
+> Ce dépôt (`ecole2recte`) est le client **web** (monorepo pnpm). L'**application Android** est dans [ecole2rect](https://github.com/moideici/ecole2rect).
+
 Un client ÉcoleDirecte pour le navigateur, pensé pour l'ordinateur **et** le téléphone, et
 pour les trois profils : élève, parent, professeur. Frère du client Android
 [`ecole2rect`](https://github.com/moideici/ecole2rect), dont il reprend le savoir
@@ -344,3 +346,7 @@ ne s'affichent qu'à l'écran de qui lance le script.
   l'établissement.
 - **Aucune limitation de débit n'est documentée.** L'implémentation est donc conservatrice
   par prudence, pas par savoir.
+
+## Licence
+
+Code publié sous [licence MIT](LICENSE). Historique des versions : [CHANGELOG.md](CHANGELOG.md).
