@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
+  import { lireEtat, basculer, estNouveau } from '$lib/luLocal.js'
   import EnTete from '$lib/components/EnTete.svelte'
   import Actualiser from '$lib/components/Actualiser.svelte'
   import Vide from '$lib/components/Vide.svelte'
@@ -26,15 +28,27 @@
     erreur?: { message: string } | null
   } = $props()
 
+  let etat = $state<Record<string, boolean>>({})
+  onMount(() => {
+    try { etat = lireEtat(localStorage.getItem('e2r-messages-lus')) } catch { /* Stockage indisponible. */ }
+  })
+  function estLu(message: MessageItem): boolean {
+    return Object.hasOwn(etat, message.id) ? etat[message.id]! : message.read
+  }
+  function marquer(message: MessageItem) {
+    etat = basculer(etat, message.id, estLu(message))
+    try { localStorage.setItem('e2r-messages-lus', JSON.stringify(etat)) } catch { /* État conservé en mémoire. */ }
+  }
+
   let recherche = $state('')
   let nonLusSeuls = $state(false)
 
   const visibles = $derived(
     messages
-      .filter((message) => dossier !== 'received' || !nonLusSeuls || !message.read)
+      .filter((message) => dossier !== 'received' || !nonLusSeuls || !estLu(message))
       .filter((message) => matches(recherche, message.subject, message.interlocuteur, message.preview)),
   )
-  const nonLus = $derived(messages.filter((message) => message.folder === 'received' && !message.read).length)
+  const nonLus = $derived(messages.filter((message) => message.folder === 'received' && !estLu(message)).length)
 </script>
 
 <EnTete
@@ -77,21 +91,27 @@
   <ErreurSection message="La messagerie n’a pas pu être chargée." cause={erreur.message} />
 {/if}
 
+<p class="discret">Ce marquage reste sur cet appareil, rien n'est modifié chez ÉcoleDirecte.</p>
+
 <section class="panneau">
   <div class="corps-panneau serre">
     {#each visibles as message (message.id)}
-      <a class="ligne" class:nonlu={!message.read} href={`${base}/${message.id}?dossier=${dossier}`}>
+      <div class="message">
+      <a class="ligne" class:nonlu={!estLu(message)} href={`${base}/${message.id}?dossier=${dossier}`}>
         <span class="point" aria-hidden="true"></span>
         <span class="texte">
-          <span class="de" class:gras={!message.read}>{message.interlocuteur}</span>
-          <span class="objet" class:gras={!message.read}>{message.subject}</span>
+          <span class="de" class:gras={!estLu(message)}>{message.interlocuteur}</span>
+          <span class="objet" class:gras={!estLu(message)}>{message.subject}</span>
           {#if message.preview}<span class="extrait">{message.preview}</span>{/if}
         </span>
         <span class="quand discret">
           {#if message.date}{listStamp(message.date, jour)}{/if}
-          {#if !message.read}<span class="jeton accent">Non lu</span>{/if}
+          {#if message.date && estNouveau(message.date.slice(0, 10), jour)}<span class="jeton accent">Nouveau</span>{/if}
+          {#if !estLu(message)}<span class="jeton accent">Non lu</span>{/if}
         </span>
       </a>
+      <button class="pastille" onclick={() => marquer(message)}>Marquer comme {estLu(message) ? "non lu" : "lu"}</button>
+      </div>
     {:else}
       <div style="padding:14px">
         <Vide
@@ -125,7 +145,9 @@
     text-decoration: none;
     color: inherit;
   }
-  .ligne:last-child { border-bottom: 0; }
+  .message { border-bottom: 1px solid var(--bordure-douce); padding-bottom: 8px; }
+  .message:last-child { border-bottom: 0; }
+  .message > button { margin-left: 14px; }
   .ligne:hover { background: var(--surface-2); }
   .ligne.nonlu { background: color-mix(in srgb, var(--accent-doux) 45%, var(--surface)); }
 

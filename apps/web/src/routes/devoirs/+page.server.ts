@@ -1,3 +1,4 @@
+import { lireFiltre } from '$lib/devoirs.js'
 import { fail } from '@sveltejs/kit'
 import type { Actions, PageServerLoad } from './$types'
 import { clientFor, invalidate, loadDays, loadSections, today } from '$lib/server/api.js'
@@ -47,6 +48,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
   return {
     jour,
+    filtre: lireFiltre(url.searchParams.get('filtre')),
     devoirs,
     erreur: errors.homework ?? null,
     // Cocher n'est proposé que si l'écriture est ouverte **et** qu'on est bien l'élève :

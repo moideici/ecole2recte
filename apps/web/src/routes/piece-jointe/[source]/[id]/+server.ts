@@ -4,6 +4,8 @@ import type { Attachment, AttachmentSource } from '@ecole2recte/protocol'
 import { clientFor, persist } from '$lib/server/api.js'
 import { requireAccount } from '$lib/server/guard.js'
 
+import { verifierPieceJointe } from '$lib/pieceJointe.js'
+
 const SOURCES: AttachmentSource[] = ['homework', 'message', 'resource']
 
 /**
@@ -32,6 +34,12 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
   const result = await api.download(attachment)
   await persist(id, record)
   if (!result.ok) error(result.kind === 'access-denied' ? 403 : 502, result.message)
+
+  const verification = verifierPieceJointe(url.searchParams.get('nom') ?? nom, result.value.bytes.byteLength)
+  if (!verification.ok) {
+    const typeRefuse = !verifierPieceJointe(url.searchParams.get('nom') ?? nom, 0).ok
+    error(typeRefuse ? 415 : 413, verification.raison)
+  }
 
   return new Response(result.value.bytes as BodyInit, {
     headers: {

@@ -446,6 +446,11 @@ Le menu « Exporter l’emploi du temps » télécharge un calendrier ICS de la 
 
 « Mon emploi du temps alterne » conserve en cookie un repère A/B choisi pour la semaine courante ; il étiquette les exports sans prétendre venir d’ÉcoleDirecte. La page `/emploi-du-temps/imprimer` ouvre l’impression A4 paysage ; choisir « Enregistrer en PDF » dans le navigateur.
 
+- Pièces jointes : refus des extensions exécutables ou actives (HTTP 415) et des fichiers de plus de 25 Mo (HTTP 413).
+- Devoirs : filtres partageables « À faire », « Faits », « Contrôles », « Tous » et compte à rebours du prochain contrôle.
+- Messages : marquage lu/non lu sur cet appareil uniquement (`e2r-messages-lus`) et pastille « Nouveau » durant trois jours calendaires, jour du message compris.
+- Recherche : `/recherche?q=…` cherche sans accents dans les devoirs enrichis sur dix journées, la première page des messages reçus et les notes, avec le cache de session et une limite de 50 résultats.
+
 ## Licence
 
 Code publié sous [licence MIT](LICENSE). Historique des versions : [CHANGELOG.md](CHANGELOG.md).

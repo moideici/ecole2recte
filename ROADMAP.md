@@ -45,6 +45,11 @@ sans compte réel », pas « éprouvé sur le terrain ».
 
 ## P2 — Application · fait
 
+- [x] Pièces jointes : extensions actives refusées et limite de 25 Mo, avec statuts HTTP adaptés.
+- [x] Devoirs : quatre filtres dans l’URL et compte à rebours avant le prochain contrôle.
+- [x] Messages : état lu/non lu local tolérant aux refus de stockage et pastille « Nouveau » sur J à J+2.
+- [x] Recherche : page dédiée sans accents, résultats groupés et limités à 50, réutilisation du cache de session.
+
 - [x] Mandataire : le jeton ne descend jamais jusqu'au navigateur.
 - [x] Connexion, question de sécurité, déconnexion.
 - [x] Onze pages, barre latérale sur ordinateur et barre basse sur téléphone.

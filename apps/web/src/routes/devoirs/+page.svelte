@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { filtrerDevoirs, joursAvantControle, type Filtre } from '$lib/devoirs.js'
   import { enhance } from '$app/forms'
   import EnTete from '$lib/components/EnTete.svelte'
   import Actualiser from '$lib/components/Actualiser.svelte'
@@ -9,17 +10,12 @@
   import type { PageData } from './$types'
 
   let { data }: { data: PageData } = $props()
-  let filtre = $state<'afaire' | 'evaluations' | 'faits' | 'tout'>('afaire')
+  const filtre = $derived(data.filtre)
+  const controle = $derived(joursAvantControle(data.devoirs, data.jour))
   let recherche = $state('')
 
   const visibles = $derived(
-    data.devoirs
-      .filter((devoir) => {
-        if (filtre === 'afaire') return !devoir.done
-        if (filtre === 'evaluations') return devoir.exam && !devoir.done
-        if (filtre === 'faits') return devoir.done
-        return true
-      })
+    filtrerDevoirs(data.devoirs, filtre)
       .filter((devoir) => matches(recherche, devoir.subject, devoir.content))
       .sort((gauche, droite) => gauche.dueDate.localeCompare(droite.dueDate)),
   )
@@ -34,11 +30,11 @@
   const restants = $derived(data.devoirs.filter((devoir) => !devoir.done && devoir.dueDate >= data.jour).length)
   const evaluations = $derived(data.devoirs.filter((devoir) => devoir.exam && devoir.dueDate >= data.jour).length)
 
-  const FILTRES: Array<[typeof filtre, string]> = [
+  const FILTRES: Array<[Filtre, string]> = [
     ['afaire', 'À faire'],
-    ['evaluations', 'Évaluations'],
+    ['controles', 'Contrôles'],
     ['faits', 'Faits'],
-    ['tout', 'Tout'],
+    ['tous', 'Tous'],
   ]
 </script>
 
@@ -56,9 +52,13 @@
   {/snippet}
 </EnTete>
 
+{#if controle}
+  <p>Prochain contrôle {controle.jours === 0 ? "aujourd'hui" : controle.jours === 1 ? 'demain' : `dans ${controle.jours} jours`} · {controle.item.subject}</p>
+{/if}
+
 <div class="onglets" role="group" aria-label="Filtre">
   {#each FILTRES as [valeur, libelle] (valeur)}
-    <button aria-pressed={filtre === valeur} onclick={() => (filtre = valeur)}>{libelle}</button>
+    <a href={`?filtre=${valeur}`} aria-current={filtre === valeur}>{libelle}</a>
   {/each}
 </div>
 
