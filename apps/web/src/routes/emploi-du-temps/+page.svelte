@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ExportsEdt from '$lib/components/ExportsEdt.svelte'
   import EnTete from '$lib/components/EnTete.svelte'
   import Actualiser from '$lib/components/Actualiser.svelte'
   import Cours from '$lib/components/Cours.svelte'
@@ -63,6 +64,8 @@
     <Actualiser />
   {/snippet}
 </EnTete>
+
+<ExportsEdt semaine={data.debutSemaine} {...data.exportsEdt} />
 
 <div class="rangee barre">
   <!-- Les flèches suivent la vue : en vue « Jour » elles avancent d'un jour d'école, seul

@@ -1,3 +1,4 @@
+import { lessonUid, readAlternance, validDate, weekLabel } from '$lib/exportsEdt.js'
 import type { PageServerLoad } from './$types'
 import { addDays, dateOf, gaps, lessonsOn, startOfWeek } from '@ecole2recte/protocol'
 import { loadSections, nowLocal, today } from '$lib/server/api.js'
@@ -8,7 +9,7 @@ function minutes(instant: string): number {
   return Number(instant.slice(11, 13)) * 60 + Number(instant.slice(14, 16))
 }
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, cookies }) => {
   const { id, record, account } = requireStudent(locals)
   const jour = today()
   // « Actualiser » force la relecture : les données dorment cinq minutes en session.
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   // La date consultée vit dans l'URL : un emploi du temps se partage, se recharge et se
   // met en favori. Un état local ne survivrait à aucun des trois.
   const demande = url.searchParams.get('jour')
-  const selection = demande && /^\d{4}-\d{2}-\d{2}$/.test(demande) ? demande : jour
+  const selection = validDate(demande) ? demande : jour
   const debutSemaine = startOfWeek(selection)
   // La vue aussi : revenir sur la semaine après avoir suivi un lien doit rendre la semaine.
   const vue = url.searchParams.get('vue') === 'jour' ? 'jour' : 'semaine'
@@ -45,6 +46,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   const duJour = lessonsOn(snapshot.lessons, selection)
 
   return {
+    exportsEdt: {
+      alternance: weekLabel(jour, readAlternance(cookies.get('e2r-alternance'))).slice(-1).replace(/[^AB]/g, ''),
+      evenements: await Promise.all(tous.filter((lesson) => !lesson.canceled).map(async (lesson) => ({
+        uid: await lessonUid(account.id, lesson),
+        titre: `${lesson.start.slice(0, 10)} · ${lesson.start.slice(11, 16)} · ${lesson.exam ? 'Contrôle · ' : ''}${lesson.subject}`,
+      }))),
+    },
     jour,
     maintenant: nowLocal(),
     selection,

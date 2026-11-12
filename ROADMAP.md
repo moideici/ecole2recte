@@ -161,3 +161,10 @@ les cocher.
   communauté ».
 - La durée de vie réelle du jeton, et la règle qui décide qu'ÉcoleDirecte repose la question
   de sécurité. Aucune source ne les donne.
+
+## Exports de l’emploi du temps
+
+- [x] ICS : semaine affichée et suivante, cours/contrôle individuel, Europe/Paris, UID stable et session obligatoire.
+- [x] Impression/PDF : page dédiée et feuille A4 paysage, sans bibliothèque PDF.
+- [x] Alternance A/B : repère personnel en cookie, appliqué aux exports.
+- [ ] Vérification visuelle de la démo sur une page A4 paysage dans un navigateur.

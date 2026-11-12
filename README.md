@@ -387,6 +387,12 @@ Les cartes partagent leurs jetons de densité ; le focus clavier, les cibles mob
 et la réduction des animations accompagnent les palettes. Les contrastes texte/fond AA
 sont calculés dans les tests à partir des jetons CSS.
 
+## Exports de l’emploi du temps
+
+Le menu « Exporter l’emploi du temps » télécharge un calendrier ICS de la semaine affichée et de la suivante, ou un cours/contrôle seul, sans autorisation de calendrier. Les cours annulés sont exclus ; les heures suivent Europe/Paris. Les routes exigent une session et ne mettent pas les fichiers en cache public.
+
+« Mon emploi du temps alterne » conserve en cookie un repère A/B choisi pour la semaine courante ; il étiquette les exports sans prétendre venir d’ÉcoleDirecte. La page `/emploi-du-temps/imprimer` ouvre l’impression A4 paysage ; choisir « Enregistrer en PDF » dans le navigateur.
+
 ## Licence
 
 Code publié sous [licence MIT](LICENSE). Historique des versions : [CHANGELOG.md](CHANGELOG.md).
