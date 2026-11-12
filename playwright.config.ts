@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   workers: 1,
-  timeout: 90_000,
+  timeout: 240_000, // la première visite de chaque page compile côté serveur de dev
   use: {
     baseURL: 'http://127.0.0.1:4173',
     browserName: 'chromium',

@@ -62,8 +62,11 @@ for (const apparence of ['clair', 'sombre'] as const) {
     await naviguer(page, 'Réglages', true)
     const choix = page.getByRole('group', { name: 'Apparence', exact: true })
       .getByRole('button', { name: apparence === 'clair' ? 'Clair' : 'Sombre', exact: true })
-    await choix.click()
-    await expect(choix).toHaveAttribute('aria-pressed', 'true')
+    // Le serveur de dev peut servir la page avant son hydratation : on reclique jusqu'à ce que le clic soit pris.
+    await expect(async () => {
+      await choix.click()
+      await expect(choix).toHaveAttribute('aria-pressed', 'true', { timeout: 1000 })
+    }).toPass({ timeout: 15000 })
     await page.reload()
     await expect(page.locator('html')).toHaveAttribute('data-theme', apparence)
 
@@ -74,7 +77,7 @@ for (const apparence of ['clair', 'sombre'] as const) {
         await expect(page.getByRole('main').getByRole('heading', {
           level: 1, name: section.titre, exact: true,
         })).toBeVisible()
-        await expect(page.getByRole('main').getByText(section.contenu, { exact: false }).first()).toBeVisible()
+        await expect(page.getByRole('main').getByText(section.contenu, { exact: false }).filter({ visible: true }).first()).toBeVisible()
         await expect(page.locator('html')).toHaveAttribute('data-theme', apparence)
         await sansDebordement(page)
 

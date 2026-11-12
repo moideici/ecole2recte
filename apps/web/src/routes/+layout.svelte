@@ -68,11 +68,16 @@
   const secondaires = $derived(entrees.slice(4))
   let plus: HTMLDetailsElement | undefined = $state()
   let compte: HTMLDetailsElement | undefined = $state()
+  // Les menus se referment quand la page ou le profil change, mais PAS au premier passage :
+  // un menu ouvert avant la fin de l'hydratation (téléphone lent) se refermait aussitôt.
+  let cle: string | undefined
   $effect(() => {
-    data.chemin
-    data.profil?.id
-    plus?.removeAttribute('open')
-    compte?.removeAttribute('open')
+    const suivante = `${data.chemin}|${data.profil?.id}`
+    if (cle !== undefined && cle !== suivante) {
+      plus?.removeAttribute('open')
+      compte?.removeAttribute('open')
+    }
+    cle = suivante
   })
   const groupes = ["Aujourd\u2019hui", 'Travail', 'Vie scolaire', 'Communication', 'Documents']
   function groupe(href: string): string {
