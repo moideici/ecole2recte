@@ -22,6 +22,10 @@
     -->
     <script>
       try {
+        var p = localStorage.getItem('e2r-palette')
+        var z = localStorage.getItem('e2r-taille')
+        if (['indigo', 'ocean', 'foret', 'coucher', 'ardoise'].indexOf(p) !== -1) document.documentElement.setAttribute('data-palette', p)
+        if (['petit', 'normal', 'grand', 'tres-grand'].indexOf(z) !== -1) document.documentElement.setAttribute('data-taille', z)
         var t = localStorage.getItem('e2r-theme')
         if (t === 'clair' || t === 'sombre') document.documentElement.setAttribute('data-theme', t)
       } catch (e) {

@@ -1,3 +1,5 @@
+import { PALETTES, TAILLES, type Palette, type Taille } from './preferences.js'
+
 export type Theme = 'systeme' | 'clair' | 'sombre'
 
 export const THEMES: Array<[Theme, string]> = [
@@ -7,9 +9,9 @@ export const THEMES: Array<[Theme, string]> = [
 ]
 
 export const LIBELLE_THEME: Record<Theme, string> = {
-  systeme: 'Thème du système',
-  clair: 'Thème clair',
-  sombre: 'Thème sombre',
+  systeme: 'Apparence du système',
+  clair: 'Apparence claire',
+  sombre: 'Apparence sombre',
 }
 
 /**
@@ -24,9 +26,14 @@ export const LIBELLE_THEME: Record<Theme, string> = {
  */
 class Preference {
   valeur = $state<Theme>('systeme')
+  palette = $state<Palette>('ocean')
+  taille = $state<Taille>('normal')
 
   /** À appeler une fois monté : avant, `document` n'existe pas côté serveur. */
   relire(): void {
+    const racine = document.documentElement
+    this.palette = PALETTES.find(([id]) => id === racine.dataset.palette)?.[0] ?? 'ocean'
+    this.taille = TAILLES.find(([id]) => id === racine.dataset.taille)?.[0] ?? 'normal'
     const pose = document.documentElement.getAttribute('data-theme')
     this.valeur = pose === 'clair' || pose === 'sombre' ? pose : 'systeme'
   }
@@ -41,6 +48,23 @@ class Preference {
     }
     if (suivant === 'systeme') document.documentElement.removeAttribute('data-theme')
     else document.documentElement.setAttribute('data-theme', suivant)
+  }
+
+  choisirPalette(valeur: Palette): void {
+    this.palette = valeur
+    this.garder('palette', valeur)
+  }
+
+  choisirTaille(valeur: Taille): void {
+    this.taille = valeur
+    this.garder('taille', valeur)
+  }
+
+  private garder(cle: string, valeur: string): void {
+    document.documentElement.setAttribute(`data-${cle}`, valeur)
+    try { localStorage.setItem(`e2r-${cle}`, valeur) } catch {
+      // Le stockage peut être refusé ; le réglage reste utile pour cette visite.
+    }
   }
 
   /** Le tour du bandeau : système → sombre → clair → système. */

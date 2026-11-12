@@ -63,6 +63,11 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Téléchargement des pièces jointes par le serveur.
 - [x] Thème clair/sombre/système, PWA.
 
+- [x] Cinq thèmes de couleurs, apparence claire/sombre/système et test des contrastes AA.
+- [x] Quatre tailles de texte persistées avant affichage, avec aperçu dans Réglages et en démo.
+- [x] Cartes harmonisées par jetons, focus visible, cibles mobiles et mouvements réduits.
+
+
 ## P3 — Écriture documentée
 
 - [x] Cocher et décocher un devoir (`PUT cahierdetexte.awp`).

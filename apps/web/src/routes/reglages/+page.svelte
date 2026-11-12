@@ -1,5 +1,6 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import { PALETTES, TAILLES } from '$lib/preferences.js'
   import { THEMES, theme } from '$lib/theme.svelte.js'
   import type { PageData } from './$types'
 
@@ -22,7 +23,30 @@
 
 <section class="carte" style="margin-bottom:18px">
   <h2>Thème</h2>
-  <div class="defilement" style="margin-top:10px" role="group" aria-label="Thème">
+  <div class="choix" role="group" aria-label="Thème de couleurs">
+    {#each PALETTES as [valeur, libelle] (valeur)}
+      <button class="pastille" aria-pressed={theme.palette === valeur} onclick={() => theme.choisirPalette(valeur)}>{libelle}</button>
+    {/each}
+  </div>
+  <h2 style="margin-top:16px">Taille du texte</h2>
+  <div class="choix" role="group" aria-label="Taille du texte">
+    {#each TAILLES as [valeur, libelle] (valeur)}
+      <button class="pastille" aria-pressed={theme.taille === valeur} onclick={() => theme.choisirTaille(valeur)}>{libelle}</button>
+    {/each}
+  </div>
+  <div class="panneau" style="margin-top:16px" aria-label="Aperçu des réglages">
+    <div class="tete-panneau"><h2>Aperçu : ma journée</h2></div>
+    <div class="corps-panneau pile">
+      <p>Mathématiques à 9 h · Salle 204</p>
+      <p class="discret">Les couleurs et la taille du texte s’appliquent immédiatement à toute l’interface.</p>
+      <a href="/" class="bouton primaire">Voir l’accueil</a>
+    </div>
+  </div>
+</section>
+
+<section class="carte" style="margin-bottom:18px">
+  <h2>Apparence</h2>
+  <div class="defilement" style="margin-top:10px" role="group" aria-label="Apparence">
     {#each THEMES as [valeur, libelle] (valeur)}
       <button class="pastille" aria-pressed={theme.valeur === valeur} onclick={() => theme.appliquer(valeur)}>
         {libelle}
@@ -80,6 +104,7 @@
 </section>
 
 <style>
+  .choix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
   .liste { list-style: none; margin: 0; padding: 0; }
   .liste li {
     display: flex;

@@ -1,5 +1,12 @@
+@import './palettes.css';
+
 /*
  * Le système visuel.
+ * Jetons : --fond et --surface[-2/-3] portent les fonds ; --encre[-douce] le texte.
+ * --accent[-fort/-doux/-encre], --bandeau*, --rail*, --lien et --lapin-trait suivent
+ * la palette (palettes.css). --succes/--alerte/--erreur gardent leur sens métier.
+ * --taille-texte règle la racine ; --carte-espace, --rayon* et --ombre* harmonisent
+ * les cartes et panneaux sans modifier leurs composants.
  *
  * Une seule famille de jetons, définie en clair sur `:root` et redéfinie en sombre. Aucune
  * couleur n'a sa seule définition dans un bloc conditionnel : un thème qui n'a pas prévu un
@@ -24,7 +31,7 @@
   --bordure: #dcdfe3;
   --bordure-douce: #eceef1;
   --encre: #22262b;
-  --encre-douce: #646b75;
+  --encre-douce: #555d67;
   --accent: #1d63c4;
   --accent-fort: #154c9b;
   --accent-doux: #dce9fb;
@@ -45,9 +52,10 @@
   --erreur: #8a0b0b;
   --erreur-doux: #ffe1e1;
 
-  --rayon: 0.4rem;
+  --rayon: 0.65rem;
+  --carte-espace: 1rem;
   --rayon-petit: 0.25rem;
-  --rayon-grand: 0.45rem;
+  --rayon-grand: var(--rayon);
   --marge: 16px;
   --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --ombre-haute: 0 4px 12px rgb(16 24 40 / 10%), 0 12px 32px rgb(16 24 40 / 8%);
@@ -70,7 +78,7 @@
     --bordure: #3a3f45;
     --bordure-douce: #2f3338;
     --encre: #f0efeb;
-    --encre-douce: #a7aeb6;
+    --encre-douce: #bbc2ca;
     --accent: #6aa6f5;
     --accent-fort: #4a8ce0;
     --accent-doux: #12294d;
@@ -103,7 +111,7 @@
   --bordure: #3a3f45;
   --bordure-douce: #2f3338;
   --encre: #f0efeb;
-  --encre-douce: #a7aeb6;
+  --encre-douce: #bbc2ca;
   --accent: #6aa6f5;
   --accent-fort: #4a8ce0;
   --accent-doux: #12294d;
@@ -129,13 +137,15 @@
 
 * { box-sizing: border-box; }
 
+html { font-size: var(--taille-texte, 100%); }
+
 html, body {
   margin: 0;
   padding: 0;
   background: var(--fond);
   color: var(--encre);
   font-family: var(--police);
-  font-size: 16px;
+  font-size: inherit;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
@@ -162,7 +172,7 @@ a { color: var(--lien); }
   border: 1px solid var(--bordure);
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
-  padding: 12px 14px;
+  padding: var(--carte-espace);
 }
 
 a.carte, button.carte {
@@ -197,7 +207,7 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 12px 16px;
+  padding: var(--carte-espace);
   border-bottom: 1px solid var(--bordure-douce);
   background: var(--surface);
 }
@@ -209,7 +219,7 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   color: var(--accent-fort);
 }
 
-.panneau > .corps-panneau { padding: 14px 16px; }
+.panneau > .corps-panneau { padding: var(--carte-espace); }
 .panneau > .corps-panneau.serre { padding: 0; }
 
 .pile { display: flex; flex-direction: column; gap: 10px; }
@@ -407,6 +417,57 @@ table.tableau tbody tr:hover { background: var(--surface-2); }
 }
 .saut-contenu:focus { left: 0; }
 
+/* Les alias conservent les noms consommés par les composants existants. */
+:root {
+  --accent: var(--palette-accent);
+  --accent-fort: var(--palette-fort);
+  --accent-doux: var(--palette-doux);
+  --bandeau: var(--palette-fort);
+  --rail: var(--palette-fort);
+  --rail-encre-douce: #ffffff;
+  --bandeau-encre-douce: #ffffff;
+  --lapin-trait: var(--palette-fort);
+  --lien: var(--palette-accent);
+}
+:root[data-theme='clair'] { color-scheme: light; }
+:root[data-theme='sombre'] { color-scheme: dark; }
+:root[data-taille='petit'] { --taille-texte: 87.5%; }
+:root[data-taille='normal'] { --taille-texte: 100%; }
+:root[data-taille='grand'] { --taille-texte: 112.5%; }
+:root[data-taille='tres-grand'] { --taille-texte: 125%; }
+
+:root[data-theme='sombre'] {
+  --accent: var(--palette-nuit);
+  --accent-fort: var(--palette-nuit);
+  --accent-doux: var(--palette-nuit-doux);
+  --bandeau: var(--palette-nuit-doux);
+  --rail: var(--palette-nuit-doux);
+  --rail-encre-douce: #eaf2ff;
+  --bandeau-encre-douce: #eaf2ff;
+  --lapin-trait: var(--palette-nuit);
+  --lien: var(--palette-nuit);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='clair']) {
+    --accent: var(--palette-nuit);
+    --accent-fort: var(--palette-nuit);
+    --accent-doux: var(--palette-nuit-doux);
+    --bandeau: var(--palette-nuit-doux);
+    --rail: var(--palette-nuit-doux);
+    --rail-encre-douce: #eaf2ff;
+    --bandeau-encre-douce: #eaf2ff;
+    --lapin-trait: var(--palette-nuit);
+    --lien: var(--palette-nuit);
+  }
+}
+
+/* Un halo double reste visible sur les surfaces comme sur le bandeau. */
+:focus-visible { outline: 3px solid var(--encre); box-shadow: 0 0 0 5px var(--surface); }
+@media (max-width: 700px) {
+  button, select, summary, input:not([type='checkbox']):not([type='radio']),
+  a.pastille, a.bouton, nav a, [role='button'] { min-height: 44px; min-width: 44px; }
+  label:has(input[type='checkbox']), label:has(input[type='radio']) { min-height: 44px; display: flex; align-items: center; }
+}
 @media (prefers-reduced-motion: reduce) {
-  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *, *::before, *::after { scroll-behavior: auto !important; animation-iteration-count: 1 !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

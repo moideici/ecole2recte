@@ -347,6 +347,16 @@ ne s'affichent qu'à l'écran de qui lance le script.
 - **Aucune limitation de débit n'est documentée.** L'implémentation est donc conservatrice
   par prudence, pas par savoir.
 
+## Préférences visuelles
+
+Dans Réglages, cinq thèmes (Indigo, Océan par défaut, Forêt, Coucher de soleil, Ardoise)
+sont proposés avec apparence claire, sombre ou système et quatre tailles de texte.
+Les choix restent sur l’appareil (`e2r-theme`, `e2r-palette`, `e2r-taille`) et sont appliqués
+avant le premier affichage. Une carte d’aperçu est disponible, y compris en démonstration.
+Les cartes partagent leurs jetons de densité ; le focus clavier, les cibles mobiles de 44 px
+et la réduction des animations accompagnent les palettes. Les contrastes texte/fond AA
+sont calculés dans les tests à partir des jetons CSS.
+
 ## Licence
 
 Code publié sous [licence MIT](LICENSE). Historique des versions : [CHANGELOG.md](CHANGELOG.md).

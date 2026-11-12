@@ -1,0 +1,36 @@
+/* Les deux variantes restent explicites pour suivre le système sans JavaScript. */
+:root {
+  --palette-accent: #1d63c4;
+  --palette-fort: #154c9b;
+  --palette-doux: #dce9fb;
+  --palette-nuit: #87b8fa;
+  --palette-nuit-doux: #12294d;
+}
+:root[data-palette=indigo] {
+  --palette-accent: #5144ac;
+  --palette-fort: #40338e;
+  --palette-doux: #e8e4fa;
+  --palette-nuit: #b9afff;
+  --palette-nuit-doux: #292341;
+}
+:root[data-palette=foret] {
+  --palette-accent: #246b48;
+  --palette-fort: #195438;
+  --palette-doux: #def0e5;
+  --palette-nuit: #8cd5ae;
+  --palette-nuit-doux: #173829;
+}
+:root[data-palette=coucher] {
+  --palette-accent: #a23d20;
+  --palette-fort: #822d17;
+  --palette-doux: #fbe5db;
+  --palette-nuit: #ffb296;
+  --palette-nuit-doux: #45271e;
+}
+:root[data-palette=ardoise] {
+  --palette-accent: #4c6076;
+  --palette-fort: #35485d;
+  --palette-doux: #e4eaf1;
+  --palette-nuit: #b1c7de;
+  --palette-nuit-doux: #24313f;
+}
