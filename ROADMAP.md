@@ -141,6 +141,11 @@ ces routes en réel (`jeromeboivin/EcoleDirecteMCP`, relevé du trafic du site, 
 
 ## P6 — Qualité et exploitation
 
+- [x] Hors ligne : shell et dernières lectures valides par session/profil, effacement aux actions et à la déconnexion, sans connexion ni pièces jointes en cache.
+- [x] Bandeau : date réelle des données et raison du repli (réseau, verrouillage, API 517, indisponibilité), avec action adaptée.
+- [x] Mobile : tirer pour rafraîchir, filtres conservés et aucune relecture avant 90 secondes ; écritures hors ligne refusées sans file d’attente.
+- [ ] Revue navigateur du hors ligne et du geste mobile en démo de production (procédure dans README.md).
+
 - [ ] Serveur factice rejouant les fixtures, y compris les codes d'erreur.
 - [ ] Instantanés de requête : les octets envoyés, figés, pour chaque écriture.
 - [ ] Bout en bout en 390 px et 1440 px.

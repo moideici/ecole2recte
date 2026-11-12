@@ -5,6 +5,7 @@
   import { LIBELLE_THEME, theme } from '$lib/theme.svelte.js'
   import Icone, { type NomIcone } from '$lib/components/Icone.svelte'
   import Lapin from '$lib/components/Lapin.svelte'
+  import Bandeau from '$lib/components/Bandeau.svelte'
   import type { LayoutData } from './$types'
 
   let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props()
@@ -171,6 +172,7 @@
     </aside>
 
     <main id="contenu">
+      <Bandeau />
       {#if data.demo}
         <p class="demo" role="note">
           <strong>Démo</strong> · données fictives, aucune requête ne part vers ÉcoleDirecte.

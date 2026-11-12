@@ -348,6 +348,36 @@ personne — le rapport peut donc se recopier tel quel à qui aide. Les proposit
 ne s'affichent qu'à l'écran de qui lance le script.
 
 
+## Lecture hors ligne
+
+Le service worker conserve le shell et la dernière réponse entièrement valide des pages
+consultées (HTML et données de navigation), par session et profil. Une nouvelle connexion,
+une déconnexion ou une action efface les lectures ; les pièces jointes et `/connexion` ne
+sont jamais conservées. Un marqueur opaque, distinct du cookie d’authentification, vérifie
+le profil avant toute restitution. Les lectures expirent avec la session et sont oubliées
+à chaque mise à jour du service worker. Aucun jeton ni mot de passe n’entre dans ce cache.
+
+Le bandeau distingue le réseau local absent, le compte verrouillé ou l’établissement fermé,
+la version d’API refusée (517) et l’indisponibilité d’ÉcoleDirecte, avec l’action adaptée.
+La date affichée est celle des données les plus anciennes chargées pour cette page,
+y compris lorsqu’elles proviennent du cache serveur ; une réponse en erreur ne la rajeunit
+pas. Sur mobile, tirer depuis le haut du contenu puis relâcher actualise en gardant les
+filtres, sauf si la dernière lecture de la page a moins de 90 secondes. Le bouton
+« Actualiser » reste disponible. Hors ligne, les formulaires d’écriture sont refusés avec
+un message : aucune action n’est mise en attente.
+
+Vérification hors ligne : les tests rejouent le gestionnaire réel du service worker avec
+un faux réseau et un cache en mémoire (coupure, 517, verrouillage, changement de profil,
+expiration, déconnexion et lecture terminant après effacement). Pour la vérification dans
+un navigateur, servir un **build de production** en HTTPS ou sur localhost avec `ED_DEMO=1`,
+attendre l’activation du service worker puis consulter deux pages, recharger une fois et
+couper le réseau dans les outils de développement. Vérifier la navigation et le rechargement
+hors ligne, la date du bandeau et le refus d’écriture. Rétablir le réseau, se déconnecter,
+ouvrir une autre session puis recouper : aucune ancienne lecture ne doit apparaître.
+À 390 px, vérifier deux gestes espacés de moins de 90 secondes dans l’onglet Réseau,
+puis un geste après ce délai ; répéter en clair et sombre. Cette revue navigateur reste
+à effectuer ; les tests ne simulent pas les gestes natifs d’un téléphone.
+
 ## Ce qui n'est pas promis
 
 - **L'envoi de message, la justification d'absence et le rendu de devoir en ligne** ne sont

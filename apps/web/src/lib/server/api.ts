@@ -20,6 +20,7 @@ import { activeAccount } from './session.js'
 import { type SessionRecord, sessions } from './store.js'
 import { reconnecteur, reconnexionDisponible } from './reconnexion.js'
 import { autoRenewEnabled, writePolicy } from './write-policy.js'
+import { observerLecture } from './lecture.js'
 
 /** Le catalogue d'un professeur change rarement dans la journée. */
 export const CATALOGUE_TTL_MS = 30 * 60 * 1000
@@ -59,6 +60,12 @@ export function clientFor(record: SessionRecord, id?: string): { client: EcoleDi
   if (!client.session.userId) {
     const actif = activeAccount(record)
     if (actif) client.session.userId = mailboxId(actif)
+  }
+  const appeler = client.call.bind(client)
+  client.call = async (path, options) => {
+    const resultat = await appeler(path, options)
+    if (!options?.write) observerLecture(Date.now(), resultat.ok ? undefined : resultat.kind)
+    return resultat
   }
   return { client, api: new EcoleDirecteApi(client) }
 }
@@ -128,6 +135,7 @@ export async function loadSections(
   const stale = cached === undefined || Date.now() - cached.at > SNAPSHOT_TTL_MS
 
   if (!options.force && !stale && missing.length === 0) {
+    for (const section of sections) observerLecture(base.syncedAt[section] ?? cached.at)
     return { snapshot: base, errors: {}, fromCache: true }
   }
 
@@ -135,6 +143,9 @@ export async function loadSections(
   const { api } = clientFor(record, id)
   const outcome = await syncSections(api, account, { today: options.today, sections: wanted })
   const snapshot = mergeSnapshot(base, outcome)
+  for (const section of sections) {
+    observerLecture(snapshot.syncedAt[section] ?? Date.now(), outcome.errors[section]?.kind)
+  }
   record.snapshots[account.id] = { snapshot, at: Date.now() }
   await persist(id, record)
   return { snapshot, errors: outcome.errors, fromCache: false }
@@ -155,9 +166,13 @@ export async function cached<T>(
 ): Promise<ApiResult<T>> {
   const now = Date.now()
   const hit = record.cache?.[key]
-  if (hit && now - hit.at < ttl) return { ok: true, value: hit.value as T }
+  if (hit && now - hit.at < ttl) {
+    observerLecture(hit.at)
+    return { ok: true, value: hit.value as T }
+  }
 
   const result = await load()
+  observerLecture(now, result.ok ? undefined : result.kind)
   if (result.ok) {
     // Les entrées périmées partent au passage : une journée de consultation ne doit pas
     // faire gonfler la session sans fin.

@@ -1,7 +1,10 @@
 import type { Handle } from '@sveltejs/kit'
-import { clearSessionCookie, COOKIE_NAME, readSession, setSessionCookie } from '$lib/server/session.js'
+import { activeAccount, COOKIE_NAME, readSession, setSessionCookie } from '$lib/server/session.js'
 import { enFile } from '$lib/server/file.js'
-import { selectStore, withSessionStore } from '$lib/server/store.js'
+import { selectStore, ttlFor, withSessionStore } from '$lib/server/store.js'
+import { createHash } from 'node:crypto'
+import { lecture } from '$lib/server/lecture.js'
+import { COOKIE_CACHE, pageLisible, raisonRepli } from '$lib/horsLigne.js'
 
 /**
  * Trois choses à chaque requête : retrouver la session, la garder cohérente, et poser des
@@ -32,15 +35,41 @@ export const handle: Handle = async ({ event, resolve }) => {
         setSessionCookie(event.cookies, session.id, event.url.protocol === 'https:', true)
       }
 
-      let response = await resolve(event)
+      const lectures = { causes: [] as string[], dates: [] as number[] }
+      let response = await lecture.run(lectures, () => resolve(event, {
+        transformPageChunk: ({ html, done }) => done ? html.replace('</body>', `<script>window.__e2rLecture=${JSON.stringify({
+          date: lectures.dates.length ? Math.min(...lectures.dates) : Date.now(),
+          lecture: Date.now(),
+          raison: raisonRepli(true, lectures.causes),
+        })}</script></body>`) : html,
+      }))
 
       // Session morte pour de bon (jeton périmé, rien de gardé pour la rouvrir) : on l'efface
       // et on renvoie à la connexion, plutôt que de laisser des sections en erreur.
       if (session?.record.expired) {
         await store.destroy(session.id)
-        clearSessionCookie(event.cookies)
         response = new Response(null, { status: 303, headers: { location: '/connexion?expiree=1' } })
+        response.headers.append('Set-Cookie', event.cookies.serialize(COOKIE_NAME, '', { path: '/', maxAge: 0 }))
       }
+
+      const compte = session && activeAccount(session.record)
+      if (session && compte && !session.record.expired && pageLisible(event.url.pathname)) {
+        // Ce marqueur ne permet aucune authentification et ne révèle pas le cookie secret.
+        const scope = createHash('sha256').update(`${session.id}:${compte.id}`).digest('hex')
+        const expiration = (session.record.remembered ? Date.now() : session.record.createdAt) + ttlFor(session.record)
+        // Après resolve, SvelteKit a fermé cookies.set : on complète les en-têtes rendus.
+        response.headers.append('Set-Cookie', event.cookies.serialize(COOKIE_CACHE, scope, { path: '/', httpOnly: false, sameSite: 'strict', secure: event.url.protocol === 'https:', maxAge: Math.max(0, Math.floor((expiration - Date.now()) / 1000)) }))
+        response.headers.set('X-E2R-Scope', scope)
+        response.headers.set('X-E2R-Expires', String(expiration))
+        response.headers.set('X-E2R-Date', String(lectures.dates.length ? Math.min(...lectures.dates) : Date.now()))
+        response.headers.set('X-E2R-Lecture', String(Date.now()))
+        const raison = raisonRepli(true, lectures.causes)
+        if (raison) response.headers.set('X-E2R-Repli', raison)
+      } else if (!session || !compte || session.record.expired || /^\/(connexion|deconnexion)(\/|$)/.test(event.url.pathname)) {
+        response.headers.append('Set-Cookie', event.cookies.serialize(COOKIE_CACHE, '', { path: '/', maxAge: 0 }))
+      }
+      // Les réponses privées ne doivent pas être réutilisées par le cache HTTP partagé.
+      response.headers.set('Cache-Control', 'private, no-store')
 
       response.headers.set(
         'Content-Security-Policy',
