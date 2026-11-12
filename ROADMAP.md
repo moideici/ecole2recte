@@ -148,7 +148,9 @@ ces routes en réel (`jeromeboivin/EcoleDirecteMCP`, relevé du trafic du site, 
 
 - [ ] Serveur factice rejouant les fixtures, y compris les codes d'erreur.
 - [ ] Instantanés de requête : les octets envoyés, figés, pour chaque écriture.
-- [ ] Bout en bout en 390 px et 1440 px.
+- [x] Suite Playwright en démo à 390×844 et 1440×900 : connexion, pages élève et détails,
+      navigation mobile, débordements, clair/sombre et erreurs console (`pnpm e2e`, hors tests unitaires).
+      Compilation et exécution à confirmer après installation de Playwright par l’intégrateur.
 - [ ] Magasin de sessions partagé (Redis) : l'actuel est en mémoire, donc à une seule
       instance et perdu au redémarrage.
 - [ ] Limitation de débit côté client. Aucune n'est documentée côté service : la prudence

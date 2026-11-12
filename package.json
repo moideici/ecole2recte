@@ -7,12 +7,15 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
+    "e2e:typecheck": "tsc -p e2e/tsconfig.json",
+    "e2e": "playwright test",
     "probe": "node tools/probe/probe.mjs",
     "smoke": "pnpm --filter @ecole2recte/protocol build && node tools/smoke/smoke.mjs",
     "har": "node tools/har/extract.mjs",
     "verifier": "pnpm --filter @ecole2recte/protocol build && node tools/verifier/verifier.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "1.56.1",
     "typescript": "5.7.3",
     "vitest": "3.0.5"
   }

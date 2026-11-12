@@ -3,6 +3,8 @@ dist/
 .svelte-kit/
 build/
 coverage/
+playwright-report/
+test-results/
 *.tsbuildinfo
 .DS_Store
 

@@ -257,6 +257,29 @@ l'application refuse de sceller plutôt que de chiffrer avec une clé devinable.
 
 ### Comment c'est éprouvé
 
+Les tests de navigateur sont séparés de `pnpm test` :
+
+```sh
+pnpm e2e:typecheck                      # compile la suite sans lancer de navigateur
+pnpm exec playwright install chromium   # une fois, nécessite le téléchargement du navigateur
+pnpm e2e
+```
+
+Playwright démarre automatiquement un serveur Vite local sur `127.0.0.1:4173` avec
+`ED_DEMO=1` (aucun compte nécessaire), puis le ferme. Ce port doit être libre.
+Les quatre parcours couvrent 390×844 et 1440×900, chacun en clair et sombre : connexion
+élève, toutes les sections, détails d’une journée et d’un message, menu « Plus », profil,
+déconnexion, contenu fictif attendu, absence de débordement horizontal et d’erreur console
+ou JavaScript. Les requêtes externes du navigateur sont bloquées ; côté serveur, la session
+démo utilise le moteur factice local, sans accès à ÉcoleDirecte.
+`pnpm e2e:typecheck` vérifie les fichiers de cette suite sans lancer de navigateur.
+La dépendance `@playwright/test` doit être installée au préalable. Dans le worktree de
+rédaction, son installation et l’actualisation du lockfile sont laissées à l’intégrateur ;
+la suite n’y a pas été compilée ni exécutée.
+En cas d’échec, une trace est conservée dans `test-results/`.
+Si le bac à sable interdit le téléchargement de Chromium, exécuter les deux commandes
+de navigateur ci-dessus à la main sur une machine autorisée ; la compilation seule ne vaut pas exécution.
+
 234 tests, sans réseau et sans compte — 197 pour le protocole, 37 pour l’application — sur
 quatre niveaux :
 
