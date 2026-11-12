@@ -1,4 +1,4 @@
-﻿import type { RequestHandler } from './$types'
+import type { RequestHandler } from './$types'
 import { error } from '@sveltejs/kit'
 import { calendarIcs, lessonUid, readAlternance } from '$lib/exportsEdt.js'
 import { exportLessons } from '$lib/server/exportsEdt.js'

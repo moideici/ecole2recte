@@ -1,4 +1,4 @@
-﻿import type { PageServerLoad } from './$types'
+import type { PageServerLoad } from './$types'
 import { exportLessons } from '$lib/server/exportsEdt.js'
 import { readAlternance, weekLabel } from '$lib/exportsEdt.js'
 import { addDays } from '@ecole2recte/protocol'

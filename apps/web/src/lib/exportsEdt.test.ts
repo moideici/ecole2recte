@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { Lesson } from '@ecole2recte/protocol'
 import { calendarIcs, escapeIcs, foldIcs, lessonUid, readAlternance, validDate, weekLabel } from './exportsEdt.js'
 const lesson: Lesson = { id: '42', subject: 'Français', teacher: 'Mme Exemple', room: 'A,1;2', start: '2026-10-26T08:00:00', end: '2026-10-26T09:00:00', canceled: false, exam: true, note: 'Une ligne\nPuis une autre', group: '', kind: '' }

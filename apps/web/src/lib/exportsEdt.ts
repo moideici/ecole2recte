@@ -1,4 +1,4 @@
-﻿import type { Lesson } from '@ecole2recte/protocol'
+import type { Lesson } from '@ecole2recte/protocol'
 import { startOfWeek } from '@ecole2recte/protocol'
 
 export interface Alternance { week: string; label: 'A' | 'B' }

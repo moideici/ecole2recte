@@ -1,4 +1,4 @@
-﻿import { error } from '@sveltejs/kit'
+import { error } from '@sveltejs/kit'
 import { addDays, startOfWeek } from '@ecole2recte/protocol'
 import { cached, clientFor, today } from './api.js'
 import { requireStudent } from './guard.js'

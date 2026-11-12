@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   let { semaine, evenements, alternance }: { semaine: string; evenements: Array<{ uid: string; titre: string }>; alternance: string } = $props()
 </script>
 <details class="exports-edt">

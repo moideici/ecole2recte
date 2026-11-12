@@ -1,4 +1,4 @@
-﻿import type { RequestHandler } from './$types'
+import type { RequestHandler } from './$types'
 import { redirect, error } from '@sveltejs/kit'
 import { requireStudent } from '$lib/server/guard.js'
 import { today } from '$lib/server/api.js'
