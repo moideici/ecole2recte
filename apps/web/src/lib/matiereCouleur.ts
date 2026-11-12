@@ -1,17 +1,13 @@
 /**
- * Une couleur par matière, comme sur Pronote — chaque paire (fond pastel, encre foncée) vient
- * de son propre nuancier. La couleur est stable pour une matière donnée : un hachage du nom,
+ * Une couleur stable par matière, puisée dans les jetons pour suivre le thème clair/sombre.
+ * La couleur est stable pour une matière donnée : un hachage du nom,
  * pas un compteur, pour ne pas dépendre de l'ordre dans lequel les matières apparaissent.
  */
 const PALETTE = [
-  { fond: '#c7e7fc', encre: '#004b7b' },
-  { fond: '#ffd7df', encre: '#722241' },
-  { fond: '#97e47c', encre: '#1c5700' },
-  { fond: '#f7c983', encre: '#643c00' },
-  { fond: '#cdf3ed', encre: '#0b5c5f' },
-  { fond: '#ccd3ff', encre: '#2d2d7a' },
-  { fond: '#e6d5c3', encre: '#4a3728' },
-  { fond: '#ebdbff', encre: '#4b2e83' },
+  { fond: 'var(--accent-doux)', encre: 'var(--accent-fort)' },
+  { fond: 'var(--erreur-doux)', encre: 'var(--erreur)' },
+  { fond: 'var(--succes-doux)', encre: 'var(--succes)' },
+  { fond: 'var(--alerte-doux)', encre: 'var(--alerte)' },
 ] as const
 
 export interface CouleurMatiere {

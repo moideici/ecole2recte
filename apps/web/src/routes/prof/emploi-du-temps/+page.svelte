@@ -4,6 +4,7 @@
   import GrilleSemaine from '$lib/components/GrilleSemaine.svelte'
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
+  import { fusionnerCours, pauses, nomPause } from '$lib/emploiDuTemps.js'
   import {
     addDays,
     currentLesson,
@@ -81,22 +82,24 @@
 {:else}
   <div class="pile">
     <h2 style="margin-bottom:4px">{longDate(data.selection)}</h2>
-    {#each data.duJour as cours (cours.id)}
-      <Cours {cours} actuel={actuel?.id === cours.id} />
+    {#each fusionnerCours(data.duJour) as cours (cours.id)}
+      {#each pauses(data.duJour).filter((pause) => pause.end === cours.start) as pause}
+        <p class="carte discret">{nomPause(pause.start, pause.end)} · {timeOf(pause.start)} – {timeOf(pause.end)}</p>
+      {/each}
+      {#if data.selection === data.jour && cours.start <= data.maintenant && cours.end > data.maintenant}
+        <p class="maintenant">Maintenant · {timeOf(data.maintenant)}</p>
+      {/if}
+      <Cours {cours} actuel={!!actuel && cours.start <= data.maintenant && cours.end > data.maintenant} />
     {:else}
       <Vide titre="Pas de cours" description={`Rien n’est inscrit le ${longDate(data.selection)}.`} />
     {/each}
 
-    {#if data.trous.length > 0}
-      <h2 style="margin-top:18px">Heures libres</h2>
-      {#each data.trous as trou (trou.start)}
-        <p class="carte discret">{timeOf(trou.start)} – {timeOf(trou.end)} · {duration(trou.minutes)}</p>
-      {/each}
-    {/if}
+
   </div>
 {/if}
 
 <style>
+  .maintenant { border-top: 2px solid var(--erreur); color: var(--erreur); font-size: 0.85rem; }
   .sans-marge { border-bottom: 0; margin-bottom: 0; }
   .barre { flex-wrap: wrap; margin-bottom: 14px; }
 </style>

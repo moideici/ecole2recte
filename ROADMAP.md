@@ -73,6 +73,12 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Notes : pastille « Nouveau » pendant trois jours depuis la saisie, sinon le devoir.
 - [x] Notes : étiquettes officielle/calculée et explication du retard possible du bulletin.
 
+- [x] Navigation : sections regroupées, quatre raccourcis mobiles et feuille « Plus » native.
+- [x] Bandeau : menu du compte et choix d’enfant disponibles aux deux formats.
+- [x] Emploi du temps : couleurs du thème, annulations et anciennes valeurs barrées.
+- [x] Emploi du temps : pauses nommées, cours doubles fusionnés, semaine empilée sur mobile.
+- [ ] Revue visuelle de cette refonte en démo à 390/1440 px, clair/sombre et trois profils.
+
 ## P3 — Écriture documentée
 
 - [x] Cocher et décocher un devoir (`PUT cahierdetexte.awp`).

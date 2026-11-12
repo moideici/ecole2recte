@@ -112,6 +112,9 @@ export interface Lesson {
   /** Le groupe quand la classe est scindée — sinon on croit à un doublon. */
   group: string
   kind: string
+  /** Anciennes valeurs lorsqu'elles sont explicitement fournies, jamais déduites. */
+  previousRoom?: string
+  previousStart?: string
 }
 
 // ————————————————————————————————————————————————————————— cahier de textes

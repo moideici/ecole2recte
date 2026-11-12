@@ -28,6 +28,8 @@ export function parseTimetable(data: unknown): Lesson[] {
       note: pickText(raw, 'note', 'commentaire'),
       group: pickText(raw, 'libelleGroupe', 'groupe', 'groupeCode'),
       kind: pickText(raw, 'typeCours', 'type'),
+      previousRoom: pickText(raw, 'previousRoom') || undefined,
+      previousStart: pickDateTime(raw, 'previousStart') || undefined,
     })
   }
   // Le service ne garantit pas l'ordre, et un emploi du temps désordonné est illisible.

@@ -2,6 +2,7 @@
   import type { Lesson } from '@ecole2recte/protocol'
   import { timeOf } from '@ecole2recte/protocol'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
+  import ModificationCours from './ModificationCours.svelte'
 
   /** `href` rend le cours cliquable : il mène à sa journée, contenu de séance compris. */
   let { cours, actuel = false, href = '' }: { cours: Lesson; actuel?: boolean; href?: string } = $props()
@@ -24,6 +25,7 @@
   <div class="corps">
     <p class="titre">{cours.subject || 'Cours'}</p>
     <p class="detail">{[cours.room, cours.teacher, cours.group].filter(Boolean).join(' · ')}</p>
+    <ModificationCours {cours} />
     {#if cours.canceled}
       <!-- Un cours annulé reste affiché : l'effacer ferait croire à un trou dans la journée. -->
       <p class="jeton erreur-jeton">Annulé</p>
@@ -39,7 +41,7 @@
     display: flex;
     gap: 12px;
     align-items: stretch;
-    background: var(--surface);
+    background: var(--fond-matiere);
     border: 1px solid var(--bordure);
     border-left: 5px solid var(--encre-matiere);
     border-radius: var(--rayon-petit);
@@ -60,15 +62,17 @@
   .lien { text-decoration: none; color: inherit; }
   .lien:hover { border-color: var(--encre-matiere); background: var(--surface-2); }
   .chevron { align-self: center; color: var(--encre-douce); font-size: 1.3rem; flex: none; }
-  .titre { font-weight: 650; color: var(--encre); }
-  .detail { color: var(--encre-douce); font-size: 0.86rem; }
+  .titre { font-weight: 650; color: var(--encre-matiere); }
+  .detail { color: inherit; font-size: 0.86rem; }
+  .cours { color: var(--encre-matiere); }
   .jeton { margin-top: 4px; }
 
-  .annule { opacity: 0.75; background: var(--surface-2); border-left-color: var(--erreur); }
+  .cours.annule { color: var(--encre-douce); background: var(--surface-2); border-left-color: var(--erreur); }
+  .annule .titre { color: var(--encre-douce); }
   .annule .titre { text-decoration: line-through; }
 
-  /* Le cours en train de se dérouler est le seul teinté : on le repère sans le chercher. */
-  .actuel { background: var(--fond-matiere); }
+  /* L'encadrement distingue le cours actuel sans dépendre de la seule couleur. */
+  .actuel { box-shadow: inset 0 0 0 2px var(--encre-matiere); }
   .actuel .titre, .actuel .debut { color: var(--encre-matiere); }
   .actuel .detail, .actuel .fin { color: color-mix(in srgb, var(--encre-matiere) 75%, transparent); }
 </style>

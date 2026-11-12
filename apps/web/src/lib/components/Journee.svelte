@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Lesson } from '@ecole2recte/protocol'
   import { timeOf } from '@ecole2recte/protocol'
+  import { fusionnerCours } from '$lib/emploiDuTemps.js'
+  import ModificationCours from './ModificationCours.svelte'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
 
   /**
@@ -28,7 +30,7 @@
   } = $props()
 
   /** La hauteur d'une heure. Un seul nombre : la gouttière le suit par variable CSS. */
-  const PX_HEURE = 34
+  const PX_HEURE = 76
   /** En deçà, c'est une intercours et non une permanence — la même règle que `gaps()`. */
   const CREUX_MINIMAL = 30
 
@@ -41,7 +43,7 @@
     Array.from({ length: Math.max(1, Math.round((fin - debut) / 60)) }, (_, index) => debut + index * 60),
   )
 
-  const ordonnes = $derived([...cours].sort((gauche, droite) => gauche.start.localeCompare(droite.start)))
+  const ordonnes = $derived(fusionnerCours(cours))
 
   /** Les vrais creux de la journée, dessinés pour qu'ils se voient. */
   const creux = $derived.by(() => {
@@ -73,7 +75,7 @@
 
     {#each creux as trou (trou.debut)}
       <div class="creux" style={`top:${y(trou.debut)}px;height:${y(trou.fin) - y(trou.debut) - 3}px`}>
-        {trou.minutes >= 60 ? `${Math.floor(trou.minutes / 60)} h ${trou.minutes % 60 || ''}`.trim() : `${trou.minutes} min`} libres
+        {trou.debut < 14 * 60 && trou.fin > 12 * 60 ? 'Pause déjeuner' : 'Pause'} · {trou.minutes >= 60 ? `${Math.floor(trou.minutes / 60)} h ${trou.minutes % 60 || ''}`.trim() : `${trou.minutes} min`}
       </div>
     {/each}
 
@@ -90,6 +92,8 @@
       >
         <b>{cours.subject || 'Cours'}</b>
         <span>{timeOf(cours.start)}{cours.room ? ` · ${cours.room}` : ''}{cours.group ? ` · ${cours.group}` : ''}</span>
+        <ModificationCours {cours} />
+        {#if cours.canceled}<span>Annulé</span>{/if}
       </svelte:element>
     {/each}
 

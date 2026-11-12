@@ -165,6 +165,7 @@ function timetable(from: string, to: string, today: string) {
     end_date: `${slot.date} ${slot.end}`,
     prof: 'MARTIN C.',
     salle: slot.room,
+    previousRoom: slot.index === 2 ? 'B 104' : undefined,
     classe: slot.group.kind === 'C' ? slot.group.label : '',
     classeId: slot.group.kind === 'C' ? slot.group.id : 0,
     groupe: slot.group.kind === 'G' ? slot.group.label : '',
@@ -560,7 +561,9 @@ function jourDeClasse(date: string): string {
 
 /** La semaine type de la classe, du lundi (0) au vendredi (4). */
 const STUDENT_WEEK: Array<{ day: number; start: string; end: string; code: string }> = [
-  { day: 0, start: '08:00', end: '09:55', code: 'FRAN' },
+  // Deux créneaux contigus illustrent la fusion sans changer la durée enseignée.
+  { day: 0, start: '08:00', end: '09:00', code: 'FRAN' },
+  { day: 0, start: '09:00', end: '09:55', code: 'FRAN' },
   { day: 0, start: '10:10', end: '11:05', code: 'MATH' },
   { day: 0, start: '11:10', end: '12:05', code: 'ANGL' },
   { day: 0, start: '13:00', end: '14:55', code: 'PHCH' },
@@ -1041,6 +1044,8 @@ function studentTimetable(from: string, to: string, today: string) {
         end_date: `${date} ${slot.end}`,
         prof: subject.teacher,
         salle: subject.room,
+        previousRoom: index === 2 ? 'B 104' : undefined,
+        previousStart: index === 2 ? `${date} 08:00` : undefined,
         classe: STUDENT.classe,
         // Un cours annulé dans la semaine en cours : il doit rester affiché, barré.
         isAnnule: index === 8 && startOfWeek(date) === startOfWeek(today),

@@ -1,6 +1,9 @@
 <script lang="ts">
   import type { Lesson } from '@ecole2recte/protocol'
-  import { shortDate, timeOf } from '@ecole2recte/protocol'
+  import { shortDate, timeOf, longDate } from '@ecole2recte/protocol'
+  import { fusionnerCours, pauses, nomPause } from '$lib/emploiDuTemps.js'
+  import Cours from './Cours.svelte'
+  import ModificationCours from './ModificationCours.svelte'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
 
   /**
@@ -67,7 +70,7 @@
   })
 
   const NOMS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
-  const HAUTEUR_HEURE = 56
+  const HAUTEUR_HEURE = 88
 
   function minutes(instant: string): number {
     return Number(instant.slice(11, 13)) * 60 + Number(instant.slice(14, 16))
@@ -88,7 +91,7 @@
    * Les superposer en cacherait un ; ils se partagent donc la largeur de la journée.
    */
   function placer(lecons: Lesson[]) {
-    const ordonnes = [...lecons].sort((gauche, droite) => gauche.start.localeCompare(droite.start))
+    const ordonnes = fusionnerCours(lecons)
     const colonnes: Lesson[][] = []
     const place = new Map<string, number>()
     for (const cours of ordonnes) {
@@ -112,6 +115,26 @@
   }
 </script>
 
+<div class="semaine-mobile">
+  {#each jours as journee (journee.date)}
+    <section class="jour-mobile" class:aujourdhui={journee.date === aujourdhui}>
+      <h2><a href={lien(journee.date)}>{longDate(journee.date)}</a></h2>
+      {#each fusionnerCours(journee.lecons) as cours (cours.id)}
+        {#each pauses(journee.lecons).filter((pause) => pause.end === cours.start) as pause}
+          <p class="pause-mobile">{nomPause(pause.start, pause.end)} · {timeOf(pause.start)} – {timeOf(pause.end)}</p>
+        {/each}
+        {#if journee.date === aujourdhui && maintenant !== null && minutes(cours.start) <= maintenant && maintenant < minutes(cours.end)}
+          <p class="heure-mobile">Maintenant</p>
+        {/if}
+        <Cours {cours} href={lienCours?.(journee.date, cours) ?? lien(journee.date)} />
+        {#if mention?.(journee.date, cours)}<p class="discret">{mention?.(journee.date, cours)}</p>{/if}
+      {:else}
+        <p class="discret">Pas de cours</p>
+      {/each}
+    </section>
+  {/each}
+</div>
+
 <div class="enveloppe-large">
   <div class="grille" style={`--hauteur:${heures.length * HAUTEUR_HEURE}px`}>
     <div class="gouttiere">
@@ -130,6 +153,11 @@
         <div class="piste">
           {#each heures as heure, rang (heure)}
             <div class="trait" style={`top:${rang * HAUTEUR_HEURE}px`}></div>
+          {/each}
+          {#each pauses(journee.lecons) as pause}
+            <div class="pause" style={`top:${((minutes(pause.start) - debut) / 60) * HAUTEUR_HEURE}px;height:${((minutes(pause.end) - minutes(pause.start)) / 60) * HAUTEUR_HEURE}px`}>
+              {nomPause(pause.start, pause.end)}
+            </div>
           {/each}
 
           {#if journee.date === aujourdhui && maintenant !== null && maintenant >= debut && maintenant <= fin}
@@ -151,6 +179,7 @@
               <p class="bloc-detail">
                 {(titre ? [bloc.cours.room] : [bloc.cours.room, bloc.cours.group]).filter(Boolean).join(' · ')}
               </p>
+              <ModificationCours cours={bloc.cours} />
               {#if bloc.cours.canceled}
                 <p class="bloc-mention">Annulé</p>
               {:else if bloc.cours.exam}
@@ -167,12 +196,24 @@
 </div>
 
 <style>
-  .grille { display: flex; min-width: 640px; }
+  .semaine-mobile { display: none; }
+  .pause { position: absolute; width: 100%; display: grid; place-items: center; color: var(--encre-douce); font-size: 0.7rem; }
+  @media (max-width: 700px) {
+    .enveloppe-large { display: none; }
+    .semaine-mobile { display: grid; gap: 24px; }
+    .jour-mobile { display: grid; gap: 8px; }
+    .jour-mobile h2 { font-size: 1rem; }
+    .jour-mobile.aujourdhui h2 { border-left: 4px solid var(--accent); padding-left: 8px; }
+    .pause-mobile { color: var(--encre-douce); font-size: 0.8rem; padding: 8px; border-block: 1px dashed var(--bordure); }
+    .heure-mobile { border-top: 2px solid var(--erreur); color: var(--erreur); font-size: 0.8rem; }
+  }
+  .grille { display: flex; min-width: 900px; }
+  .enveloppe-large { overflow-x: auto; }
 
   .gouttiere { flex: none; width: 46px; }
   .coin { height: 46px; border-bottom: 1px solid var(--bordure); }
   .heure-graduee {
-    height: 56px;
+    height: 88px;
     font-size: 0.72rem;
     color: var(--encre-douce);
     text-align: right;
@@ -238,8 +279,8 @@
   }
   .bloc:hover { filter: brightness(0.96); box-shadow: inset 0 0 0 1px var(--encre-matiere); }
   .bloc-heure { font-variant-numeric: tabular-nums; font-size: 0.7rem; opacity: 0.85; }
-  .bloc-matiere { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bloc-detail { opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bloc-matiere { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
+  .bloc-detail { opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
   .bloc-mention { font-weight: 700; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; }
 
   /* Un cours annulé reste affiché, barré : l'effacer ferait croire à un trou dans la journée. */

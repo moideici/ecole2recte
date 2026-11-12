@@ -36,6 +36,15 @@ async function releve() {
 }
 
 describe('espace élève de démonstration', () => {
+  it('montre un cours annulé et les anciennes valeurs d’un cours déplacé', async () => {
+    const account = parseAccounts(DEMO_STUDENT_LOGIN)[0]
+    const client = new EcoleDirecteClient({ engine: demoEngine('2026-11-12'), session: createSession(), writePolicy: 'deny' })
+    const result = await new EcoleDirecteApi(client).timetable(account as never, '2026-11-09', '2026-11-14')
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error(result.message)
+    expect(result.value.some((cours) => cours.canceled)).toBe(true)
+    expect(result.value.some((cours) => cours.previousStart && cours.previousRoom)).toBe(true)
+  })
   it('sert un relevé lisible par les vrais lecteurs', async () => {
     const { periods, grades, subjectAverages } = await releve()
     expect(periods.map((periode) => periode.code)).toEqual(['A001', 'A002', 'A003'])

@@ -27,7 +27,7 @@
    * La navigation.
    *
    * Une seule liste sert les deux tailles d'écran : barre latérale sur ordinateur, barre
-   * basse sur téléphone où les cinq premières entrées tiennent et le reste passe dans un
+   * basse sur téléphone où quatre entrées tiennent et le reste passe dans un
    * menu. Dupliquer la liste garantirait qu'elles divergent un jour.
    *
    * L'ordre est celui des logiciels de vie scolaire, et il n'est pas arbitraire : l'emploi
@@ -51,11 +51,11 @@
   /** L'espace professeur, en lecture seule. */
   const entreesProf: Entree[] = [
     { href: '/prof', libelle: 'Accueil', icone: 'accueil' },
+    { href: '/prof/emploi-du-temps', libelle: 'Emploi du temps', court: 'Cours', icone: 'calendrier', module: 'EDT' },
     { href: '/prof/classes', libelle: 'Classes', icone: 'classes' },
     { href: '/prof/cahier-de-textes', libelle: 'Cahier de textes', court: 'Cahier', icone: 'devoirs', module: 'CAHIER_DE_TEXTES' },
     { href: '/prof/notes', libelle: 'Notes', icone: 'notes', module: 'CARNET_NOTES' },
     { href: '/prof/messages', libelle: 'Messages', icone: 'messages', module: 'MESSAGERIE' },
-    { href: '/prof/emploi-du-temps', libelle: 'Emploi du temps', court: 'Cours', icone: 'calendrier', module: 'EDT' },
   ]
 
   const entrees = $derived(
@@ -63,9 +63,24 @@
       (entree) => !entree.module || !data.profil?.modulesFermes.includes(entree.module),
     ),
   )
-  const principales = $derived(entrees.slice(0, 5))
-  const secondaires = $derived(entrees.slice(5))
-  let menuOuvert = $state(false)
+  const principales = $derived(entrees.slice(0, 4))
+  const secondaires = $derived(entrees.slice(4))
+  let plus: HTMLDetailsElement | undefined = $state()
+  let compte: HTMLDetailsElement | undefined = $state()
+  $effect(() => {
+    data.chemin
+    data.profil?.id
+    plus?.removeAttribute('open')
+    compte?.removeAttribute('open')
+  })
+  const groupes = ["Aujourd\u2019hui", 'Travail', 'Vie scolaire', 'Communication', 'Documents']
+  function groupe(href: string): string {
+    if (/emploi-du-temps$/.test(href) || href === '/' || href === '/prof') return groupes[0]!
+    if (/devoirs|cahier-de-textes|notes/.test(href)) return 'Travail'
+    if (/messages|actualites/.test(href)) return 'Communication'
+    if (/documents|manuels|cloud/.test(href)) return 'Documents'
+    return 'Vie scolaire'
+  }
 
   function actuel(href: string): boolean {
     // Un accueil n'est actuel que chez lui : `/prof` ne s'allume pas sur `/prof/notes`.
@@ -74,6 +89,12 @@
 </script>
 
 <a class="saut-contenu" href="#contenu">Aller au contenu</a>
+<svelte:window onkeydown={(event) => {
+  if (event.key === 'Escape') {
+    if (plus?.open) { plus.open = false; plus.querySelector('summary')?.focus() }
+    if (compte?.open) { compte.open = false; compte.querySelector('summary')?.focus() }
+  }
+}} />
 
 {#if !data.connecte}
   <main id="contenu" class="seul">{@render children()}</main>
@@ -97,21 +118,29 @@
       <span>ecole2recte</span>
     </a>
     <span class="espace"></span>
-    {#if data.profil}
-      <a class="identite" href={data.profil.prof ? '/prof' : '/profil'}>
-        <span class="avatar" aria-hidden="true">{data.profil.initiales}</span>
-        <span class="qui">
-          <span class="nom">{data.profil.nom}</span>
-          <span class="sous">
-            {#if data.profil.prof}
-              Enseignant{data.profil.etablissement ? ` · ${data.profil.etablissement}` : ''}
-            {:else}
-              {[data.profil.classe, data.profil.etablissement].filter(Boolean).join(' · ')}
-            {/if}
-          </span>
-        </span>
-      </a>
-    {/if}
+    <details class="compte" bind:this={compte}>
+      <summary class="identite">
+        <span class="avatar" aria-hidden="true">{data.profil?.initiales}</span>
+        <span class="nom">{data.profil?.nom}</span><span aria-hidden="true">⌄</span>
+      </summary>
+      <div class="menu-compte">
+        <p class="discret">{data.profil?.prof ? 'Enseignant' : data.profil?.parent ? 'Compte parent' : 'Compte \u00e9l\u00e8ve'}{data.profil?.classe ? ` \u00b7 ${data.profil.classe}` : ''}</p>
+        {#if data.enfants.length > 1 && !data.profil?.prof}
+          <form method="POST" action="/?/changerEnfant" use:enhance class="pile" aria-label="Profil consulté">
+            {#each data.enfants as enfant (enfant.id)}
+              <button class="enfant" name="enfant" value={enfant.id} aria-current={data.profil?.id === enfant.id}>
+                <span class="avatar petit" aria-hidden="true">{enfant.initiales}</span>
+                <span>{enfant.nom}{enfant.classe ? ` \u00b7 ${enfant.classe}` : ''}</span>
+              </button>
+            {/each}
+          </form>
+        {/if}
+        {#if !data.profil?.prof}<a href="/profil">Mon profil</a>{/if}
+        <form method="POST" action="/deconnexion" use:enhance>
+          <button class="bouton">Se déconnecter</button>
+        </form>
+      </div>
+    </details>
     <button
       class="sortir"
       onclick={() => theme.basculer()}
@@ -120,45 +149,24 @@
     >
       <Icone nom={theme.valeur === 'sombre' ? 'lune' : theme.valeur === 'clair' ? 'soleil' : 'auto'} />
     </button>
-    <form method="POST" action="/deconnexion" use:enhance>
-      <button class="sortir" title="Se déconnecter">
-        <Icone nom="sortie" />
-        <span class="texte-sortir">Se déconnecter</span>
-      </button>
-    </form>
   </header>
 
   <div class="coque">
     <aside class="laterale">
-      {#if data.enfants.length > 1 && !data.profil?.prof}
-        <!-- Un compte parent lit plusieurs enfants : le profil consulté se choisit ici. -->
-        <form method="POST" action="/?/changerEnfant" use:enhance class="enfants" aria-label="Enfant consulté">
-          <p class="minuscule" style="margin-bottom:6px">Enfant consulté</p>
-          <div class="pile" style="gap:4px">
-            {#each data.enfants as enfant (enfant.id)}
-              <button class="enfant" name="enfant" value={enfant.id} aria-current={data.profil?.id === enfant.id}>
-                <span class="avatar petit" aria-hidden="true">{enfant.initiales}</span>
-                <span>
-                  {enfant.nom}
-                  {#if enfant.classe}<span class="discret" style="display:block;font-size:0.78rem">{enfant.classe}</span>{/if}
-                </span>
-              </button>
-            {/each}
-          </div>
-        </form>
-      {/if}
-
       <nav aria-label="Sections">
-        <ul>
-          {#each entrees as entree (entree.href)}
-            <li>
-              <a href={entree.href} aria-current={actuel(entree.href) ? 'page' : undefined}>
-                <Icone nom={entree.icone} />
-                <span>{entree.libelle}</span>
-              </a>
-            </li>
-          {/each}
-        </ul>
+        {#each groupes as nom}
+          {@const liens = entrees.filter((entree) => groupe(entree.href) === nom)}
+          {#if liens.length}
+            <p class="groupe">{nom}</p>
+            <ul>
+              {#each liens as entree (entree.href)}
+                <li><a href={entree.href} aria-current={actuel(entree.href) ? 'page' : undefined}>
+                  <Icone nom={entree.icone} /><span>{entree.libelle}</span>
+                </a></li>
+              {/each}
+            </ul>
+          {/if}
+        {/each}
       </nav>
     </aside>
 
@@ -179,25 +187,24 @@
         <span>{entree.court ?? entree.libelle}</span>
       </a>
     {/each}
-    <button aria-expanded={menuOuvert} onclick={() => (menuOuvert = !menuOuvert)}>
-      <Icone nom="plus" taille={22} />
-      <span>Plus</span>
-    </button>
+    <details class="plus" bind:this={plus}>
+      <summary class:actif={secondaires.some((entree) => actuel(entree.href))}><Icone nom="plus" taille={22} /><span>Plus</span></summary>
+      <div class="tiroir">
+        <h2>Autres sections</h2>
+        {#each groupes as nom}
+          {@const liens = secondaires.filter((entree) => groupe(entree.href) === nom)}
+          {#if liens.length}
+            <p class="minuscule">{nom}</p>
+            {#each liens as entree (entree.href)}
+              <a href={entree.href} aria-current={actuel(entree.href) ? 'page' : undefined}>
+                <Icone nom={entree.icone} /><span>{entree.libelle}</span>
+              </a>
+            {/each}
+          {/if}
+        {/each}
+      </div>
+    </details>
   </nav>
-
-  {#if menuOuvert}
-    <div class="tiroir" role="dialog" aria-label="Autres sections">
-      {#each secondaires as entree (entree.href)}
-        <a class="carte" href={entree.href} onclick={() => (menuOuvert = false)}>
-          <Icone nom={entree.icone} />
-          <span>{entree.libelle}</span>
-        </a>
-      {/each}
-      <form method="POST" action="/deconnexion" use:enhance>
-        <button class="bouton" style="width:100%">Se déconnecter</button>
-      </form>
-    </div>
-  {/if}
 {/if}
 
 <style>
@@ -255,7 +262,7 @@
     text-decoration: none;
     min-height: 44px;
   }
-  .identite:hover { background: rgb(255 255 255 / 12%); }
+  .identite:hover { background: var(--rail-actif); }
 
   .avatar {
     display: inline-flex;
@@ -272,9 +279,7 @@
   }
   .avatar.petit { width: 28px; height: 28px; font-size: 0.72rem; background: var(--accent); color: var(--accent-encre); }
 
-  .qui { display: none; line-height: 1.2; }
   .nom { display: block; font-weight: 600; font-size: 0.92rem; }
-  .sous { display: block; font-size: 0.78rem; color: var(--bandeau-encre-douce); }
 
   .sortir {
     display: inline-flex;
@@ -292,22 +297,20 @@
     font-size: 0.9rem;
     cursor: pointer;
   }
-  .sortir:hover { background: rgb(255 255 255 / 12%); }
-  .texte-sortir { display: none; }
+  .sortir:hover { background: var(--rail-actif); }
 
   /* ——————————————————————————————————————————— corps */
 
   .coque { display: block; }
 
   main {
+    min-width: 0; width: 100%;
     padding: 18px var(--marge) 96px;
     max-width: 1180px;
     margin: 0 auto;
   }
 
   .laterale { display: none; }
-  .enfants { margin-bottom: 8px; }
-  .enfants .minuscule { color: var(--rail-encre-douce); }
 
   .enfant {
     display: flex;
@@ -364,14 +367,14 @@
     position: fixed;
     inset: auto 0 0 0;
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 2px;
     background: var(--surface);
     border-top: 1px solid var(--bordure);
     padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
     z-index: 20;
   }
-  .basse a, .basse button {
+  .basse > a, .plus > summary {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -379,7 +382,7 @@
     gap: 2px;
     min-height: 48px;
     padding: 4px 2px;
-    font-size: 0.64rem;
+    font-size: 0.74rem;
     text-align: center;
     color: var(--encre-douce);
     text-decoration: none;
@@ -390,22 +393,35 @@
     cursor: pointer;
     line-height: 1.15;
   }
-  .basse a[aria-current='page'] { color: var(--accent); font-weight: 650; }
+  .basse a[aria-current='page'], .plus > summary.actif { background: var(--accent-doux); color: var(--accent-fort); font-weight: 650; }
   .basse span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
   .tiroir {
     position: fixed;
-    inset: auto 8px 84px 8px;
+    inset: auto 8px calc(68px + env(safe-area-inset-bottom)) 8px;
+    max-height: 70dvh; overflow-y: auto; padding: 16px; background: var(--surface); color: var(--encre); border: 1px solid var(--bordure); border-radius: var(--rayon-grand); box-shadow: var(--ombre-haute);
     display: flex;
     flex-direction: column;
     gap: 8px;
     z-index: 25;
   }
-  .tiroir a { display: flex; align-items: center; gap: 10px; text-decoration: none; box-shadow: var(--ombre-haute); }
+  .tiroir a { display: flex; align-items: center; gap: 10px; text-decoration: none; min-height: 44px; padding: 8px; }
+
+  .groupe { margin: 16px 12px 4px; font-size: 0.74rem; font-weight: 700; color: var(--rail-encre-douce); }
+  summary { cursor: pointer; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  .compte { position: relative; min-width: 0; }
+  .identite .nom { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-compte { position: absolute; right: 0; top: 100%; width: min(320px, calc(100vw - 32px)); display: grid; gap: 12px; padding: 16px; background: var(--surface); color: var(--encre); box-shadow: var(--ombre-haute); border: 1px solid var(--bordure); border-radius: var(--rayon); }
+  .menu-compte > a { min-height: 44px; display: flex; align-items: center; }
+  @media (max-width: 480px) {
+    .marque > span { display: none; }
+    .bandeau { gap: 4px; }
+    .identite { gap: 6px; padding: 5px; }
+  }
 
   /* À partir de 900 px l'écran a la place d'une barre latérale permanente. */
   @media (min-width: 900px) {
-    .qui, .texte-sortir { display: block; }
     .coque { display: grid; grid-template-columns: 252px 1fr; align-items: start; max-width: 1440px; margin: 0 auto; }
     .laterale {
       display: flex;

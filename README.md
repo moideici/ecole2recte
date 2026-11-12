@@ -362,6 +362,23 @@ ne s'affichent qu'à l'écran de qui lance le script.
 
 ## Préférences visuelles
 
+La navigation regroupe Aujourd’hui, Travail, Vie scolaire, Communication et Documents.
+Sur téléphone, quatre raccourcis et une feuille « Plus » donnent accès aux mêmes URL ;
+le bandeau permet de choisir l’enfant et de se déconnecter. Les liens et les menus natifs
+restent utilisables sans JavaScript, ainsi que « Aller au contenu ».
+
+L’emploi du temps affiche les matières avec les couleurs du thème, les annulations barrées,
+les pauses nommées et les séances identiques contiguës fusionnées. La semaine devient une
+suite de journées sous 700 px ; sur ordinateur elle conserve la grille horaire et son trait
+« maintenant ». Les anciennes salle et heure sont barrées si elles sont explicitement
+fournies (`previousRoom`, `previousStart`) ; aucune modification n’est déduite d’un historique.
+La démo inclut un déplacement, une annulation et deux créneaux à fusionner.
+
+Vérification visuelle à effectuer en démo : à 390 px, ouvrir « Plus », le menu du compte et
+les vues jour/semaine sans débordement ; à 1440 px, contrôler les groupes du rail, l’état
+actif et les cours de la grille. Répéter en clair/sombre et dans l’espace professeur ;
+tester le choix d’enfant sur un compte parent. Cette vérification nécessite un navigateur.
+
 Dans Réglages, cinq thèmes (Indigo, Océan par défaut, Forêt, Coucher de soleil, Ardoise)
 sont proposés avec apparence claire, sombre ou système et quatre tailles de texte.
 Les choix restent sur l’appareil (`e2r-theme`, `e2r-palette`, `e2r-taille`) et sont appliqués
