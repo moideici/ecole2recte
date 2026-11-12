@@ -36,6 +36,8 @@ const sections = [
 
 for (const apparence of ['clair', 'sombre'] as const) {
   test(`Parcours élève en mode ${apparence}`, async ({ page, context }) => {
+    // La présentation du premier lancement a son propre test : ici elle masquerait les clics.
+    await context.addInitScript(() => localStorage.setItem('e2r-presentation', '1'))
     const erreurs: string[] = []
     page.on('console', (message) => {
       if (message.type() === 'error') erreurs.push(message.text())

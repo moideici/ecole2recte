@@ -12,6 +12,7 @@ import {
 } from '@ecole2recte/protocol'
 import { env } from '$env/dynamic/private'
 import { DEMO_LOGIN, DEMO_STUDENT_LOGIN, demoEnabled } from '$lib/server/demo.js'
+import { retenirAppareil } from '$lib/server/appareil.js'
 import { reconnexionDisponible, retenirIdentifiants } from '$lib/server/reconnexion.js'
 import { seal, unseal } from '$lib/server/seal.js'
 import { setSessionCookie } from '$lib/server/session.js'
@@ -242,12 +243,16 @@ async function install(
   // Le profil ouvert d'abord : un élève ou un enseignant, plutôt qu'un rôle que l'application
   // ne sait pas montrer.
   const active = accounts.find((account) => accountRole(account) !== 'unknown') ?? accounts[0]
+  // Le coffre d'appareil survit à la session : c'est lui qui évite de retaper quoi que ce soit
+  // le jour où celle-ci disparaît. Décoché, il est effacé — rien ne reste pour cet appareil.
+  const appareil = await retenirAppareil(cookies, url, remembered, trusted)
   const id = await sessions.create({
     protocol: client.session,
     accounts,
     activeAccountId: active?.id ?? null,
     awaitingSecurityAnswer: false,
     snapshots: {},
+    ...(appareil ? { appareil } : {}),
     // Le couple de confiance voyage avec la session : rouvrir la session le rejoue, sinon
     // ÉcoleDirecte reposerait sa question à un moment où personne n'est là pour répondre.
     ...(trusted ? { trusted } : {}),

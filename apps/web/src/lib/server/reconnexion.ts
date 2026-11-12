@@ -1,6 +1,7 @@
 import { env } from '$env/dynamic/private'
 import { EcoleDirecteClient, createSession, fetchEngine } from '@ecole2recte/protocol'
 import { seal, unseal } from './seal.js'
+import { sessionSecret } from './secret.js'
 import { type SessionRecord, sessions } from './store.js'
 
 /**
@@ -45,7 +46,7 @@ export const FENETRE_MS = 60 * 60 * 1000
  * Jamais en clair, jamais dans un cookie, jamais dans un journal : uniquement dans le
  * magasin de sessions, chiffré par `SESSION_SECRET`, et effacé avec la session.
  */
-interface Identifiants {
+export interface Identifiants {
   identifier: string
   password: string
 }
@@ -60,8 +61,39 @@ interface Identifiants {
  */
 export function reconnexionDisponible(): boolean {
   if ((env['ED_REMEMBER'] ?? '1').trim() === '0') return false
-  const secret = env['SESSION_SECRET']
-  return typeof secret === 'string' && secret.length >= 16
+  // Le vrai secret, ou — en développement local seulement — celui que `secret.ts` génère.
+  return sessionSecret() !== undefined
+}
+
+/**
+ * Les trois verrous temporels d'une reconnexion, partagés par la session et le coffre
+ * d'appareil : délai de garde, plafond glissant, fenêtre. Rend le compteur à enregistrer
+ * **avant** l'appel, ou `null` si le moment est mal choisi.
+ */
+export function prochaineReauth(
+  precedent: { at: number; count: number } | undefined,
+  maintenant = Date.now(),
+): { at: number; count: number } | null {
+  const avant = precedent ?? { at: 0, count: 0 }
+  // Une heure sans reconnexion : ce n'est plus une rafale, c'est un usage. Le compte repart.
+  const compteur = maintenant - avant.at > FENETRE_MS ? { at: avant.at, count: 0 } : avant
+  if (compteur.count >= PLAFOND) return null
+  if (maintenant - compteur.at < DELAI_GARDE_MS) return null
+  return { at: maintenant, count: compteur.count + 1 }
+}
+
+/** Un client neuf, aligné sur la version d'API du service, qui ne peut rien écrire. */
+export function clientDeReconnexion(session?: { userAgent: string; apiVersion: string }): EcoleDirecteClient {
+  const client = new EcoleDirecteClient({
+    engine: fetchEngine(),
+    // Le jeton est lié au User-Agent qui l'a obtenu : en changer invaliderait le neuf.
+    session: createSession(session ?? {}),
+    // Rien ne s'écrit pendant une reconnexion : on rouvre une session, on n'agit pas.
+    writePolicy: 'deny',
+    ...(env['ED_API_BASE'] ? { apiBase: env['ED_API_BASE'] } : {}),
+  })
+  if (!session && env['ED_API_VERSION']) client.session.apiVersion = env['ED_API_VERSION']
+  return client
 }
 
 /** Scelle les identifiants pour le magasin, ou rend `undefined` si on n'a pas le droit. */
@@ -105,11 +137,8 @@ async function reconnecter(id: string, record: SessionRecord): Promise<boolean> 
   const scelle = record.remembered
   if (!scelle) return false
 
-  const precedent = record.reauth ?? { at: 0, count: 0 }
-  // Une heure sans reconnexion : ce n'est plus une rafale, c'est un usage. Le compte repart.
-  const compteur = Date.now() - precedent.at > FENETRE_MS ? { at: precedent.at, count: 0 } : precedent
-  if (compteur.count >= PLAFOND) return false
-  if (Date.now() - compteur.at < DELAI_GARDE_MS) return false
+  const suivante = prochaineReauth(record.reauth)
+  if (!suivante) return false
 
   const identifiants = unseal<Identifiants>(scelle)
   // Sceau illisible — la clé a changé : inutile de réessayer, et rien à envoyer au service.
@@ -120,20 +149,13 @@ async function reconnecter(id: string, record: SessionRecord): Promise<boolean> 
 
   // Le compteur avance **avant** l'appel : si celui-ci n'aboutit jamais, le délai de garde
   // aura tout de même couru, et rien ne repartira dans la seconde.
-  record.reauth = { at: Date.now(), count: compteur.count + 1 }
+  record.reauth = suivante
   await sessions.write(id, record)
+  // Le coffre d'appareil partage le compteur : sans cela, une session qui vient de se
+  // reconnecter laisserait le coffre en faire autant dans la minute.
+  await synchroniserCoffre(record)
 
-  const client = new EcoleDirecteClient({
-    engine: fetchEngine(),
-    session: createSession({
-      // Le jeton est lié au User-Agent qui l'a obtenu : en changer invaliderait le neuf.
-      userAgent: record.protocol.userAgent,
-      apiVersion: record.protocol.apiVersion,
-    }),
-    // Rien ne s'écrit pendant une reconnexion : on rouvre une session, on n'agit pas.
-    writePolicy: 'deny',
-    ...(env['ED_API_BASE'] ? { apiBase: env['ED_API_BASE'] } : {}),
-  })
+  const client = clientDeReconnexion({ userAgent: record.protocol.userAgent, apiVersion: record.protocol.apiVersion })
 
   const outcome = await client.login(identifiants.identifier, identifiants.password, record.trusted)
 
@@ -156,8 +178,20 @@ async function reconnecter(id: string, record: SessionRecord): Promise<boolean> 
   return true
 }
 
-/** Efface ce qu'on gardait, sans fermer la session en cours. */
+/** Efface ce qu'on gardait, sans fermer la session en cours — coffre d'appareil compris. */
 async function oublier(id: string, record: SessionRecord): Promise<void> {
   delete record.remembered
+  if (record.appareil) {
+    await sessions.destroy(record.appareil)
+    delete record.appareil
+  }
   await sessions.write(id, record)
+}
+
+async function synchroniserCoffre(record: SessionRecord): Promise<void> {
+  if (!record.appareil || !record.reauth) return
+  const coffre = await sessions.read(record.appareil)
+  if (!coffre) return
+  coffre.reauth = record.reauth
+  await sessions.write(record.appareil, coffre)
 }

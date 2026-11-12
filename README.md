@@ -303,6 +303,61 @@ La CI ajoute deux garde-fous qui ne sont pas des tests : aucune capture réseau 
 et l'écriture fermée dans l'exemple de configuration — un fichier qui l'ouvrirait finirait
 un jour copié tel quel en production.
 
+## Ne plus se reconnecter : le coffre d'appareil
+
+« Rester connecté » (coché par défaut) garde de quoi rouvrir la session **sans rien retaper** —
+ni mot de passe, ni réponse à la question de sécurité :
+
+- un **coffre d'appareil**, enregistrement durable *indépendant de la session*, indexé par un
+  identifiant aléatoire que seul ce navigateur détient (cookie `e2r_appareil`, `httpOnly`,
+  `SameSite=Lax`, un an glissant) ;
+- il contient l'identifiant et le mot de passe **scellés** (AES-256-GCM, clé `SESSION_SECRET`) et le
+  couple de confiance `cn`/`cv` de la question de sécurité ;
+- quand la session disparaît (expiration, redéploiement, éviction du Durable Object, cookie
+  perdu) mais que le coffre est là, la requête suivante rouvre une session toute seule. Les
+  requêtes d'une même page partagent **une seule** connexion, et une session ouverte il y a
+  moins de deux minutes est réutilisée plutôt que doublée ;
+- les garde-fous de `reconnexion.ts` s'appliquent à l'identique : une minute de garde, huit
+  reconnexions par heure au plus, et **un mot de passe refusé ou une vérification manuelle
+  exigée vide le coffre** au lieu de boucler ;
+- le coffre vit six mois, le délai glisse à chaque réouverture ; se déconnecter, ou « Oublier cet
+  appareil » dans Réglages, l'efface. `ED_REMEMBER=0` coupe toute la fonction.
+
+Le cookie de session est en `SameSite=Lax` (et non `Strict`) : avec `Strict`, ouvrir le site depuis
+un lien d'une autre application n'envoyait pas le cookie, et la page se comportait comme une
+déconnexion.
+
+**Modèle de menace — ce que cela protège, et ce que cela ne protège pas.**
+
+| Menace | Protégé ? |
+|---|---|
+| Une faille d'injection qui lit le cookie | Oui : les cookies sont `httpOnly`, et ne contiennent qu'un identifiant opaque |
+| Le mot de passe dans le navigateur, le cache ou le journal | Oui : il ne descend jamais, et n'est jamais journalisé |
+| Fuite du contenu du magasin de sessions (Durable Object) | Partiellement : identifiants et couple de confiance sont chiffrés, **mais** celui qui détient aussi `SESSION_SECRET` les lit |
+| Vol du cookie `e2r_appareil` (poste compromis, malware) | **Non** : c'est un jeton porteur, comme le cookie de session. Qui le détient rouvre une session jusqu'à ce qu'on « oublie l'appareil » |
+| Quelqu'un qui prend ton appareil ouvert | Seulement par le verrouillage ci-dessous, qui est une protection d'écran |
+| Mot de passe changé côté ÉcoleDirecte | Oui : une tentative refusée vide le coffre, sans boucle |
+
+En développement sur Node (`NODE_ENV=development`), si `SESSION_SECRET` est absent, une clé
+aléatoire est générée une fois dans `.data/secret` (ignoré par git) : on peut essayer « Rester
+connecté » sans rien configurer. En production, `SESSION_SECRET` reste exigé ; sans lui, rien n'est
+gardé et l'application redemande le mot de passe.
+
+Après modification de `apps/sessions` (délai maximal porté à 200 jours pour le coffre), ce worker
+doit être redéployé : `cd apps/sessions && npx wrangler deploy`.
+
+## Verrouillage, présentation, journal
+
+- **Verrouillage de l'application** (Réglages) : un écran de code (4 à 6 chiffres, haché PBKDF2 avec
+  sel, gardé dans le navigateur, **jamais envoyé au serveur**) après un délai d'inactivité —
+  immédiat, 1, 5 ou 15 minutes — et, si l'appareil le permet, l'empreinte ou le code de l'appareil
+  (WebAuthn, comme simple porte locale). **C'est une protection d'écran, pas un chiffrement** : elle ne
+  protège pas contre quelqu'un qui maîtrise le navigateur. Le contenu est masqué avant même le
+  premier affichage. Code oublié : se déconnecter, ce qui efface aussi le verrou.
+- **Présentation** de trois pages au premier lancement, passable et revoyable depuis Réglages.
+- **Journal des chargements** (Réglages) : les 30 derniers chargements de pages — heure, durée,
+  résultat (réussi, données gardées, erreur) — sans date de devoir, identifiant ni valeur.
+
 ## Déploiement (Cloudflare Workers)
 
 `apps/web` tourne en Worker (`@sveltejs/adapter-cloudflare`) plutôt qu'en serveur Node : pas

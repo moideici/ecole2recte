@@ -16,7 +16,8 @@
  */
 
 const TTL_MS = 12 * 60 * 60 * 1000
-const TTL_MAX_MS = 90 * 24 * 60 * 60 * 1000
+// Un coffre d'appareil vit six mois : le plafond doit être au-dessus.
+const TTL_MAX_MS = 200 * 24 * 60 * 60 * 1000
 
 /** Le délai demandé, borné : un en-tête absurde ne doit pas rendre une session éternelle. */
 function ttlDemande(request: Request): number {

@@ -1,5 +1,7 @@
 <script lang="ts">
   import EnTete from '$lib/components/EnTete.svelte'
+  import CetAppareil from '$lib/components/CetAppareil.svelte'
+  import ReglageVerrou from '$lib/components/ReglageVerrou.svelte'
   import { PALETTES, TAILLES } from '$lib/preferences.js'
   import { THEMES, theme } from '$lib/theme.svelte.js'
   import type { PageData } from './$types'
@@ -89,6 +91,9 @@
     envoyé.
   </p>
 </section>
+
+<CetAppareil coffre={data.coffre} journal={data.journal} />
+<ReglageVerrou />
 
 <section class="carte">
   <h2>Session</h2>

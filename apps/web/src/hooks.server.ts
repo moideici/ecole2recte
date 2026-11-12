@@ -1,5 +1,7 @@
 import type { Handle } from '@sveltejs/kit'
 import { activeAccount, COOKIE_NAME, readSession, setSessionCookie } from '$lib/server/session.js'
+import { COOKIE_APPAREIL, rouvrirDepuisCoffre } from '$lib/server/appareil.js'
+import { ajouterAuJournal } from '$lib/server/journal.js'
 import { enFile } from '$lib/server/file.js'
 import { selectStore, ttlFor, withSessionStore } from '$lib/server/store.js'
 import { createHash } from 'node:crypto'
@@ -19,13 +21,32 @@ import { COOKIE_CACHE, pageLisible, raisonRepli } from '$lib/horsLigne.js'
  * à le savoir : voir `withSessionStore` dans `store.ts`.
  */
 
+/**
+ * Une requête qui a besoin d'une session — une page ou ses données — et non un fichier
+ * statique : seules celles-là justifient de rouvrir une session perdue. Rouvrir sur chaque
+ * image ou chaque script serait une rafale de plus.
+ */
+function demandeUneSession(event: Parameters<Handle>[0]['event']): boolean {
+  if (event.request.method !== 'GET') return false
+  const chemin = event.url.pathname
+  if (/^\/(_app|service-worker|manifest|icone|deconnexion)/.test(chemin)) return false
+  return (event.request.headers.get('accept') ?? '').includes('text/html') || chemin.endsWith('/__data.json')
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
   const store = selectStore(event.platform?.env?.SESSIONS)
   const cookie = event.cookies.get(COOKIE_NAME)
+  // Sans session mais avec un coffre d'appareil, la file se fait sur le coffre : les requêtes
+  // d'une même page ne doivent pas rouvrir chacune leur session.
+  const cle = cookie ?? event.cookies.get(COOKIE_APPAREIL)
 
   const traiter = () =>
     withSessionStore(store, async () => {
-      const session = await readSession(event.cookies, store)
+      let session = await readSession(event.cookies, store)
+      // Session perdue (expiration, redéploiement, cookie périmé) mais appareil reconnu : on la
+      // rouvre sans rien demander. La page de connexion n'est plus que le dernier recours.
+      if (!session && demandeUneSession(event)) session = await rouvrirDepuisCoffre(event.cookies, event.url)
+      const debutDeLecture = Date.now()
       event.locals.sessionId = session?.id ?? null
       event.locals.session = session?.record ?? null
 
@@ -43,6 +64,18 @@ export const handle: Handle = async ({ event, resolve }) => {
           raison: raisonRepli(true, lectures.causes),
         })}</script></body>`) : html,
       }))
+
+      // Le journal des chargements : la forme, jamais une valeur.
+      if (session && !session.record.expired && demandeUneSession(event) && pageLisible(event.url.pathname)) {
+        const raison = raisonRepli(true, lectures.causes)
+        ajouterAuJournal(session.record, {
+          at: debutDeLecture,
+          ms: Date.now() - debutDeLecture,
+          page: event.url.pathname,
+          resultat: response.status >= 500 ? 'erreur' : raison ? 'repli' : 'ok',
+        })
+        await store.write(session.id, session.record)
+      }
 
       // Session morte pour de bon (jeton périmé, rien de gardé pour la rouvrir) : on l'efface
       // et on renvoie à la connexion, plutôt que de laisser des sections en erreur.
@@ -92,5 +125,5 @@ export const handle: Handle = async ({ event, resolve }) => {
       return response
     })
 
-  return cookie ? enFile(cookie, traiter) : traiter()
+  return cle ? enFile(cle, traiter) : traiter()
 }

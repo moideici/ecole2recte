@@ -471,3 +471,6 @@ table.tableau tbody tr:hover { background: var(--surface-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-iteration-count: 1 !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Verrouillage : tout sauf l'écran du verrou est masqué, y compris pour les lecteurs d'écran. */
+:root[data-verrou] body > div > :not(.verrou) { visibility: hidden; }

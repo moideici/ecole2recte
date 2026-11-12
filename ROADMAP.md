@@ -84,6 +84,15 @@ sans compte réel », pas « éprouvé sur le terrain ».
 - [x] Emploi du temps : pauses nommées, cours doubles fusionnés, semaine empilée sur mobile.
 - [ ] Revue visuelle de cette refonte en démo à 390/1440 px, clair/sombre et trois profils.
 
+- [x] **Connexion durable** : « Rester connecté » coché par défaut ; coffre d'appareil scellé
+      (identifiants + couple `cn`/`cv`) qui rouvre une session perdue sans mot de passe ni question ;
+      garde-fous de reconnexion inchangés ; cookie de session en `SameSite=Lax` ; secret local généré
+      en développement.
+- [x] Verrouillage de l'application (code PBKDF2 + WebAuthn local), présentation de trois pages,
+      journal des 30 derniers chargements, bloc « Cet appareil » dans Réglages.
+- [ ] Éprouver le coffre d'appareil sur un vrai compte (réouverture après perte de session, question
+      de sécurité évitée) — invérifiable sans compte réel.
+
 ## P3 — Écriture documentée
 
 - [x] Cocher et décocher un devoir (`PUT cahierdetexte.awp`).

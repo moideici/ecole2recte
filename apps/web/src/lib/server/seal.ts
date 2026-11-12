@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { env } from '$env/dynamic/private'
+import { sessionSecret } from './secret.js'
 
 /**
  * Scellement d'une petite valeur destinée à revenir dans un cookie.
@@ -13,8 +14,8 @@ import { env } from '$env/dynamic/private'
  * secret est une erreur franche plutôt qu'un chiffrement décoratif.
  */
 function key(): Buffer {
-  const secret = env['SESSION_SECRET']
-  if (secret && secret.length >= 16) return createHash('sha256').update(secret).digest()
+  const secret = sessionSecret()
+  if (secret) return createHash('sha256').update(secret).digest()
   if (env['NODE_ENV'] === 'production') {
     throw new Error("SESSION_SECRET est absent : refus de sceller avec une clé devinable.")
   }

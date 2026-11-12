@@ -49,6 +49,23 @@ export interface SessionRecord {
   remembered?: string
   /** Quand et combien de fois la session a été rouverte. Le garde-fou contre la rafale. */
   reauth?: { at: number; count: number }
+  /**
+   * L'identifiant du coffre d'appareil (voir `appareil.ts`) dont cette session est issue ou
+   * qu'elle a ouvert. Il sert à le tenir au courant et à l'effacer avec elle.
+   */
+  appareil?: string
+  /**
+   * Cet enregistrement est un **coffre d'appareil**, pas une session : il garde les
+   * identifiants scellés et le couple de confiance pour rouvrir une session perdue.
+   */
+  coffre?: true
+  /** Coffre seulement : la dernière session ouverte depuis lui, pour ne pas en ouvrir deux. */
+  derniere?: { id: string; at: number }
+  /**
+   * Les 30 derniers chargements de pages : quand, combien de temps, et comment ça s'est fini.
+   * Jamais une valeur personnelle — seulement la forme.
+   */
+  journal?: Array<{ at: number; ms: number; page: string; resultat: 'ok' | 'repli' | 'erreur' }>
   snapshots: Record<string, { snapshot: SchoolSnapshot; at: number }>
   /**
    * Les lectures de l'espace professeur, par clé d'appel. Un enseignant qui passe d'une classe
@@ -86,8 +103,15 @@ export const SESSION_TTL_MS = 12 * 60 * 60 * 1000
  */
 export const SESSION_LONGUE_TTL_MS = 30 * 24 * 60 * 60 * 1000
 
-/** La durée de vie qui convient à cette session. */
-export function ttlFor(record: Pick<SessionRecord, 'remembered'>): number {
+/**
+ * Six mois, pour un coffre d'appareil. Le délai glisse : chaque réouverture le repousse, donc
+ * un appareil utilisé reste reconnu, et un appareil abandonné finit par être oublié.
+ */
+export const COFFRE_TTL_MS = 180 * 24 * 60 * 60 * 1000
+
+/** La durée de vie qui convient à cet enregistrement. */
+export function ttlFor(record: Pick<SessionRecord, 'remembered' | 'coffre'>): number {
+  if (record.coffre) return COFFRE_TTL_MS
   return record.remembered ? SESSION_LONGUE_TTL_MS : SESSION_TTL_MS
 }
 

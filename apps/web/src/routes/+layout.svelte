@@ -6,6 +6,8 @@
   import Icone, { type NomIcone } from '$lib/components/Icone.svelte'
   import Lapin from '$lib/components/Lapin.svelte'
   import Bandeau from '$lib/components/Bandeau.svelte'
+  import Verrou from '$lib/components/Verrou.svelte'
+  import Presentation from '$lib/components/Presentation.svelte'
   import type { LayoutData } from './$types'
 
   let { data, children }: { data: LayoutData; children: import('svelte').Snippet } = $props()
@@ -95,6 +97,10 @@
 </script>
 
 <a class="saut-contenu" href="#contenu">Aller au contenu</a>
+{#if data.connecte}
+  <Verrou />
+  <Presentation />
+{/if}
 <svelte:window onkeydown={(event) => {
   if (event.key === 'Escape') {
     if (plus?.open) { plus.open = false; plus.querySelector('summary')?.focus() }

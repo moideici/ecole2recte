@@ -8,7 +8,9 @@ export const COOKIE_NAME = 'e2r'
  * Le cookie de session.
  *
  * `httpOnly` : aucun script de la page ne peut le lire, donc une faille d'injection ne
- * l'emporte pas. `sameSite: strict` : il n'accompagne pas une requête venue d'ailleurs.
+ * l'emporte pas. `sameSite: lax` : il n'accompagne pas une requête d'écriture venue d'ailleurs, mais il
+ * suit un simple lien — avec `strict`, ouvrir le site depuis un message ou un favori d'une
+ * autre application faisait croire à une déconnexion.
  * `secure` hors développement : il ne voyage pas en clair. Il ne contient qu'un identifiant
  * opaque — ni jeton, ni identifiant ÉcoleDirecte, ni rien qui se relise.
  */
@@ -16,7 +18,7 @@ export function setSessionCookie(cookies: Cookies, id: string, secure: boolean, 
   cookies.set(COOKIE_NAME, id, {
     path: '/',
     httpOnly: true,
-    sameSite: 'strict',
+    sameSite: 'lax',
     secure,
     // Aligné sur la vie du magasin : un cookie qui meurt avant la session rend « rester
     // connecté » sans effet, et c'est exactement ce qui se produisait à douze heures.

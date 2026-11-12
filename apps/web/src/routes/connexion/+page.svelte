@@ -90,12 +90,12 @@
       C'est dit sans détour : un mot de passe gardé est un mot de passe gardé.
     -->
     <label class="rester">
-      <input type="checkbox" name="rester" />
+      <input type="checkbox" name="rester" checked />
       <span>
         <strong>Rester connecté</strong>
         <span class="discret" style="display:block;font-size:0.82rem">
-          Le mot de passe est chiffré sur le serveur pour rouvrir la session toute seule
-          quand elle expire. Se déconnecter l’efface.
+          Le mot de passe est chiffré sur le serveur pour rouvrir la session toute seule,
+          sans rien retaper, y compris la question de sécurité. Se déconnecter l’efface.
         </span>
       </span>
     </label>

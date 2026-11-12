@@ -1,13 +1,13 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { observerLecture } from './lecture.js'
 
-const mocks = vi.hoisted(() => ({ lire: vi.fn(), detruire: vi.fn() }))
+const mocks = vi.hoisted(() => ({ lire: vi.fn(), detruire: vi.fn(), ecrire: vi.fn() }))
 vi.mock('$lib/server/session.js', () => ({
   COOKIE_NAME: 'e2r', readSession: mocks.lire, setSessionCookie: vi.fn(),
   activeAccount: () => ({ id: 'profil-a' }),
 }))
 vi.mock('$lib/server/store.js', () => ({
-  selectStore: () => ({ destroy: mocks.detruire }),
+  selectStore: () => ({ destroy: mocks.detruire, write: mocks.ecrire }),
   withSessionStore: (_store: unknown, fn: () => unknown) => fn(),
   ttlFor: () => 12 * 3600_000,
 }))
@@ -16,6 +16,7 @@ import { handle } from '../../hooks.server.js'
 beforeEach(() => {
   mocks.lire.mockResolvedValue({ id: 'session-test', record: { createdAt: Date.now() } })
   mocks.detruire.mockReset()
+  mocks.ecrire.mockReset()
 })
 
 async function requete(path: string, cause?: string) {
@@ -25,7 +26,10 @@ async function requete(path: string, cause?: string) {
     serialize: (nom: string, valeur: string) => `${nom}=${valeur}; Path=/`,
   }
   const response = await handle({
-    event: { cookies, locals: {}, url: new URL(`https://ecole.test${path}`) },
+    event: {
+      cookies, locals: {}, url: new URL(`https://ecole.test${path}`),
+      request: new Request(`https://ecole.test${path}`, { headers: { accept: 'text/html' } }),
+    },
     resolve: async (_event: unknown, options: { transformPageChunk: (chunk: { html: string; done: boolean }) => string }) => {
       observerLecture(1000, cause)
       cookies.set.mockImplementation(() => { throw new Error('cookies.set fermé après resolve') })
