@@ -28,16 +28,16 @@
 </header>
 
 <style>
+  /* L'en-tête de page de l'application (PageHeader) : le titre en 28 gras, le sous-titre discret. */
   .entete {
     display: flex;
     align-items: flex-end;
     gap: 12px;
     flex-wrap: wrap;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--bordure);
+    margin-bottom: 18px;
+    padding: 4px 4px 0;
   }
-  .texte { flex: 1; min-width: 200px; padding-left: 12px; border-left: 5px solid var(--accent); }
-  h1 { color: var(--accent-fort); }
+  .texte { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+  h1 { color: var(--encre); }
   .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 </style>

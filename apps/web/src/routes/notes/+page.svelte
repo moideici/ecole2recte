@@ -340,16 +340,14 @@
 
 <style>
   .generale .chiffres { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  /* La moyenne générale comme dans l'application : le chiffre en 40 gras, « /20 » discret. */
   .grande {
-    font-size: 2.6rem;
+    font-size: 2.5rem;
     font-weight: 700;
     line-height: 1;
-    color: var(--accent-encre);
-    background: var(--accent);
-    padding: 12px 18px;
-    border-radius: var(--rayon);
+    color: var(--encre);
   }
-  .grande .sur { color: inherit; opacity: 0.8; }
+  .grande .sur { color: var(--encre-douce); }
   .sur { font-size: 0.5em; color: var(--encre-douce); font-weight: 600; }
   .reperes { display: flex; gap: 20px; margin: 0; }
   .reperes div { display: flex; flex-direction: column; gap: 2px; }
@@ -359,10 +357,9 @@
   .explication {
     margin-top: 12px;
     padding: 10px 12px;
-    border-left: 3px solid var(--accent);
-    background: var(--accent-doux);
+    background: var(--alerte-doux);
     color: var(--encre);
-    border-radius: 0 var(--rayon-petit) var(--rayon-petit) 0;
+    border-radius: var(--rayon-bouton);
     font-size: 0.88rem;
   }
 

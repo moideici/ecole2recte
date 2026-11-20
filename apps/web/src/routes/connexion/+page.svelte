@@ -15,7 +15,7 @@
 <svelte:head><title>Connexion — ecole2recte</title></svelte:head>
 
 <div class="marque-connexion">
-  <span class="pastille-lapin"><Lapin taille={64} /></span>
+  <span class="pastille-lapin"><Lapin taille={64} corps="#ffffff" trait="var(--accent-plein)" /></span>
   <h1>ecole2recte</h1>
 </div>
 <p class="discret" style="margin-top:6px;text-align:center">
@@ -151,11 +151,12 @@
     place-items: center;
     width: 96px;
     height: 96px;
-    border-radius: 24px;
-    background: var(--bandeau);
+    border-radius: var(--rayon-vedette);
+    background: var(--accent-plein);
     color: #fff;
-    box-shadow: var(--ombre-haute);
   }
+  /* Le nom, comme sur l'écran de connexion de l'application : gras, à l'accent. */
+  .marque-connexion h1 { color: var(--accent-fort); }
   fieldset { border: 0; margin: 0; padding: 0; }
   legend { padding: 0; }
   .choix {
@@ -165,17 +166,17 @@
     min-height: 48px;
     padding: 4px 14px;
     border: 1px solid var(--bordure);
-    border-radius: var(--rayon-petit);
+    border-radius: var(--rayon-bouton);
     background: var(--surface);
     margin-bottom: 8px;
     cursor: pointer;
   }
-  .choix:hover { border-color: var(--accent); }
+  .choix:hover { border-color: var(--accent-fort); }
   .demo { margin-top: 22px; gap: 8px; }
   .option { text-transform: none; letter-spacing: 0; font-weight: 400; opacity: 0.75; font-size: 0.82rem; }
   .avance {
     border: 1px solid var(--bordure);
-    border-radius: var(--rayon-petit);
+    border-radius: var(--rayon-bouton);
     background: var(--surface);
     padding: 10px 14px;
   }
@@ -187,7 +188,7 @@
     min-height: 48px;
     padding: 12px 14px;
     border: 1px solid var(--bordure);
-    border-radius: var(--rayon-petit);
+    border-radius: var(--rayon-bouton);
     background: var(--surface);
     cursor: pointer;
   }

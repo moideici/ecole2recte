@@ -1,17 +1,20 @@
 import { PALETTES, TAILLES, type Palette, type Taille } from './preferences.js'
 
-export type Theme = 'systeme' | 'clair' | 'sombre'
+export type Theme = 'systeme' | 'clair' | 'sombre' | 'noir'
 
 export const THEMES: Array<[Theme, string]> = [
   ['systeme', 'Système'],
   ['clair', 'Clair'],
   ['sombre', 'Sombre'],
+  // Le noir pur de l'application, pour les écrans OLED.
+  ['noir', 'Noir'],
 ]
 
 export const LIBELLE_THEME: Record<Theme, string> = {
   systeme: 'Apparence du système',
   clair: 'Apparence claire',
   sombre: 'Apparence sombre',
+  noir: 'Apparence noire',
 }
 
 /**
@@ -26,16 +29,17 @@ export const LIBELLE_THEME: Record<Theme, string> = {
  */
 class Preference {
   valeur = $state<Theme>('systeme')
-  palette = $state<Palette>('ocean')
+  // Indigo, comme le thème d'origine de l'application.
+  palette = $state<Palette>('indigo')
   taille = $state<Taille>('normal')
 
   /** À appeler une fois monté : avant, `document` n'existe pas côté serveur. */
   relire(): void {
     const racine = document.documentElement
-    this.palette = PALETTES.find(([id]) => id === racine.dataset.palette)?.[0] ?? 'ocean'
+    this.palette = PALETTES.find(([id]) => id === racine.dataset.palette)?.[0] ?? 'indigo'
     this.taille = TAILLES.find(([id]) => id === racine.dataset.taille)?.[0] ?? 'normal'
     const pose = document.documentElement.getAttribute('data-theme')
-    this.valeur = pose === 'clair' || pose === 'sombre' ? pose : 'systeme'
+    this.valeur = pose === 'clair' || pose === 'sombre' || pose === 'noir' ? pose : 'systeme'
   }
 
   appliquer(suivant: Theme): void {
@@ -67,9 +71,9 @@ class Preference {
     }
   }
 
-  /** Le tour du bandeau : système → sombre → clair → système. */
+  /** Le tour du bandeau : système → sombre → clair → système ; le noir se choisit dans les réglages. */
   basculer(): void {
-    this.appliquer(this.valeur === 'systeme' ? 'sombre' : this.valeur === 'sombre' ? 'clair' : 'systeme')
+    this.appliquer(this.valeur === 'systeme' ? 'sombre' : this.valeur === 'clair' ? 'systeme' : 'clair')
   }
 }
 

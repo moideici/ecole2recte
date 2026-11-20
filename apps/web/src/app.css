@@ -1,138 +1,137 @@
 @import './palettes.css';
 
 /*
- * Le système visuel.
- * Jetons : --fond et --surface[-2/-3] portent les fonds ; --encre[-douce] le texte.
- * --accent[-fort/-doux/-encre], --bandeau*, --rail*, --lien et --lapin-trait suivent
- * la palette (palettes.css). --succes/--alerte/--erreur gardent leur sens métier.
- * --taille-texte règle la racine ; --carte-espace, --rayon* et --ombre* harmonisent
- * les cartes et panneaux sans modifier leurs composants.
+ * Le système visuel : celui de l'application Android.
+ *
+ * Les couleurs sont les jetons de l'application (ui/theme/ThemePalette.kt), recopiés dans
+ * palettes.css pour ses cinq thèmes, en clair, en sombre et en noir pur. Les formes aussi :
+ * cartes pleines sans bordure ni ombre (Material 3, élévation nulle), arrondis de 15 px pour
+ * une carte de liste, 18 px pour un bloc de l'accueil, 22 px pour une carte mise en avant,
+ * marge d'écran de 18 px, boutons de 12 px, titres francs en gras, libellés en petites
+ * capitales, et l'élément actif d'une navigation posé sur une pastille d'accent à 16 %.
+ *
+ * Jetons : --fond et --surface[-2/-3] portent les fonds ; --encre[-douce] le texte ;
+ * --accent est l'aplat sous du texte --accent-encre, --accent-fort l'accent lisible en texte,
+ * --accent-doux la pastille d'un élément actif, --accent-plein l'aplat des cartes mises en
+ * avant (texte blanc). --succes/--alerte/--erreur gardent leur sens métier. --bandeau*,
+ * --rail* et --lien sont des alias tenus pour les composants existants.
  *
  * Une seule famille de jetons, définie en clair sur `:root` et redéfinie en sombre. Aucune
  * couleur n'a sa seule définition dans un bloc conditionnel : un thème qui n'a pas prévu un
  * cas donne du texte clair sur fond clair, et personne ne le voit venir.
  *
- * Les tailles suivent la même règle que l'application Android : cibles tactiles d'au moins
- * 44 px, contrastes tenus, et rien qui ne dépende de la couleur seule pour être compris.
- *
- * La disposition reprend celle d'un logiciel de vie scolaire : un bandeau de marque en haut,
- * les sections à gauche, et le contenu en panneaux blancs sur fond gris. C'est une habitude
- * d'usage, pas une coquetterie — on cherche « Notes » là où on a toujours cliqué.
+ * Les tailles suivent la même règle que l'application : cibles tactiles d'au moins 44 px,
+ * contrastes tenus (AA), et rien qui ne dépende de la couleur seule pour être compris.
  */
 
 :root {
   color-scheme: light dark;
 
-  /* Le nuancier de la marque : le bleu prend la place du vert de Pronote ; fond gris clair, panneaux blancs. */
-  --fond: #eef0f2;
-  --surface: #ffffff;
-  --surface-2: #f4f5f7;
-  --surface-3: #e8eaed;
-  --bordure: #dcdfe3;
-  --bordure-douce: #eceef1;
-  --encre: #22262b;
-  --encre-douce: #555d67;
-  --accent: #1d63c4;
-  --accent-fort: #154c9b;
-  --accent-doux: #dce9fb;
-  --accent-encre: #ffffff;
-  --bandeau: #154c9b;
-  --rail: #0f3a78;
-  --rail-encre: #ffffff;
-  --rail-encre-douce: #b4cdf0;
-  --rail-actif: rgb(255 255 255 / 16%);
-  --lapin-trait: #154c9b;
-  --bandeau-encre: #ffffff;
-  --bandeau-encre-douce: #c3d8f5;
-  --lien: #1d63c4;
-  --succes: #1c5700;
-  --succes-doux: #d8f3cb;
-  --alerte: #6d4200;
-  --alerte-doux: #fdeccd;
-  --erreur: #8a0b0b;
-  --erreur-doux: #ffe1e1;
+  --fond: var(--p-fond); --surface: var(--p-surface); --surface-2: var(--p-surface-2); --surface-3: var(--p-surface-3);
+  --bordure: var(--p-bordure); --bordure-douce: var(--p-bordure-douce); --encre: var(--p-encre); --encre-douce: var(--p-encre-douce);
+  --accent-doux: var(--p-accent-doux); --accent-encre: var(--p-accent-encre); --accent: var(--p-accent); --accent-fort: var(--p-accent-fort);
+  --accent-plein: var(--p-accent-plein); --inverse: var(--p-inverse); --succes-doux: var(--p-succes-doux); --succes: var(--p-succes);
+  --erreur-doux: var(--p-erreur-doux); --erreur: var(--p-erreur); --alerte-doux: var(--p-alerte-doux); --alerte: var(--p-alerte);
 
-  --rayon: 0.65rem;
-  --carte-espace: 1rem;
-  --rayon-petit: 0.25rem;
-  --rayon-grand: var(--rayon);
-  --marge: 16px;
-  --ombre: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
+  /* L'application n'a pas de barre de couleur : le haut de l'écran et la navigation sont des surfaces. */
+  --bandeau: var(--surface);
+  --bandeau-encre: var(--encre);
+  --bandeau-encre-douce: var(--encre-douce);
+  --rail: var(--surface);
+  --rail-encre: var(--encre);
+  --rail-encre-douce: var(--encre-douce);
+  --rail-actif: var(--accent-doux);
+  --lapin-trait: var(--surface);
+  --lien: var(--accent-fort);
+
+  /* Les dix couleurs de matière de l'application : aplat à 18 %, texte rendu lisible (AA). */
+  --matiere-0-fond: #e7e7fb; --matiere-0-encre: #595aae;
+  --matiere-1-fond: #e3effb; --matiere-1-encre: #406b97;
+  --matiere-2-fond: #fceee4; --matiere-2-encre: #8f613f;
+  --matiere-3-fond: #e2f3eb; --matiere-3-encre: #377157;
+  --matiere-4-fond: #f9e7eb; --matiere-4-encre: #9c5564;
+  --matiere-5-fond: #ede7f8; --matiere-5-encre: #745ca2;
+  --matiere-6-fond: #dcf2f1; --matiere-6-encre: #287673;
+  --matiere-7-fond: #f8f2de; --matiere-7-encre: #826c2c;
+  --matiere-8-fond: #eaeef2; --matiere-8-encre: #596875;
+  --matiere-9-fond: #f8e9e1; --matiere-9-encre: #975b3f;
+
+  --rayon: 15px;
+  --carte-espace: 18px;
+  --rayon-petit: 10px;
+  --rayon-bouton: 12px;
+  --rayon-grand: 18px;
+  --rayon-vedette: 22px;
+  --marge: 18px;
+  --ombre: none;
   --ombre-haute: 0 4px 12px rgb(16 24 40 / 10%), 0 12px 32px rgb(16 24 40 / 8%);
 
   /*
-   * Montserrat si l'appareil l'a déjà, la police du système sinon : la politique de contenu
-   * n'autorise aucune ressource extérieure, et une police qu'on ne peut pas charger ne doit
-   * pas décider de la mise en page.
+   * La police du système, comme l'application (Roboto sur Android). La politique de contenu
+   * n'autorise aucune ressource extérieure : aucune police n'est téléchargée.
    */
-  --police: 'Montserrat', 'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto,
-    Arial, Helvetica, sans-serif;
+  --police: Roboto, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', 'Helvetica Neue',
+    Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='clair']) {
-    --fond: #16181b;
-    --surface: #23262a;
-    --surface-2: #2c3035;
-    --surface-3: #363b41;
-    --bordure: #3a3f45;
-    --bordure-douce: #2f3338;
-    --encre: #f0efeb;
-    --encre-douce: #bbc2ca;
-    --accent: #6aa6f5;
-    --accent-fort: #4a8ce0;
-    --accent-doux: #12294d;
-    --accent-encre: #07152b;
-    --bandeau: #0d2347;
-  --rail: #0a1a36;
-  --rail-encre: #eaf2ff;
-  --rail-encre-douce: #8fb0e0;
-  --rail-actif: rgb(255 255 255 / 12%);
-  --lapin-trait: #0d2347;
-    --bandeau-encre: #eaf2ff;
-    --bandeau-encre-douce: #8fb0e0;
-    --lien: #62aeec;
-    --succes: #9ee584;
-    --succes-doux: #1d3d12;
-    --alerte: #f7c983;
-    --alerte-doux: #43310f;
-    --erreur: #ffb4b4;
-    --erreur-doux: #3c1414;
-    --ombre: 0 1px 2px rgb(0 0 0 / 45%), 0 1px 3px rgb(0 0 0 / 35%);
+    --fond: var(--pn-fond); --surface: var(--pn-surface); --surface-2: var(--pn-surface-2); --surface-3: var(--pn-surface-3);
+    --bordure: var(--pn-bordure); --bordure-douce: var(--pn-bordure-douce); --encre: var(--pn-encre); --encre-douce: var(--pn-encre-douce);
+    --accent-doux: var(--pn-accent-doux); --accent-encre: var(--pn-accent-encre); --accent: var(--pn-accent); --accent-fort: var(--pn-accent-fort);
+    --accent-plein: var(--pn-accent-plein); --inverse: var(--pn-inverse); --succes-doux: var(--pn-succes-doux); --succes: var(--pn-succes);
+    --erreur-doux: var(--pn-erreur-doux); --erreur: var(--pn-erreur); --alerte-doux: var(--pn-alerte-doux); --alerte: var(--pn-alerte);
+    --matiere-0-fond: #31374f; --matiere-0-encre: #9a9cf5;
+    --matiere-1-fond: #2d3d4e; --matiere-1-encre: #82bdf0;
+    --matiere-2-fond: #413c3c; --matiere-2-encre: #f3b98c;
+    --matiere-3-fond: #2c4142; --matiere-3-encre: #7fd3ad;
+    --matiere-4-fond: #413742; --matiere-4-encre: #f09bac;
+    --matiere-5-fond: #37384e; --matiere-5-encre: #b9a0ec;
+    --matiere-6-fond: #294149; --matiere-6-encre: #6fd3cf;
+    --matiere-7-fond: #3f4039; --matiere-7-encre: #e8cb78;
+    --matiere-8-fond: #343d49; --matiere-8-encre: #adbfd0;
+    --matiere-9-fond: #40383a; --matiere-9-encre: #eba37f;
     --ombre-haute: 0 4px 12px rgb(0 0 0 / 45%), 0 12px 32px rgb(0 0 0 / 35%);
   }
 }
 
 :root[data-theme='sombre'] {
-  --fond: #16181b;
-  --surface: #23262a;
-  --surface-2: #2c3035;
-  --surface-3: #363b41;
-  --bordure: #3a3f45;
-  --bordure-douce: #2f3338;
-  --encre: #f0efeb;
-  --encre-douce: #bbc2ca;
-  --accent: #6aa6f5;
-  --accent-fort: #4a8ce0;
-  --accent-doux: #12294d;
-  --accent-encre: #07152b;
-  --bandeau: #0d2347;
-  --rail: #0a1a36;
-  --rail-encre: #eaf2ff;
-  --rail-encre-douce: #8fb0e0;
-  --rail-actif: rgb(255 255 255 / 12%);
-  --lapin-trait: #0d2347;
-  --bandeau-encre: #eaf2ff;
-  --bandeau-encre-douce: #8fb0e0;
-  --lien: #62aeec;
-  --succes: #9ee584;
-  --succes-doux: #1d3d12;
-  --alerte: #f7c983;
-  --alerte-doux: #43310f;
-  --erreur: #ffb4b4;
-  --erreur-doux: #3c1414;
-  --ombre: 0 1px 2px rgb(0 0 0 / 45%), 0 1px 3px rgb(0 0 0 / 35%);
+  --fond: var(--pn-fond); --surface: var(--pn-surface); --surface-2: var(--pn-surface-2); --surface-3: var(--pn-surface-3);
+  --bordure: var(--pn-bordure); --bordure-douce: var(--pn-bordure-douce); --encre: var(--pn-encre); --encre-douce: var(--pn-encre-douce);
+  --accent-doux: var(--pn-accent-doux); --accent-encre: var(--pn-accent-encre); --accent: var(--pn-accent); --accent-fort: var(--pn-accent-fort);
+  --accent-plein: var(--pn-accent-plein); --inverse: var(--pn-inverse); --succes-doux: var(--pn-succes-doux); --succes: var(--pn-succes);
+  --erreur-doux: var(--pn-erreur-doux); --erreur: var(--pn-erreur); --alerte-doux: var(--pn-alerte-doux); --alerte: var(--pn-alerte);
+  --matiere-0-fond: #31374f; --matiere-0-encre: #9a9cf5;
+  --matiere-1-fond: #2d3d4e; --matiere-1-encre: #82bdf0;
+  --matiere-2-fond: #413c3c; --matiere-2-encre: #f3b98c;
+  --matiere-3-fond: #2c4142; --matiere-3-encre: #7fd3ad;
+  --matiere-4-fond: #413742; --matiere-4-encre: #f09bac;
+  --matiere-5-fond: #37384e; --matiere-5-encre: #b9a0ec;
+  --matiere-6-fond: #294149; --matiere-6-encre: #6fd3cf;
+  --matiere-7-fond: #3f4039; --matiere-7-encre: #e8cb78;
+  --matiere-8-fond: #343d49; --matiere-8-encre: #adbfd0;
+  --matiere-9-fond: #40383a; --matiere-9-encre: #eba37f;
   --ombre-haute: 0 4px 12px rgb(0 0 0 / 45%), 0 12px 32px rgb(0 0 0 / 35%);
+}
+
+/* Noir pur (écrans OLED), comme le mode « Noir » de l'application. */
+:root[data-theme='noir'] {
+  --fond: var(--pnoir-fond); --surface: var(--pnoir-surface); --surface-2: var(--pnoir-surface-2); --surface-3: var(--pnoir-surface-3);
+  --bordure: var(--pnoir-bordure); --bordure-douce: var(--pnoir-bordure-douce); --encre: var(--pnoir-encre); --encre-douce: var(--pnoir-encre-douce);
+  --accent-doux: var(--pnoir-accent-doux); --accent-encre: var(--pnoir-accent-encre); --accent: var(--pnoir-accent); --accent-fort: var(--pnoir-accent-fort);
+  --accent-plein: var(--pnoir-accent-plein); --inverse: var(--pnoir-inverse); --succes-doux: var(--pnoir-succes-doux); --succes: var(--pnoir-succes);
+  --erreur-doux: var(--pnoir-erreur-doux); --erreur: var(--pnoir-erreur); --alerte-doux: var(--pnoir-alerte-doux); --alerte: var(--pnoir-alerte);
+  --matiere-0-fond: #25273b; --matiere-0-encre: #9a9cf5;
+  --matiere-1-fond: #202d3a; --matiere-1-encre: #82bdf0;
+  --matiere-2-fond: #352c28; --matiere-2-encre: #f3b98c;
+  --matiere-3-fond: #20312e; --matiere-3-encre: #7fd3ad;
+  --matiere-4-fond: #34272e; --matiere-4-encre: #f09bac;
+  --matiere-5-fond: #2a2739; --matiere-5-encre: #b9a0ec;
+  --matiere-6-fond: #1d3134; --matiere-6-encre: #6fd3cf;
+  --matiere-7-fond: #332f24; --matiere-7-encre: #e8cb78;
+  --matiere-8-fond: #282d34; --matiere-8-encre: #adbfd0;
+  --matiere-9-fond: #332826; --matiere-9-encre: #eba37f;
+  --ombre-haute: 0 4px 12px rgb(0 0 0 / 60%), 0 12px 32px rgb(0 0 0 / 45%);
 }
 
 * { box-sizing: border-box; }
@@ -150,9 +149,10 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
-h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
-h1 { font-size: 1.5rem; }
-h2 { font-size: 1.05rem; }
+/* Les titres de l'application : 28 pour une page, 18 pour une section, toujours en gras. */
+h1, h2, h3 { line-height: 1.25; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.125rem; }
 h3 { font-size: 0.95rem; }
 p { margin: 0; }
 
@@ -167,9 +167,10 @@ a { color: var(--lien); }
 
 /* ————————————————————————————————————————————————— surfaces */
 
+/* La carte de liste de l'application (ListCard) : pleine, sans bordure ni ombre, 15 px. */
 .carte {
   background: var(--surface);
-  border: 1px solid var(--bordure);
+  border: 0;
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
   padding: var(--carte-espace);
@@ -185,20 +186,21 @@ a.carte, button.carte {
   cursor: pointer;
 }
 
-a.carte:hover, button.carte:hover { border-color: var(--accent); }
+a.carte:hover, button.carte:hover { background: var(--surface-2); }
 
 /*
  * Le panneau : le bloc de contenu d'une section, avec son titre au-dessus.
  *
  * C'est l'unité de lecture de la page — une section ne s'étale pas sur le fond, elle occupe
- * un panneau, et on voit du premier coup d'œil où elle commence et où elle finit.
+ * un panneau, et on voit du premier coup d'œil où elle commence et où elle finit. Il a la
+ * forme d'un bloc de l'accueil de l'application : une carte pleine arrondie à 18 px, posée
+ * sur le fond teinté, sans bordure ni ombre.
  */
 .panneau {
   background: var(--surface);
-  border: 1px solid var(--bordure);
+  border: 0;
   border-radius: var(--rayon-grand);
   box-shadow: var(--ombre);
-  border-top: 3px solid var(--accent);
   overflow: hidden;
 }
 
@@ -207,17 +209,31 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: var(--carte-espace);
-  border-bottom: 1px solid var(--bordure-douce);
+  padding: var(--carte-espace) var(--carte-espace) 6px;
   background: var(--surface);
 }
 
-/* Le titre d'un widget : franc, dans la couleur de la marque, comme l'en-tête d'un widget Pronote. */
+/* Le titre d'une section de l'application (SectionTitle) : 18, gras, à l'encre. */
 .panneau > .tete-panneau h2 {
-  font-size: 1rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  color: var(--accent-fort);
+  color: var(--encre);
 }
+
+/* Une carte mise en avant, comme « Prochain cours » dans l'application : l'aplat d'accent. */
+.panneau.vedette {
+  background: var(--accent-plein);
+  border-radius: var(--rayon-vedette);
+  color: #ffffff;
+}
+.panneau.vedette > .tete-panneau { background: transparent; }
+.panneau.vedette > .tete-panneau h2 {
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.panneau.vedette .discret { color: rgb(255 255 255 / 80%); }
 
 .panneau > .corps-panneau { padding: var(--carte-espace); }
 .panneau > .corps-panneau.serre { padding: 0; }
@@ -226,7 +242,8 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
 .rangee { display: flex; align-items: center; gap: 10px; }
 .espace { flex: 1; }
 .discret { color: var(--encre-douce); font-size: 0.9rem; }
-.minuscule { color: var(--encre-douce); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 650; }
+/* « PROCHAIN COURS » : le libellé en petites capitales de l'application, 12, gras. */
+.minuscule { color: var(--encre-douce); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
 /* ————————————————————————————————————————————————— commandes */
 
@@ -237,28 +254,29 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   gap: 8px;
   min-height: 44px;
   padding: 0 18px;
-  border-radius: var(--rayon-petit);
+  border-radius: var(--rayon-bouton);
   border: 1px solid var(--bordure);
   background: var(--surface);
   color: var(--encre);
   font: inherit;
-  font-weight: 550;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
 }
 
-.bouton:hover { border-color: var(--accent); background: var(--surface-2); }
+.bouton:hover { border-color: var(--accent-fort); background: var(--surface-2); }
 .bouton[disabled] { opacity: 0.55; cursor: not-allowed; }
 .bouton.primaire { background: var(--accent); border-color: var(--accent); color: var(--accent-encre); }
 .bouton.primaire:hover { background: var(--accent-fort); border-color: var(--accent-fort); }
 .bouton.discret-bouton { border-color: transparent; background: transparent; color: var(--encre-douce); }
 
+/* Une puce à choisir : le FilterChip de l'application (8 px, contour, pastille d'accent une fois choisie). */
 .pastille {
   display: inline-flex;
   align-items: center;
   min-height: 36px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: 1px solid var(--bordure);
   background: var(--surface);
   color: var(--encre);
@@ -269,58 +287,59 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
   text-decoration: none;
 }
 
-.pastille:hover { border-color: var(--accent); }
+.pastille:hover { background: var(--surface-2); }
 .pastille[aria-pressed='true'], .pastille[aria-current='true'] {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-encre);
-  font-weight: 600;
+  background: var(--accent-doux);
+  border-color: var(--accent-doux);
+  color: var(--accent-fort);
+  font-weight: 700;
 }
 
 /*
- * Les onglets d'une page : les sous-sections d'un même écran, comme au-dessus d'un cahier de
- * textes. Le trait sous l'onglet actif dit où l'on est même sans couleur.
+ * Les onglets d'une page : les sous-sections d'un même écran — périodes, vues, filtres. Ils
+ * ont la forme des puces de l'application (FilterChip) : une rangée qui défile seule, et
+ * l'onglet choisi posé sur la pastille d'accent, en gras, pour se lire même sans couleur.
  */
 .onglets {
   display: flex;
-  gap: 2px;
+  gap: 8px;
   overflow-x: auto;
-  /* Le trait de l'onglet actif déborde d'un pixel sur la bordure du groupe : sans ce
-     `hidden`, ce pixel suffit à faire apparaître une barre de défilement verticale. */
   overflow-y: hidden;
-  border-bottom: 1px solid var(--bordure);
   margin-bottom: 16px;
+  padding-bottom: 2px;
   scrollbar-width: thin;
 }
 
 .onglets > * {
   appearance: none;
-  border: 0;
-  background: none;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--bordure);
+  border-radius: 8px;
+  background: var(--surface);
   font: inherit;
-  font-size: 0.94rem;
+  font-size: 0.875rem;
   color: var(--encre-douce);
-  padding: 10px 14px;
+  padding: 0 14px;
   min-height: 44px;
   cursor: pointer;
   white-space: nowrap;
-  border-bottom: 3px solid transparent;
   text-decoration: none;
-  margin-bottom: -1px;
 }
 
 .onglets > *:hover { color: var(--encre); background: var(--surface-2); }
 .onglets > [aria-pressed='true'], .onglets > [aria-current='true'], .onglets > [aria-current='page'] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-  font-weight: 650;
+  color: var(--accent-fort);
+  background: var(--accent-doux);
+  border-color: var(--accent-doux);
+  font-weight: 700;
 }
 
 .champ {
   width: 100%;
-  min-height: 44px;
-  padding: 0 12px;
-  border-radius: var(--rayon-petit);
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--rayon-bouton);
   border: 1px solid var(--bordure);
   background: var(--surface);
   color: var(--encre);
@@ -328,12 +347,13 @@ a.carte:hover, button.carte:hover { border-color: var(--accent); }
 }
 
 .champ:hover { border-color: var(--encre-douce); }
+.champ:focus { border-color: var(--accent-fort); outline: 2px solid var(--accent-fort); outline-offset: -1px; }
 
 .erreur {
-  border: 1px solid var(--erreur);
+  border: 0;
   background: var(--erreur-doux);
   color: var(--erreur);
-  border-radius: var(--rayon-petit);
+  border-radius: var(--rayon-bouton);
   padding: 12px 14px;
   font-size: 0.92rem;
 }
@@ -390,9 +410,9 @@ table.tableau tbody tr:hover { background: var(--surface-2); }
   align-items: center;
   gap: 5px;
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 700;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: 8px;
   background: var(--surface-3);
   color: var(--encre-douce);
   white-space: nowrap;
@@ -417,49 +437,12 @@ table.tableau tbody tr:hover { background: var(--surface-2); }
 }
 .saut-contenu:focus { left: 0; }
 
-/* Les alias conservent les noms consommés par les composants existants. */
-:root {
-  --accent: var(--palette-accent);
-  --accent-fort: var(--palette-fort);
-  --accent-doux: var(--palette-doux);
-  --bandeau: var(--palette-fort);
-  --rail: var(--palette-fort);
-  --rail-encre-douce: #ffffff;
-  --bandeau-encre-douce: #ffffff;
-  --lapin-trait: var(--palette-fort);
-  --lien: var(--palette-accent);
-}
 :root[data-theme='clair'] { color-scheme: light; }
-:root[data-theme='sombre'] { color-scheme: dark; }
+:root[data-theme='sombre'], :root[data-theme='noir'] { color-scheme: dark; }
 :root[data-taille='petit'] { --taille-texte: 87.5%; }
 :root[data-taille='normal'] { --taille-texte: 100%; }
 :root[data-taille='grand'] { --taille-texte: 112.5%; }
 :root[data-taille='tres-grand'] { --taille-texte: 125%; }
-
-:root[data-theme='sombre'] {
-  --accent: var(--palette-nuit);
-  --accent-fort: var(--palette-nuit);
-  --accent-doux: var(--palette-nuit-doux);
-  --bandeau: var(--palette-nuit-doux);
-  --rail: var(--palette-nuit-doux);
-  --rail-encre-douce: #eaf2ff;
-  --bandeau-encre-douce: #eaf2ff;
-  --lapin-trait: var(--palette-nuit);
-  --lien: var(--palette-nuit);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='clair']) {
-    --accent: var(--palette-nuit);
-    --accent-fort: var(--palette-nuit);
-    --accent-doux: var(--palette-nuit-doux);
-    --bandeau: var(--palette-nuit-doux);
-    --rail: var(--palette-nuit-doux);
-    --rail-encre-douce: #eaf2ff;
-    --bandeau-encre-douce: #eaf2ff;
-    --lapin-trait: var(--palette-nuit);
-    --lien: var(--palette-nuit);
-  }
-}
 
 /* Un halo double reste visible sur les surfaces comme sur le bandeau. */
 :focus-visible { outline: 3px solid var(--encre); box-shadow: 0 0 0 5px var(--surface); }
