@@ -50,7 +50,8 @@
 </script>
 
 {#if id === 'maintenant'}
-  <section class="panneau">
+  <!-- La carte « Prochain cours » de l'application : l'aplat d'accent, quand il y a un cours à montrer. -->
+  <section class="panneau" class:vedette={tete !== null}>
     <div class="tete-panneau"><h2>{data.enCours ? 'En ce moment' : 'Prochain cours'}</h2></div>
     <div class="corps-panneau pile">
       {#if tete}
@@ -626,7 +627,7 @@
   }
 
   .chiffres { display: flex; align-items: center; gap: 18px; text-decoration: none; color: inherit; flex-wrap: wrap; }
-  .grand { font-size: 2.2rem; font-weight: 700; line-height: 1; color: var(--accent); }
+  .grand { font-size: 2.2rem; font-weight: 700; line-height: 1; color: var(--encre); }
   .grand.rouge { color: var(--erreur); }
   .sur { font-size: 0.45em; color: var(--encre-douce); font-weight: 600; }
   .reperes { display: flex; gap: 16px; }
@@ -635,6 +636,10 @@
 
   .jauge { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
   .jauge span { display: block; height: 100%; background: var(--accent); }
+  /* Sur l'aplat d'accent, l'anneau de progression de l'application : blanc sur blanc translucide. */
+  :global(.vedette) .jauge { background: rgb(255 255 255 / 25%); }
+  :global(.vedette) .jauge span { background: #ffffff; }
+  :global(.vedette) .suite { border-top-color: rgb(255 255 255 / 25%); }
 
   .salle-geante { font-size: 2.6rem; font-weight: 700; line-height: 1; color: var(--encre-matiere); }
 

@@ -4,15 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <!-- La couleur de la barre du navigateur suit celle du bandeau, dans les deux thèmes. -->
-    <meta name="theme-color" content="#154c9b" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0d2347" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a212b" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icone.svg" type="image/svg+xml" />
     <!--
       Aucune feuille de style ni police venue d'ailleurs : la politique de contenu posée dans
       `hooks.server.ts` n'autorise que `'self'`, et un `<link>` vers Google Fonts ne chargeait
-      donc rien — tout en annonçant l'adresse de qui visite à un tiers. La pile de polices de
-      `app.css` prend Montserrat si l'appareil l'a déjà, et celle du système sinon.
+      donc rien — tout en annonçant l'adresse de qui visite à un tiers. Comme l'application,
+      `app.css` prend la police du système (Roboto sur Android).
     -->
     <!--
       Le thème choisi, appliqué **avant** le premier pixel.
@@ -30,7 +30,7 @@
         var v = JSON.parse(localStorage.getItem('e2r-verrou') || 'null')
         if (v && typeof v.delai === 'number' && (v.delai === 0 || Date.now() - (Number(localStorage.getItem('e2r-activite')) || 0) >= v.delai * 60000)) document.documentElement.setAttribute('data-verrou', '1')
         var t = localStorage.getItem('e2r-theme')
-        if (t === 'clair' || t === 'sombre') document.documentElement.setAttribute('data-theme', t)
+        if (t === 'clair' || t === 'sombre' || t === 'noir') document.documentElement.setAttribute('data-theme', t)
       } catch (e) {
         // Navigation privée, stockage refusé : le thème du système fera l'affaire.
       }

@@ -1,36 +1,114 @@
-/* Les deux variantes restent explicites pour suivre le système sans JavaScript. */
+/*
+ * Les cinq thèmes de couleurs de l'application Android (ui/theme/ThemePalette.kt), repris à
+ * l'identique : encre, encre douce, fond, surface, accent, aplat d'accent, succès, erreur,
+ * surface inverse et fond d'alerte sont les valeurs ARGB de l'application, en clair, en sombre
+ * et en noir pur (OLED). Les teintes dérivées suivent ses règles : accent à 16 % sous un
+ * élément actif (M3 secondaryContainer), aplat d'accent à 45 % en sombre, fonds de statut à
+ * 12 %, et un texte coloré rapproché du noir ou du blanc jusqu'au contraste AA (4,5:1),
+ * comme `Contrast.readableOn`.
+ *
+ * Préfixes : --p-* pour le clair, --pn-* pour le sombre, --pnoir-* pour le noir pur.
+ * Les deux variantes restent explicites pour suivre le système sans JavaScript.
+ */
 :root {
-  --palette-accent: #1d63c4;
-  --palette-fort: #154c9b;
-  --palette-doux: #dce9fb;
-  --palette-nuit: #87b8fa;
-  --palette-nuit-doux: #12294d;
+  --p-fond: #f5f7fb; --p-surface: #ffffff; --p-surface-2: #f5f7fb; --p-surface-3: #e8eaef;
+  --p-bordure: #e3e4e6; --p-bordure-douce: #f1f2f2; --p-encre: #18202b; --p-encre-douce: #5b6675;
+  --p-accent-doux: #e5e6fb; --p-accent-encre: #ffffff; --p-accent: #5c62e8; --p-accent-fort: #5156cf;
+  --p-accent-plein: #5c62e8; --p-inverse: #202935; --p-succes-doux: #e4f0eb; --p-succes: #1d7854;
+  --p-erreur-doux: #f6e8ea; --p-erreur: #b3404c; --p-alerte-doux: #fff7ed; --p-alerte: #8a4f12;
+  --pn-fond: #0f131a; --pn-surface: #1a212b; --pn-surface-2: #262d37; --pn-surface-3: #333943;
+  --pn-bordure: #3b424b; --pn-bordure-douce: #2d333d; --pn-encre: #e9edf3; --pn-encre-douce: #a5afbd;
+  --pn-accent-doux: #303678; --pn-accent-encre: #10131f; --pn-accent: #a2a6ff; --pn-accent-fort: #a2a6ff;
+  --pn-accent-plein: #4a50d6; --pn-inverse: #2a3342; --pn-succes-doux: #223639; --pn-succes: #5fd3a2;
+  --pn-erreur-doux: #352e38; --pn-erreur: #ff8c96; --pn-alerte-doux: #33281a; --pn-alerte: #ffc27a;
+  --pnoir-fond: #000000; --pnoir-surface: #0b0d12; --pnoir-surface-2: #181a20; --pnoir-surface-3: #26282d;
+  --pnoir-bordure: #2f3136; --pnoir-bordure-douce: #1f2126; --pnoir-encre: #e9edf3; --pnoir-encre-douce: #a5afbd;
+  --pnoir-accent-doux: #272b6a; --pnoir-accent-encre: #10131f; --pnoir-accent: #a2a6ff; --pnoir-accent-fort: #a2a6ff;
+  --pnoir-accent-plein: #4a50d6; --pnoir-inverse: #2a3342; --pnoir-succes-doux: #152523; --pnoir-succes: #5fd3a2;
+  --pnoir-erreur-doux: #281c22; --pnoir-erreur: #ff8c96; --pnoir-alerte-doux: #33281a; --pnoir-alerte: #ffc27a;
 }
 :root[data-palette=indigo] {
-  --palette-accent: #5144ac;
-  --palette-fort: #40338e;
-  --palette-doux: #e8e4fa;
-  --palette-nuit: #b9afff;
-  --palette-nuit-doux: #292341;
+  --p-fond: #f5f7fb; --p-surface: #ffffff; --p-surface-2: #f5f7fb; --p-surface-3: #e8eaef;
+  --p-bordure: #e3e4e6; --p-bordure-douce: #f1f2f2; --p-encre: #18202b; --p-encre-douce: #5b6675;
+  --p-accent-doux: #e5e6fb; --p-accent-encre: #ffffff; --p-accent: #5c62e8; --p-accent-fort: #5156cf;
+  --p-accent-plein: #5c62e8; --p-inverse: #202935; --p-succes-doux: #e4f0eb; --p-succes: #1d7854;
+  --p-erreur-doux: #f6e8ea; --p-erreur: #b3404c; --p-alerte-doux: #fff7ed; --p-alerte: #8a4f12;
+  --pn-fond: #0f131a; --pn-surface: #1a212b; --pn-surface-2: #262d37; --pn-surface-3: #333943;
+  --pn-bordure: #3b424b; --pn-bordure-douce: #2d333d; --pn-encre: #e9edf3; --pn-encre-douce: #a5afbd;
+  --pn-accent-doux: #303678; --pn-accent-encre: #10131f; --pn-accent: #a2a6ff; --pn-accent-fort: #a2a6ff;
+  --pn-accent-plein: #4a50d6; --pn-inverse: #2a3342; --pn-succes-doux: #223639; --pn-succes: #5fd3a2;
+  --pn-erreur-doux: #352e38; --pn-erreur: #ff8c96; --pn-alerte-doux: #33281a; --pn-alerte: #ffc27a;
+  --pnoir-fond: #000000; --pnoir-surface: #0b0d12; --pnoir-surface-2: #181a20; --pnoir-surface-3: #26282d;
+  --pnoir-bordure: #2f3136; --pnoir-bordure-douce: #1f2126; --pnoir-encre: #e9edf3; --pnoir-encre-douce: #a5afbd;
+  --pnoir-accent-doux: #272b6a; --pnoir-accent-encre: #10131f; --pnoir-accent: #a2a6ff; --pnoir-accent-fort: #a2a6ff;
+  --pnoir-accent-plein: #4a50d6; --pnoir-inverse: #2a3342; --pnoir-succes-doux: #152523; --pnoir-succes: #5fd3a2;
+  --pnoir-erreur-doux: #281c22; --pnoir-erreur: #ff8c96; --pnoir-alerte-doux: #33281a; --pnoir-alerte: #ffc27a;
+}
+:root[data-palette=ocean] {
+  --p-fond: #eef6f8; --p-surface: #ffffff; --p-surface-2: #eef6f8; --p-surface-3: #e1e9ec;
+  --p-bordure: #e2e5e6; --p-bordure-douce: #f1f2f2; --p-encre: #10242b; --p-encre-douce: #4f6670;
+  --p-accent-doux: #d8e9eb; --p-accent-encre: #ffffff; --p-accent: #0a7585; --p-accent-fort: #096f7e;
+  --p-accent-plein: #0a7585; --p-inverse: #143039; --p-succes-doux: #e4efeb; --p-succes: #1b7a55;
+  --p-erreur-doux: #f6e8ea; --p-erreur: #b3404c; --p-alerte-doux: #fff7ed; --p-alerte: #8a4f12;
+  --pn-fond: #0a1518; --pn-surface: #13252a; --pn-surface-2: #203136; --pn-surface-3: #2c3d42;
+  --pn-bordure: #34464a; --pn-bordure-douce: #26373c; --pn-encre: #e4f1f3; --pn-encre-douce: #9fb8bf;
+  --pn-accent-doux: #0f4853; --pn-accent-encre: #10131f; --pn-accent: #5fd0e0; --pn-accent-fort: #5fd0e0;
+  --pn-accent-plein: #0b7285; --pn-inverse: #1f3a42; --pn-succes-doux: #1c3a38; --pn-succes: #5fd3a2;
+  --pn-erreur-doux: #2f3137; --pn-erreur: #ff8c96; --pn-alerte-doux: #33281a; --pn-alerte: #ffc27a;
+  --pnoir-fond: #000000; --pnoir-surface: #070f11; --pnoir-surface-2: #141d1f; --pnoir-surface-3: #222a2c;
+  --pnoir-bordure: #2a3335; --pnoir-bordure-douce: #1b2325; --pnoir-encre: #e4f1f3; --pnoir-encre-douce: #9fb8bf;
+  --pnoir-accent-doux: #093c45; --pnoir-accent-encre: #10131f; --pnoir-accent: #5fd0e0; --pnoir-accent-fort: #5fd0e0;
+  --pnoir-accent-plein: #0b7285; --pnoir-inverse: #1f3a42; --pnoir-succes-doux: #122722; --pnoir-succes: #5fd3a2;
+  --pnoir-erreur-doux: #251e21; --pnoir-erreur: #ff8c96; --pnoir-alerte-doux: #33281a; --pnoir-alerte: #ffc27a;
 }
 :root[data-palette=foret] {
-  --palette-accent: #246b48;
-  --palette-fort: #195438;
-  --palette-doux: #def0e5;
-  --palette-nuit: #8cd5ae;
-  --palette-nuit-doux: #173829;
+  --p-fond: #f1f7f1; --p-surface: #ffffff; --p-surface-2: #f1f7f1; --p-surface-3: #e4eae4;
+  --p-bordure: #e3e5e4; --p-bordure-douce: #f1f2f1; --p-encre: #14231a; --p-encre-douce: #53665a;
+  --p-accent-doux: #deeade; --p-accent-encre: #ffffff; --p-accent: #2e7d32; --p-accent-fort: #2b762f;
+  --p-accent-plein: #2e7d32; --p-inverse: #1b2d20; --p-succes-doux: #e4eee9; --p-succes: #1b6e47;
+  --p-erreur-doux: #f6e8ea; --p-erreur: #b3404c; --p-alerte-doux: #fff7ed; --p-alerte: #8a4f12;
+  --pn-fond: #0d140e; --pn-surface: #162118; --pn-surface-2: #222d24; --pn-surface-3: #2f3a31;
+  --pn-bordure: #374239; --pn-bordure-douce: #29342b; --pn-encre: #e6f0e8; --pn-encre-douce: #a3b8a8;
+  --pn-accent-doux: #214a24; --pn-accent-encre: #10131f; --pn-accent: #7fd68a; --pn-accent-fort: #7fd68a;
+  --pn-accent-plein: #2e7d32; --pn-inverse: #223326; --pn-succes-doux: #233726; --pn-succes: #7fd68a;
+  --pn-erreur-doux: #322e27; --pn-erreur: #ff8c96; --pn-alerte-doux: #33281a; --pn-alerte: #ffc27a;
+  --pnoir-fond: #000000; --pnoir-surface: #0a100b; --pnoir-surface-2: #171d18; --pnoir-surface-3: #242b26;
+  --pnoir-bordure: #2d342e; --pnoir-bordure-douce: #1e241f; --pnoir-encre: #e6f0e8; --pnoir-encre-douce: #a3b8a8;
+  --pnoir-accent-doux: #1a411d; --pnoir-accent-encre: #10131f; --pnoir-accent: #7fd68a; --pnoir-accent-fort: #7fd68a;
+  --pnoir-accent-plein: #2e7d32; --pnoir-inverse: #223326; --pnoir-succes-doux: #18281a; --pnoir-succes: #7fd68a;
+  --pnoir-erreur-doux: #271f1c; --pnoir-erreur: #ff8c96; --pnoir-alerte-doux: #33281a; --pnoir-alerte: #ffc27a;
 }
 :root[data-palette=coucher] {
-  --palette-accent: #a23d20;
-  --palette-fort: #822d17;
-  --palette-doux: #fbe5db;
-  --palette-nuit: #ffb296;
-  --palette-nuit-doux: #45271e;
+  --p-fond: #fff5f0; --p-surface: #ffffff; --p-surface-2: #fff5f0; --p-surface-3: #f2e8e3;
+  --p-bordure: #e5e4e4; --p-bordure-douce: #f2f1f2; --p-encre: #2a1a1f; --p-encre-douce: #6b5058;
+  --p-accent-doux: #f5e1d8; --p-accent-encre: #ffffff; --p-accent: #c2410c; --p-accent-fort: #ae3a0a;
+  --p-accent-plein: #c2410c; --p-inverse: #3a2025; --p-succes-doux: #e4f0eb; --p-succes: #1d7854;
+  --p-erreur-doux: #f6e5e8; --p-erreur: #b3263f; --p-alerte-doux: #fff1e0; --p-alerte: #8a4f12;
+  --pn-fond: #1a0f10; --pn-surface: #281a1b; --pn-surface-2: #342627; --pn-surface-3: #413333;
+  --pn-bordure: #493b3b; --pn-bordure-douce: #3b2d2d; --pn-encre: #f6e9e6; --pn-encre-douce: #c2a9a9;
+  --pn-accent-doux: #6d2c14; --pn-accent-encre: #10131f; --pn-accent: #ff9e7a; --pn-accent-fort: #ff9e7a;
+  --pn-accent-plein: #c2410c; --pn-inverse: #3a2325; --pn-succes-doux: #2f302b; --pn-succes: #5fd3a2;
+  --pn-erreur-doux: #42282a; --pn-erreur: #ff8c96; --pn-alerte-doux: #33281a; --pn-alerte: #ffc27a;
+  --pnoir-fond: #000000; --pnoir-surface: #130b0c; --pnoir-surface-2: #211819; --pnoir-surface-3: #2e2626;
+  --pnoir-bordure: #372f2f; --pnoir-bordure-douce: #271f20; --pnoir-encre: #f6e9e6; --pnoir-encre-douce: #c2a9a9;
+  --pnoir-accent-doux: #62230c; --pnoir-accent-encre: #10131f; --pnoir-accent: #ff9e7a; --pnoir-accent-fort: #ff9e7a;
+  --pnoir-accent-plein: #c2410c; --pnoir-inverse: #3a2325; --pnoir-succes-doux: #1c231e; --pnoir-succes: #5fd3a2;
+  --pnoir-erreur-doux: #2f1a1d; --pnoir-erreur: #ff8c96; --pnoir-alerte-doux: #33281a; --pnoir-alerte: #ffc27a;
 }
 :root[data-palette=ardoise] {
-  --palette-accent: #4c6076;
-  --palette-fort: #35485d;
-  --palette-doux: #e4eaf1;
-  --palette-nuit: #b1c7de;
-  --palette-nuit-doux: #24313f;
+  --p-fond: #f1f4f7; --p-surface: #ffffff; --p-surface-2: #f1f4f7; --p-surface-3: #e4e7eb;
+  --p-bordure: #e4e5e6; --p-bordure-douce: #f1f2f2; --p-encre: #1b232c; --p-encre-douce: #566371;
+  --p-accent-doux: #e0e5eb; --p-accent-encre: #ffffff; --p-accent: #3f5f85; --p-accent-fort: #3f5f85;
+  --p-accent-plein: #3f5f85; --p-inverse: #232c36; --p-succes-doux: #e4efeb; --p-succes: #1b7a55;
+  --p-erreur-doux: #f6e8ea; --p-erreur: #b3404c; --p-alerte-doux: #fff7ed; --p-alerte: #8a4f12;
+  --pn-fond: #12171c; --pn-surface: #1c242c; --pn-surface-2: #283038; --pn-surface-3: #343c44;
+  --pn-bordure: #3c444b; --pn-bordure-douce: #2e363e; --pn-encre: #e6ebf0; --pn-encre-douce: #a4afbb;
+  --pn-accent-doux: #2c3f54; --pn-accent-encre: #10131f; --pn-accent: #9db7d5; --pn-accent-fort: #9db7d5;
+  --pn-accent-plein: #3f5f85; --pn-inverse: #2c3642; --pn-succes-doux: #24393a; --pn-succes: #5fd3a2;
+  --pn-erreur-doux: #373039; --pn-erreur: #ff8c96; --pn-alerte-doux: #33281a; --pn-alerte: #ffc27a;
+  --pnoir-fond: #000000; --pnoir-surface: #0d1115; --pnoir-surface-2: #1a1e22; --pnoir-surface-3: #272b2f;
+  --pnoir-bordure: #303438; --pnoir-bordure-douce: #212529; --pnoir-encre: #e6ebf0; --pnoir-encre-douce: #a4afbb;
+  --pnoir-accent-doux: #243447; --pnoir-accent-encre: #10131f; --pnoir-accent: #9db7d5; --pnoir-accent-fort: #9db7d5;
+  --pnoir-accent-plein: #3f5f85; --pnoir-inverse: #2c3642; --pnoir-succes-doux: #172826; --pnoir-succes: #5fd3a2;
+  --pnoir-erreur-doux: #2a2024; --pnoir-erreur: #ff8c96; --pnoir-alerte-doux: #33281a; --pnoir-alerte: #ffc27a;
 }

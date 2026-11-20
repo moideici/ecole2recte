@@ -44,6 +44,8 @@
   {#if recents.length === 0}
     <p class="discret">Rien pour l’instant : les 30 derniers chargements de pages apparaîtront ici.</p>
   {:else}
+    <!-- Un chemin long élargit le tableau : il défile seul, jamais la page (téléphone). -->
+    <div class="enveloppe-large">
     <table class="tableau">
       <thead><tr><th scope="col">Heure</th><th scope="col">Page</th><th scope="col">Durée</th><th scope="col">Résultat</th></tr></thead>
       <tbody>
@@ -57,6 +59,7 @@
         {/each}
       </tbody>
     </table>
+    </div>
     <p class="discret" style="margin-top:8px">Seule la forme est gardée : pas de date de devoir, pas de nom, pas de note.</p>
   {/if}
 </section>

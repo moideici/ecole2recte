@@ -126,7 +126,7 @@
 
   <header class="bandeau">
     <a class="marque" href={data.profil?.prof ? '/prof' : '/'} aria-label="ecole2recte, accueil">
-      <Lapin taille={34} />
+      <span class="pastille-marque"><Lapin taille={26} corps="#ffffff" trait="var(--accent-plein)" /></span>
       <span>ecole2recte</span>
     </a>
     <span class="espace"></span>
@@ -159,7 +159,7 @@
       title={LIBELLE_THEME[theme.valeur]}
       aria-label={LIBELLE_THEME[theme.valeur]}
     >
-      <Icone nom={theme.valeur === 'sombre' ? 'lune' : theme.valeur === 'clair' ? 'soleil' : 'auto'} />
+      <Icone nom={theme.valeur === 'sombre' || theme.valeur === 'noir' ? 'lune' : theme.valeur === 'clair' ? 'soleil' : 'auto'} />
     </button>
   </header>
 
@@ -221,7 +221,9 @@
 {/if}
 
 <style>
-  .seul { max-width: 460px; margin: 0 auto; padding: 48px 20px; }
+  /* La connexion dans une carte, comme dans l'application : surface pleine arrondie à 24 px. */
+  .seul { width: auto; max-width: 460px; margin: 40px auto; padding: 32px 24px; background: var(--surface); border-radius: 24px; }
+  @media (max-width: 500px) { .seul { margin: 16px; padding: 28px 20px; } }
 
   .progression {
     position: fixed;
@@ -248,21 +250,30 @@
     align-items: center;
     gap: 12px;
     padding: 0 var(--marge);
-    min-height: 56px;
+    min-height: 60px;
     background: var(--bandeau);
     color: var(--bandeau-encre);
-    box-shadow: var(--ombre);
+    border-bottom: 1px solid var(--bordure-douce);
   }
 
+  /* La marque comme sur l'écran de connexion de l'application : le nom en gras, à l'accent. */
   .marque {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-weight: 700;
     letter-spacing: -0.01em;
     font-size: 1.1rem;
-    color: inherit;
+    color: var(--accent-fort);
     text-decoration: none;
+  }
+  .pastille-marque {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--accent-plein);
   }
 
   .identite {
@@ -275,22 +286,23 @@
     text-decoration: none;
     min-height: 44px;
   }
-  .identite:hover { background: var(--rail-actif); }
+  .identite:hover { background: var(--surface-2); }
 
+  /* L'avatar de l'application : un rond plein à l'accent, initiales blanches en gras. */
   .avatar {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     flex: none;
     border-radius: 999px;
-    background: var(--bandeau-encre);
-    color: var(--bandeau);
+    background: var(--accent-plein);
+    color: #ffffff;
     font-weight: 700;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
   }
-  .avatar.petit { width: 28px; height: 28px; font-size: 0.72rem; background: var(--accent); color: var(--accent-encre); }
+  .avatar.petit { width: 28px; height: 28px; font-size: 0.72rem; }
 
   .nom { display: block; font-weight: 600; font-size: 0.92rem; }
 
@@ -310,7 +322,7 @@
     font-size: 0.9rem;
     cursor: pointer;
   }
-  .sortir:hover { background: var(--rail-actif); }
+  .sortir:hover { background: var(--surface-2); }
 
   /* ——————————————————————————————————————————— corps */
 
@@ -333,7 +345,7 @@
     text-align: left;
     min-height: 44px;
     padding: 6px 10px;
-    border-radius: var(--rayon-petit);
+    border-radius: var(--rayon-bouton);
     border: 1px solid var(--bordure);
     background: var(--surface);
     color: var(--encre);
@@ -346,36 +358,35 @@
   .demo {
     margin-bottom: 16px;
     padding: 10px 14px;
-    border: 1px solid var(--accent);
-    border-radius: var(--rayon-petit);
+    border-radius: var(--rayon-bouton);
     background: var(--accent-doux);
     color: var(--accent-fort);
     font-size: 0.9rem;
   }
 
   nav[aria-label='Sections'] ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  /* L'élément actif sur la pastille d'accent à 16 %, comme la barre de navigation de l'application. */
   nav[aria-label='Sections'] a {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: var(--rayon-petit);
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 999px;
     color: var(--rail-encre-douce);
     text-decoration: none;
-    min-height: 44px;
+    min-height: 48px;
     font-size: 0.94rem;
-    border-left: 3px solid transparent;
   }
-  nav[aria-label='Sections'] a:hover { background: var(--rail-actif); color: var(--rail-encre); }
+  nav[aria-label='Sections'] a:hover { background: var(--surface-2); color: var(--rail-encre); }
   nav[aria-label='Sections'] a[aria-current='page'] {
     background: var(--rail-actif);
     color: var(--rail-encre);
-    font-weight: 650;
-    border-left-color: var(--rail-encre);
+    font-weight: 700;
   }
 
   /* ——————————————————————————————————————————— barre basse */
 
+  /* La barre basse de l'application (NavigationBar) : surface, icône sur une pastille quand l'entrée est active. */
   .basse {
     position: fixed;
     inset: auto 0 0 0;
@@ -383,8 +394,8 @@
     grid-template-columns: repeat(5, 1fr);
     gap: 2px;
     background: var(--surface);
-    border-top: 1px solid var(--bordure);
-    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--bordure-douce);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
     z-index: 20;
   }
   .basse > a, .plus > summary {
@@ -392,10 +403,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    min-height: 48px;
-    padding: 4px 2px;
-    font-size: 0.74rem;
+    gap: 4px;
+    min-height: 56px;
+    padding: 2px;
+    font-size: 0.75rem;
     text-align: center;
     color: var(--encre-douce);
     text-decoration: none;
@@ -406,13 +417,15 @@
     cursor: pointer;
     line-height: 1.15;
   }
-  .basse a[aria-current='page'], .plus > summary.actif { background: var(--accent-doux); color: var(--accent-fort); font-weight: 650; }
+  .basse > a :global(svg), .plus > summary :global(svg) { box-sizing: content-box; padding: 4px 18px; border-radius: 999px; }
+  .basse a[aria-current='page'], .plus > summary.actif { color: var(--encre); font-weight: 700; }
+  .basse a[aria-current='page'] :global(svg), .plus > summary.actif :global(svg) { background: var(--accent-doux); color: var(--accent-fort); }
   .basse span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 
   .tiroir {
     position: fixed;
     inset: auto 8px calc(68px + env(safe-area-inset-bottom)) 8px;
-    max-height: 70dvh; overflow-y: auto; padding: 16px; background: var(--surface); color: var(--encre); border: 1px solid var(--bordure); border-radius: var(--rayon-grand); box-shadow: var(--ombre-haute);
+    max-height: 70dvh; overflow-y: auto; padding: 18px; background: var(--surface); color: var(--encre); border-radius: var(--rayon-vedette); box-shadow: var(--ombre-haute);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -420,15 +433,15 @@
   }
   .tiroir a { display: flex; align-items: center; gap: 10px; text-decoration: none; min-height: 44px; padding: 8px; }
 
-  .groupe { margin: 16px 12px 4px; font-size: 0.74rem; font-weight: 700; color: var(--rail-encre-douce); }
+  .groupe { margin: 18px 16px 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rail-encre-douce); }
   summary { cursor: pointer; list-style: none; }
   summary::-webkit-details-marker { display: none; }
   .compte { position: relative; min-width: 0; }
   .identite .nom { max-width: 30vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .menu-compte { position: absolute; right: 0; top: 100%; width: min(320px, calc(100vw - 32px)); display: grid; gap: 12px; padding: 16px; background: var(--surface); color: var(--encre); box-shadow: var(--ombre-haute); border: 1px solid var(--bordure); border-radius: var(--rayon); }
+  .menu-compte { position: absolute; right: 0; top: 100%; width: min(320px, calc(100vw - 32px)); display: grid; gap: 12px; padding: 18px; background: var(--surface); color: var(--encre); box-shadow: var(--ombre-haute); border-radius: var(--rayon-vedette); }
   .menu-compte > a { min-height: 44px; display: flex; align-items: center; }
   @media (max-width: 480px) {
-    .marque > span { display: none; }
+    .marque > span:last-child { display: none; }
     .bandeau { gap: 4px; }
     .identite { gap: 6px; padding: 5px; }
   }
@@ -441,11 +454,11 @@
       flex-direction: column;
       gap: 12px;
       position: sticky;
-      top: 56px;
-      height: calc(100vh - 56px);
-      padding: 16px 10px;
+      top: 60px;
+      height: calc(100vh - 60px);
+      padding: 12px 12px;
       overflow-y: auto;
-      border-right: 0;
+      border-right: 1px solid var(--bordure-douce);
       background: var(--rail);
       color: var(--rail-encre);
     }

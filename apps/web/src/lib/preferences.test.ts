@@ -31,17 +31,19 @@ const paires = [
   ['bandeau-encre', 'bandeau'], ['bandeau-encre-douce', 'bandeau'],
   ['rail-encre', 'rail'], ['rail-encre-douce', 'rail'],
   ...['succes', 'alerte', 'erreur'].map((statut) => [statut, `${statut}-doux`]),
+  // Les dix couleurs de matière de l'application : le texte se lit sur son aplat comme sur la surface.
+  ...Array.from({ length: 10 }, (_, rang) => [[`matiere-${rang}-encre`, `matiere-${rang}-fond`], [`matiere-${rang}-encre`, 'surface']]).flat(),
 ]
 
 describe('Palettes : texte normal WCAG AA', () => {
-  for (const [palette] of PALETTES) for (const sombre of [false, true]) {
-    it(`${palette} ${sombre ? 'sombre' : 'clair'}`, () => {
+  for (const [palette] of PALETTES) for (const mode of ['clair', 'sombre', 'noir'] as const) {
+    it(`${palette} ${mode}`, () => {
       const valeurs: Record<string, string> = {}
       Object.assign(valeurs, jetons(blocs(palettes).find((b) => b[1]!.trim() === ':root')![2]!))
       Object.assign(valeurs, jetons(blocs(palettes).find((b) => b[1]!.includes(`data-palette=${palette}`))?.[2] ?? ''))
       for (const [, selecteur, corps] of blocs(css)) {
         const s = selecteur!.trim()
-        if (s === ':root' || (sombre && s === ":root[data-theme='sombre']")) Object.assign(valeurs, jetons(corps!))
+        if (s === ':root' || (mode !== 'clair' && s === `:root[data-theme='${mode}']`)) Object.assign(valeurs, jetons(corps!))
       }
       const lire = (nom: string): string => {
         const valeur = valeurs[nom]!

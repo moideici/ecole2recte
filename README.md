@@ -36,7 +36,7 @@ Elle est donc réglable sans redéployer, et le code 517 a son propre message.
 |---|---|
 | `packages/protocol/` | tout le savoir protocolaire : encodages, codes métier, session, client, appels élève, famille et enseignant. Zéro dépendance, tourne en Node comme dans un navigateur. |
 | `tools/probe/` | sondage du service sans compte : la question CORS, et rien d'autre. |
-| `apps/web/` | l'interface et le mandataire : douze pages élève et famille dont un accueil en widgets, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Bandeau, sections à gauche, emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué. |
+| `apps/web/` | l'interface et le mandataire : douze pages élève et famille dont un accueil en widgets, sept pages professeur, ordinateur et téléphone, et un mode démonstration. Tourne en Worker Cloudflare. Sections à gauche (barre basse sur téléphone), emploi du temps en grille, relevé de notes dépliable — les habitudes d'un logiciel de vie scolaire, parce qu'on cherche « Notes » là où on a toujours cliqué — avec l'apparence de l'application Android (mêmes thèmes de couleurs, cartes et navigation). |
 | `apps/sessions/` | le Durable Object qui garde les sessions vivantes entre deux requêtes sur Cloudflare — voir « Déploiement ». |
 | `tools/smoke/` | les allers-retours d'écriture sur un vrai compte, à lancer à la main. |
 | `tools/verifier/` | la vérification **en lecture seule** sur un vrai compte : la réponse de sécurité donnée d'avance, le renouvellement du jeton, la chaîne complète. À lancer à la main. |

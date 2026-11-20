@@ -2,6 +2,16 @@
 
 Toutes les évolutions notables de ce projet. Les versions suivent [SemVer](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Modifié
+- Apparence alignée sur l'application Android : jetons de couleur de ses cinq thèmes (Indigo par
+  défaut) en clair, sombre et nouveau noir pur (OLED), dix couleurs de matière attribuées comme
+  dans l'application, cartes pleines arrondies sans bordure ni ombre, en-têtes de page et de
+  section, puces, boutons, barre basse et barre latérale à pastille d'accent, carte « Prochain
+  cours » en aplat d'accent, connexion dans une carte, police du système.
+- Le journal des chargements de Réglages défile seul au lieu d'élargir la page sur téléphone.
+
 ## [0.1.0] : première version publique
 
 Instantané du dépôt au moment de son ouverture au public. Détail de l'historique ci-dessous, par mois.
