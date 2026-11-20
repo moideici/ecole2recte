@@ -343,6 +343,81 @@ export function requiredGrade(
   return { value, reachable: value >= 0 && value <= scale }
 }
 
+/** Une note imaginaire à ajouter à une matière. */
+export interface HypotheticalGrade {
+  subject: string
+  value: number
+  scale?: number
+  coefficient?: number
+}
+
+/** Un réglage sur une note réelle : un autre coefficient, ou « comme si elle n'existait pas ». */
+export interface GradeTweak {
+  coefficient?: number
+  ignored?: boolean
+}
+
+export interface ScenarioSubject {
+  subject: string
+  before: number | undefined
+  after: number | undefined
+  delta: number | undefined
+}
+
+export interface Scenario {
+  /** Seulement les matières touchées par le scénario. */
+  subjects: ScenarioSubject[]
+  generalBefore: number | undefined
+  generalAfter: number | undefined
+  generalDelta: number | undefined
+}
+
+/**
+ * Un scénario complet : plusieurs notes imaginaires dans plusieurs matières, des coefficients
+ * changés, des notes écartées. Une matière non touchée garde sa moyenne telle qu'affichée
+ * (celle du bulletin ou notre calcul) ; une matière touchée est recalculée sur ses notes, et
+ * la générale reprend les moyennes de matières avec leur coefficient.
+ */
+export function simulateScenario(
+  grades: Grade[],
+  periodCode: string,
+  subjects: SubjectVerdict[],
+  added: HypotheticalGrade[] = [],
+  tweaks: Record<string, GradeTweak> = {},
+): Scenario {
+  const result: ScenarioSubject[] = []
+  const replaced = subjects.map((entry) => {
+    const name = entry.average.subject
+    const real = gradesFor(grades, periodCode, name)
+    const adjusted = real
+      .filter((grade) => !tweaks[grade.id]?.ignored)
+      .map((grade) => {
+        const coefficient = tweaks[grade.id]?.coefficient
+        return coefficient !== undefined && coefficient > 0 ? { ...grade, coefficient } : grade
+      })
+    const mine = added.filter((grade) => grade.subject === name)
+    const touched = mine.length > 0 || real.some((grade) => tweaks[grade.id] !== undefined)
+    if (!touched) return entry
+    const after = weightedAverage([...adjusted, ...mine.map((grade) => hypotheticalGrade(periodCode, grade))])
+    const before = entry.verdict.value
+    result.push({
+      subject: name,
+      before,
+      after,
+      delta: before !== undefined && after !== undefined ? after - before : undefined,
+    })
+    return { average: entry.average, verdict: { ...entry.verdict, value: after } }
+  })
+  const generalBefore = averageOfSubjects(subjects)
+  const generalAfter = averageOfSubjects(replaced)
+  return {
+    subjects: result,
+    generalBefore,
+    generalAfter,
+    generalDelta: generalBefore !== undefined && generalAfter !== undefined ? generalAfter - generalBefore : undefined,
+  }
+}
+
 export function averageForSubject(averages: SubjectAverage[], periodCode: string, subject: string): SubjectAverage | undefined {
   return averages.find((entry) => entry.periodCode === periodCode && entry.subject === subject)
 }

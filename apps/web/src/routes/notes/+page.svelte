@@ -6,6 +6,7 @@
   import Vide from '$lib/components/Vide.svelte'
   import ErreurSection from '$lib/components/ErreurSection.svelte'
   import { longDate, shortDate, isNewGrade, averageLabel } from '@ecole2recte/protocol'
+  import Simulateur from '$lib/components/Simulateur.svelte'
   import { couleurMatiere } from '$lib/matiereCouleur.js'
   import type { PageData } from './$types'
 
@@ -28,7 +29,6 @@
     return Math.min(100, Math.max(0, ((valeur - min) / (max - min)) * 100))
   }
 
-  const tonalite = $derived(couleurMatiere(data.matiere))
 </script>
 
 <svelte:head><title>Notes — ecole2recte</title></svelte:head>
@@ -276,67 +276,7 @@
   <p>« Nouveau » apparaît le jour de saisie et les deux jours suivants. Sans date de saisie, la date du devoir sert de repli : une note ancienne saisie tardivement peut alors ne pas être signalée. Les écarts à la classe sont en points sur le barème du devoir. Les repères de classe fournis par ÉcoleDirecte sont officiels.</p>
 </details>
 
-<section class="panneau" style="margin-top:18px" aria-labelledby="t-simul">
-  <div class="tete-panneau"><h2 id="t-simul">Simulation</h2></div>
-  <div class="corps-panneau">
-    <p class="discret" style="margin-bottom:12px">
-      « Si je prends 14 au prochain devoir, ma moyenne devient… » — et l’inverse : quelle note
-      viser pour atteindre un objectif. Toujours dans une matière : on ne passe pas un devoir
-      dans toutes à la fois.
-    </p>
-    <form method="GET" class="formulaire">
-      {#if data.periode}<input type="hidden" name="periode" value={data.periode.code} />{/if}
-      <label class="pile" style="gap:4px;flex:1;min-width:170px">
-        <span class="minuscule">Matière</span>
-        <select class="champ" name="matiere">
-          {#each data.matieres as matiere (matiere.subject)}
-            <option value={matiere.subject} selected={matiere.subject === data.matiere}>{matiere.subject}</option>
-          {/each}
-        </select>
-      </label>
-      <label class="pile" style="gap:4px;width:130px">
-        <span class="minuscule">Note obtenue</span>
-        <input class="champ" name="note" type="number" min="0" max="20" step="0.25" value={data.valeur ?? ''} />
-      </label>
-      <label class="pile" style="gap:4px;width:130px">
-        <span class="minuscule">Objectif</span>
-        <input class="champ" name="objectif" type="number" min="0" max="20" step="0.25" value={data.objectif ?? ''} />
-      </label>
-      <button class="bouton primaire">Calculer</button>
-    </form>
-
-    {#if data.simulation}
-      <div class="resultat" style={`--fond-matiere:${tonalite.fond};--encre-matiere:${tonalite.encre}`} role="status">
-        <p>
-          <strong>{data.matiere}</strong> : {arrondi(data.simulation.before)} →
-          <strong class="nombre">{arrondi(data.simulation.after)}</strong>
-          {#if data.simulation.delta !== undefined}
-            <span class="discret nombre">
-              ({data.simulation.delta >= 0 ? '+' : ''}{data.simulation.delta.toFixed(2).replace('.', ',')})
-            </span>
-          {/if}
-        </p>
-        {#if data.generaleApres !== null && data.generaleAvant !== null}
-          <p class="discret">
-            Moyenne générale : {arrondi(data.generaleAvant)} → <strong class="nombre">{arrondi(data.generaleApres)}</strong>
-          </p>
-        {/if}
-      </div>
-    {/if}
-
-    {#if data.vise}
-      <p style="margin-top:10px" role="status">
-        {#if data.vise.reachable}
-          Il faut viser <strong class="nombre">{data.vise.value.toFixed(2).replace('.', ',')}</strong> au prochain
-          devoir de {data.matiere}.
-        {:else}
-          <!-- Répondre 27/20 serait juste mathématiquement et inutile pratiquement. -->
-          Cet objectif est hors d’atteinte avec une seule note.
-        {/if}
-      </p>
-    {/if}
-  </div>
-</section>
+<Simulateur matieres={data.matieres} notes={data.notes} periode={data.periode?.code ?? ''} />
 
 <style>
   .generale .chiffres { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
@@ -454,16 +394,4 @@
   .note-valeur { text-align: right; }
   .valeur { font-weight: 700; font-size: 1.25rem; }
   .competence { font-size: 0.82rem; color: var(--encre-douce); margin-top: 2px; }
-
-  /* ————————————————————————————— simulation */
-
-  .formulaire { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-  .resultat {
-    margin-top: 14px;
-    padding: 12px 14px;
-    border-radius: var(--rayon-petit);
-    background: var(--fond-matiere);
-    color: var(--encre-matiere);
-  }
-  .resultat .discret { color: color-mix(in srgb, var(--encre-matiere) 80%, transparent); }
 </style>
