@@ -88,6 +88,9 @@ sans compte réel », pas « éprouvé sur le terrain ».
       (identifiants + couple `cn`/`cv`) qui rouvre une session perdue sans mot de passe ni question ;
       garde-fous de reconnexion inchangés ; cookie de session en `SameSite=Lax` ; secret local généré
       en développement.
+- [x] **Cesser d'insister** : disjoncteur sur blocage, adresse refusée (HTTP 403) ou demande de patienter
+      (HTTP 429, `Retry-After`) ; pause sur question de sécurité ; déconnexion forcée sur identifiants
+      refusés ; réessais espacés limités aux pannes passagères. Aucun contournement de blocage.
 - [x] Verrouillage de l'application (code PBKDF2 + WebAuthn local), présentation de trois pages,
       journal des 30 derniers chargements, bloc « Cet appareil » dans Réglages.
 - [ ] Éprouver le coffre d'appareil sur un vrai compte (réouverture après perte de session, question

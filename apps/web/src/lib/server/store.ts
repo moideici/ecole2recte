@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomBytes } from 'node:crypto'
 import type { Account, SchoolSnapshot, SessionState, TrustedAnswer } from '@ecole2recte/protocol'
+import type { Pause } from './pause.js'
 
 /**
  * Le magasin de sessions.
@@ -49,6 +50,12 @@ export interface SessionRecord {
   remembered?: string
   /** Quand et combien de fois la session a été rouverte. Le garde-fou contre la rafale. */
   reauth?: { at: number; count: number }
+  /**
+   * Le disjoncteur : tant que cette heure n'est pas passée, aucun appel ne part vers
+   * ÉcoleDirecte pour rouvrir cette session ou ce coffre (blocage, demande de patienter, ou
+   * question de sécurité en attente d'une reconnexion à la main). Voir `pause.ts`.
+   */
+  pause?: Pause
   /**
    * L'identifiant du coffre d'appareil (voir `appareil.ts`) dont cette session est issue ou
    * qu'elle a ouvert. Il sert à le tenir au courant et à l'effacer avec elle.

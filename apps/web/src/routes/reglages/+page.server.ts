@@ -5,6 +5,7 @@ import { SECTION_MODULES } from '@ecole2recte/protocol'
 import { WRITE_FEATURE_LABELS, isWriteEnabled, writePolicy } from '$lib/server/write-policy.js'
 import { requireStudent } from '$lib/server/guard.js'
 import { etatCoffre, oublierAppareil } from '$lib/server/appareil.js'
+import { messagePause } from '$lib/server/pause.js'
 import { sessions } from '$lib/server/store.js'
 
 export const actions: Actions = {
@@ -26,7 +27,9 @@ export const load: PageServerLoad = async ({ locals }) => {
   const coffre = await etatCoffre(record)
 
   return {
-    coffre,
+    coffre: { present: coffre.present, derniere: coffre.derniere, expireLe: coffre.expireLe },
+    // Pourquoi la reconnexion automatique attend, dit comme sur la page de connexion.
+    pause: coffre.pause ? messagePause(coffre.pause) : null,
     journal: record.journal ?? [],
     modules: ALL_SECTIONS.map((section) => {
       const code = SECTION_MODULES[section]

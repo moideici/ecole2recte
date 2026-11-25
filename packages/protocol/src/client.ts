@@ -1,4 +1,4 @@
-import { type ApiErrorKind, type ApiResult, ApiCode, failure, kindForCode } from './codes.js'
+import { type ApiErrorKind, type ApiResult, ApiCode, failure, failureForHttpStatus, kindForCode } from './codes.js'
 import { type JsonValue, base64DecodeOrRaw, base64Encode, formBody } from './encoding.js'
 import { type Account } from './models.js'
 import { parseAccounts } from './parse/accounts.js'
@@ -347,10 +347,16 @@ export class EcoleDirecteClient {
     }
     absorb(this.session, response.headers)
 
+    // Un 429 dit « patiente » quel que soit le corps ; il passe avant toute lecture.
+    if (response.status === 429) return failureForHttpStatus(429, response.headers['retry-after']?.[0])!
+
     let parsed: unknown
     try {
       parsed = JSON.parse(response.body)
     } catch {
+      // Pas de JSON : c'est le statut HTTP qui parle (refus en amont, panne passagère).
+      const http = failureForHttpStatus(response.status, response.headers['retry-after']?.[0])
+      if (http) return http
       return failure(
         'protocol',
         "Le service a répondu autre chose que du JSON.",
@@ -464,11 +470,15 @@ export class EcoleDirecteClient {
     }
     absorb(this.session, response.headers)
 
+    if (response.status === 429) return failureForHttpStatus(429, response.headers['retry-after']?.[0])!
     let body: Record<string, unknown> | null = null
     try {
       body = asObject(JSON.parse(response.body))
     } catch {
-      // Corps vide ou illisible : le jeton est dans les en-têtes ou les cookies.
+      // Corps vide ou illisible : le jeton est dans les en-têtes ou les cookies — sauf si le
+      // statut HTTP dit que le service a refusé ou patiente, et alors c'est lui qu'on écoute.
+      const http = response.status >= 400 ? failureForHttpStatus(response.status, response.headers['retry-after']?.[0]) : undefined
+      if (http) return http
     }
     // Le jeton arrive en en-tête ou en cookie, et parfois dans le corps.
     const fromBody = typeof body?.['token'] === 'string' && body['token'] !== '' ? (body['token'] as string) : null

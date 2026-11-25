@@ -29,6 +29,10 @@
   </p>
 {/if}
 
+{#if data.pause && !form}
+  <p class="erreur" role="status" style="margin-top:18px">{data.pause}</p>
+{/if}
+
 {#if form && 'message' in form && form.message}
   <p class="erreur" role="alert" style="margin-top:18px">{form.message}</p>
 {/if}

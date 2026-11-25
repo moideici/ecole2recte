@@ -8,6 +8,7 @@ import { COOKIE_NAME } from './session.js'
 import { sessions, type SessionRecord } from './store.js'
 import { ajouterAuJournal, JOURNAL_MAX, pageSansValeur } from './journal.js'
 import { sessionSecret } from './secret.js'
+import { reessais } from './pause.js'
 
 /*
  * Ce qu'on éprouve ici : le jour où la session disparaît, l'appareil reconnu rouvre tout seul —
@@ -18,6 +19,8 @@ import { sessionSecret } from './secret.js'
 const service = vi.hoisted(() => ({
   appels: [] as Array<{ identifier: string; password: string; trusted: unknown }>,
   issue: { ok: true } as unknown,
+  /** Réponses successives, consommées avant `issue` (pour simuler une panne qui passe). */
+  suite: [] as unknown[],
 }))
 
 vi.mock('@ecole2recte/protocol', async (original) => {
@@ -31,7 +34,7 @@ vi.mock('@ecole2recte/protocol', async (original) => {
         service.appels.push({ identifier, password, trusted })
         // Les requêtes d'une même page partent ensemble : un appel instantané ne prouverait rien.
         await new Promise((suite) => setTimeout(suite, 15))
-        return service.issue
+        return service.suite.length > 0 ? service.suite.shift() : service.issue
       }
     },
   }
@@ -47,6 +50,7 @@ class Cookies {
 const url = new URL('https://ecole.test/')
 const comptes = parseAccounts(DEMO_STUDENT_LOGIN)
 const confiance = { cn: 'CN-DE-TEST', cv: 'CV-DE-TEST' }
+const attentes: number[] = []
 
 function jar(): Cookies & { get: (n: string) => string | undefined } {
   return new Cookies()
@@ -62,7 +66,11 @@ beforeEach(() => {
   env['SESSION_SECRET'] = 'une-clef-de-test-assez-longue'
   delete env['ED_REMEMBER']
   service.appels = []
+  service.suite = []
   service.issue = { ok: true, accounts: comptes }
+  attentes.length = 0
+  reessais.dormir = async (ms) => void attentes.push(ms)
+  reessais.alea = () => 0
 })
 
 describe('retenir l’appareil', () => {
@@ -157,12 +165,102 @@ describe('rouvrir une session perdue', () => {
     expect(service.appels).toHaveLength(1)
   })
 
-  it('une vérification demandée à la main (deux facteurs) vide aussi le coffre', async () => {
+  it('une question de sécurité met le coffre en pause, sans le vider ni rejouer', async () => {
     const cookies = jar()
     const { id } = await appareilRetenu(cookies)
     service.issue = { ok: false, kind: 'two-factor', message: 'question' }
     expect(await rouvrirDepuisCoffre(cookies as never, url)).toBeNull()
-    expect(await sessions.read(id)).toBeNull()
+    const coffre = await sessions.read(id)
+    expect(coffre?.coffre).toBe(true)
+    expect(coffre?.pause?.raison).toBe('question')
+    // Même le délai de garde écoulé : la question attend une personne, pas un délai.
+    delete coffre!.derniere
+    coffre!.reauth = { at: 0, count: 0 }
+    await sessions.write(id, coffre!)
+    expect(await rouvrirDepuisCoffre(cookies as never, url)).toBeNull()
+    expect(service.appels).toHaveLength(1)
+  })
+
+  it('une connexion à la main après la question lève la pause', async () => {
+    const cookies = jar()
+    const { id } = await appareilRetenu(cookies)
+    service.issue = { ok: false, kind: 'two-factor', message: 'question' }
+    await rouvrirDepuisCoffre(cookies as never, url)
+    expect((await sessions.read(id))?.pause?.raison).toBe('question')
+    await appareilRetenu(cookies)
+    expect((await sessions.read(id))?.pause).toBeUndefined()
+  })
+
+  it('une adresse refusée met le coffre en pause : aucun appel pendant la pause', async () => {
+    const cookies = jar()
+    const { id } = await appareilRetenu(cookies)
+    service.issue = { ok: false, kind: 'ip-blocked', message: 'refusé' }
+    expect(await rouvrirDepuisCoffre(cookies as never, url)).toBeNull()
+    expect(service.appels).toHaveLength(1)
+    const coffre = await sessions.read(id)
+    expect(coffre?.pause?.raison).toBe('blocage')
+    expect(coffre!.pause!.jusqua - Date.now()).toBeGreaterThan(25 * 60_000)
+
+    // Même le délai de garde écoulé : tant que la pause dure, rien ne part.
+    coffre!.reauth = { at: 0, count: 0 }
+    await sessions.write(id, coffre!)
+    for (let i = 0; i < 3; i++) expect(await rouvrirDepuisCoffre(cookies as never, url)).toBeNull()
+    expect(service.appels).toHaveLength(1)
+  })
+
+  it('la pause finie, on retente une fois', async () => {
+    const cookies = jar()
+    const { id } = await appareilRetenu(cookies)
+    service.issue = { ok: false, kind: 'ip-blocked', message: 'refusé' }
+    await rouvrirDepuisCoffre(cookies as never, url)
+    const coffre = (await sessions.read(id))!
+    coffre.pause = { jusqua: Date.now() - 1000, raison: 'blocage' }
+    coffre.reauth = { at: 0, count: 0 }
+    await sessions.write(id, coffre)
+    service.issue = { ok: true, accounts: comptes }
+    expect(await rouvrirDepuisCoffre(cookies as never, url)).not.toBeNull()
+    expect(service.appels).toHaveLength(2)
+    expect((await sessions.read(id))?.pause).toBeUndefined()
+  })
+
+  it('une demande de patienter respecte la durée du service', async () => {
+    const cookies = jar()
+    const { id } = await appareilRetenu(cookies)
+    service.issue = { ok: false, kind: 'rate-limited', message: 'patiente', retryAfterMs: 5 * 60_000 }
+    await rouvrirDepuisCoffre(cookies as never, url)
+    const pause = (await sessions.read(id))?.pause
+    expect(pause?.raison).toBe('attente')
+    expect(pause!.jusqua - Date.now()).toBeGreaterThan(4 * 60_000)
+    expect(pause!.jusqua - Date.now()).toBeLessThan(6 * 60_000)
+  })
+
+  it('une panne passagère est rejouée, espacée, puis réussit', async () => {
+    const cookies = jar()
+    await appareilRetenu(cookies)
+    service.suite = [{ ok: false, kind: 'network', message: 'coupure' }]
+    const ouverte = await rouvrirDepuisCoffre(cookies as never, url)
+    expect(ouverte).not.toBeNull()
+    expect(service.appels).toHaveLength(2)
+    expect(attentes).toEqual([800])
+  })
+
+  it('une panne qui dure s’arrête après trois essais, coffre intact', async () => {
+    const cookies = jar()
+    const { id } = await appareilRetenu(cookies)
+    service.issue = { ok: false, kind: 'network', message: 'coupure' }
+    expect(await rouvrirDepuisCoffre(cookies as never, url)).toBeNull()
+    expect(service.appels).toHaveLength(3)
+    expect(attentes).toEqual([800, 1600])
+    expect((await sessions.read(id))?.coffre).toBe(true)
+  })
+
+  it('des identifiants refusés ne sont jamais rejoués', async () => {
+    const cookies = jar()
+    await appareilRetenu(cookies)
+    service.issue = { ok: false, kind: 'invalid-credentials', message: 'refusé' }
+    await rouvrirDepuisCoffre(cookies as never, url)
+    expect(service.appels).toHaveLength(1)
+    expect(attentes).toEqual([])
   })
 
   it('une panne du service laisse le coffre intact : on réessaiera plus tard', async () => {
@@ -203,7 +301,7 @@ describe('rouvrir une session perdue', () => {
     const etat = await etatCoffre(ouverte!.record)
     expect(etat.present).toBe(true)
     expect(etat.derniere).toBeGreaterThan(0)
-    expect(await etatCoffre({ ...ouverte!.record, appareil: undefined })).toEqual({ present: false, derniere: null, expireLe: null })
+    expect(await etatCoffre({ ...ouverte!.record, appareil: undefined })).toEqual({ present: false, derniere: null, expireLe: null, pause: null })
   })
 })
 

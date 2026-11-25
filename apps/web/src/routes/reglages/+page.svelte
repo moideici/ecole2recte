@@ -92,7 +92,7 @@
   </p>
 </section>
 
-<CetAppareil coffre={data.coffre} journal={data.journal} />
+<CetAppareil coffre={data.coffre} journal={data.journal} pause={data.pause} />
 <ReglageVerrou />
 
 <section class="carte">

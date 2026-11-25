@@ -1,5 +1,6 @@
 import { env } from '$env/dynamic/private'
 import { EcoleDirecteClient, createSession, fetchEngine } from '@ecole2recte/protocol'
+import { avecReessais, pauseActive, pauseApres } from './pause.js'
 import { seal, unseal } from './seal.js'
 import { sessionSecret } from './secret.js'
 import { type SessionRecord, sessions } from './store.js'
@@ -136,6 +137,8 @@ function reconnecterUneFois(id: string, record: SessionRecord): Promise<boolean>
 async function reconnecter(id: string, record: SessionRecord): Promise<boolean> {
   const scelle = record.remembered
   if (!scelle) return false
+  // Le disjoncteur : blocage ou demande de patienter en cours, rien ne part vers le service.
+  if (pauseActive(record.pause)) return false
 
   const suivante = prochaineReauth(record.reauth)
   if (!suivante) return false
@@ -157,7 +160,8 @@ async function reconnecter(id: string, record: SessionRecord): Promise<boolean> 
 
   const client = clientDeReconnexion({ userAgent: record.protocol.userAgent, apiVersion: record.protocol.apiVersion })
 
-  const outcome = await client.login(identifiants.identifier, identifiants.password, record.trusted)
+  // Seule une panne passagère est rejouée ; tout refus s'arrête là.
+  const outcome = await avecReessais(() => client.login(identifiants.identifier, identifiants.password, record.trusted))
 
   if (!outcome.ok) {
     /*
@@ -167,11 +171,26 @@ async function reconnecter(id: string, record: SessionRecord): Promise<boolean> 
      * le même mot de passe faux est précisément ce qu'ÉcoleDirecte compte pour décider de
      * bloquer un compte. On oublie, et la personne se reconnecte à la main une fois.
      */
-    if (outcome.kind === 'invalid-credentials' || outcome.kind === 'two-factor') await oublier(id, record)
+    if (outcome.kind === 'invalid-credentials') {
+      await oublier(id, record)
+      // Déconnexion forcée : la session ne doit pas continuer comme si de rien n'était.
+      record.expired = true
+      await sessions.write(id, record)
+      return false
+    }
+    // Blocage, adresse refusée, demande de patienter, question de sécurité : on garde ce qu'on
+    // a et on met en pause. Rien ne repart avant l'heure dite.
+    const pause = pauseApres(outcome)
+    if (pause) {
+      record.pause = pause
+      await sessions.write(id, record)
+      await synchroniserCoffre(record)
+    }
     return false
   }
 
   // Le contrat : remplir **sur place** la session que le client tient déjà.
+  delete record.pause
   Object.assign(record.protocol, client.session)
   record.accounts = outcome.accounts
   await sessions.write(id, record)
@@ -189,9 +208,10 @@ async function oublier(id: string, record: SessionRecord): Promise<void> {
 }
 
 async function synchroniserCoffre(record: SessionRecord): Promise<void> {
-  if (!record.appareil || !record.reauth) return
+  if (!record.appareil) return
   const coffre = await sessions.read(record.appareil)
   if (!coffre) return
-  coffre.reauth = record.reauth
+  if (record.reauth) coffre.reauth = record.reauth
+  if (record.pause) coffre.pause = record.pause
   await sessions.write(record.appareil, coffre)
 }

@@ -9,7 +9,7 @@ function note(id: string, subject: string, value: number, coefficient = 1, scale
 
 function matiere(subject: string, coefficient: number, value: number | undefined): SubjectVerdict {
   const average: SubjectAverage = { periodCode: 'T1', subject, teacher: '', teachers: [], appreciation: '', parentSubject: '', coefficient }
-  return { average, verdict: { value, computed: true, origin: 'computed', behind: [] } as SubjectVerdict['verdict'] }
+  return { average, verdict: { value, computed: true, origin: 'computed', behind: [] } as unknown as SubjectVerdict['verdict'] }
 }
 
 const notes = [note('a', 'Maths', 10), note('b', 'Maths', 14), note('c', 'Anglais', 12)]

@@ -2,9 +2,11 @@
   import { enhance } from '$app/forms'
 
   type Journal = Array<{ at: number; ms: number; page: string; resultat: 'ok' | 'repli' | 'erreur' }>
-  let { coffre, journal }: {
+  let { coffre, journal, pause = null }: {
     coffre: { present: boolean; derniere: number | null; expireLe: number | null }
     journal: Journal
+    /** Pourquoi la reconnexion automatique attend, quand c'est le cas. */
+    pause?: string | null
   } = $props()
 
   const heure = (t: number) => new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
@@ -21,6 +23,9 @@
       passe et la réponse à la question de sécurité sont gardés chiffrés sur le serveur, jamais
       dans le navigateur.
     </p>
+    {#if pause}
+      <p class="erreur" role="status"><strong>Reconnexion automatique en pause.</strong> {pause}</p>
+    {/if}
     <ul class="liste">
       <li><span>Dernière réouverture automatique</span><span class="discret">{coffre.derniere ? heure(coffre.derniere) : 'aucune'}</span></li>
       {#if coffre.expireLe}<li><span>Oublié sans usage avant le</span><span class="discret">{jour(coffre.expireLe)}</span></li>{/if}

@@ -12,10 +12,11 @@ import {
 } from '@ecole2recte/protocol'
 import { env } from '$env/dynamic/private'
 import { DEMO_LOGIN, DEMO_STUDENT_LOGIN, demoEnabled } from '$lib/server/demo.js'
-import { retenirAppareil } from '$lib/server/appareil.js'
+import { oublierAppareil, retenirAppareil } from '$lib/server/appareil.js'
+import { avecReessais, lirePause, messagePause, pauseApres, poserPause } from '$lib/server/pause.js'
 import { reconnexionDisponible, retenirIdentifiants } from '$lib/server/reconnexion.js'
 import { seal, unseal } from '$lib/server/seal.js'
-import { setSessionCookie } from '$lib/server/session.js'
+import { clearSessionCookie, setSessionCookie } from '$lib/server/session.js'
 import { sessions } from '$lib/server/store.js'
 import { writePolicy } from '$lib/server/write-policy.js'
 
@@ -36,9 +37,10 @@ function newClient(): EcoleDirecteClient {
   return client
 }
 
-export const load: PageServerLoad = ({ locals, url }) => {
+export const load: PageServerLoad = ({ locals, url, cookies }) => {
   if (locals.session && locals.session.accounts.length > 0) redirect(303, '/')
-  return { demo: demoEnabled(), expiree: url.searchParams.has('expiree') }
+  const pause = lirePause(cookies)
+  return { demo: demoEnabled(), expiree: url.searchParams.has('expiree'), pause: pause ? messagePause(pause) : null }
 }
 
 /**
@@ -51,6 +53,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
  */
 export const actions: Actions = {
   connexion: async ({ request, cookies, url }) => {
+    // Le disjoncteur : tant que le service a dit d'attendre ou qu'il refuse cette adresse, on
+    // n'ajoute pas un appel. Insister est ce qui prolonge un blocage.
+    const enPause = lirePause(cookies)
+    if (enPause) return fail(429, { message: messagePause(enPause) })
+
     const form = await request.formData()
     const identifiant = String(form.get('identifiant') ?? '').trim()
     const motdepasse = String(form.get('motdepasse') ?? '')
@@ -85,7 +92,8 @@ export const actions: Actions = {
     const client = newClient()
     // Un couple de confiance déjà validé évite de reposer la question à chaque connexion.
     const confiance = unseal<TrustedAnswer>(cookies.get(CONFIANCE))
-    let outcome = await client.login(identifiant, motdepasse, confiance ?? undefined)
+    // Seule une panne passagère est rejouée (trois essais espacés) ; tout refus s'arrête là.
+    let outcome = await avecReessais(() => client.login(identifiant, motdepasse, confiance ?? undefined))
 
     // Un couple de confiance périmé fait annoncer un mot de passe invalide à un mot de passe
     // juste. On l'oublie et on retente une seule fois sans lui : au pire, ÉcoleDirecte repose
@@ -101,6 +109,18 @@ export const actions: Actions = {
     }
 
     if (outcome.kind !== 'two-factor') {
+      // Blocage, adresse refusée, demande de patienter : on pose le disjoncteur et on dit quand
+      // réessayer, au lieu de laisser retaper et réessayer en boucle.
+      const pause = pauseApres(outcome)
+      if (pause) {
+        poserPause(cookies, pause, secure(url))
+        return fail(429, { message: messagePause(pause) })
+      }
+      // Identifiants refusés : on oublie tout et on déconnecte, rien ne doit rester pour rejouer.
+      if (outcome.kind === 'invalid-credentials') {
+        await oublierAppareil(cookies)
+        clearSessionCookie(cookies)
+      }
       return fail(401, { message: outcome.message })
     }
 

@@ -6,6 +6,7 @@ import {
   reconnexionDisponible,
   type Identifiants,
 } from './reconnexion.js'
+import { avecReessais, pauseActive, pauseApres, type Pause } from './pause.js'
 import { unseal } from './seal.js'
 import { setSessionCookie } from './session.js'
 import { COFFRE_TTL_MS, sessions, type SessionRecord } from './store.js'
@@ -69,6 +70,8 @@ export async function retenirAppareil(
     if (coffre?.coffre) {
       coffre.remembered = remembered
       if (trusted) coffre.trusted = trusted
+      // Une connexion faite à la main lève la pause (la question de sécurité est résolue).
+      delete coffre.pause
       await sessions.write(existant, coffre)
       poserCookie(cookies, existant, secure)
       return existant
@@ -99,12 +102,13 @@ export async function oublierAppareil(cookies: Cookies): Promise<void> {
 /** Ce que Réglages montre : le coffre existe-t-il, et quand a-t-il servi pour la dernière fois ? */
 export async function etatCoffre(
   record: SessionRecord,
-): Promise<{ present: boolean; derniere: number | null; expireLe: number | null }> {
-  if (!record.appareil) return { present: false, derniere: null, expireLe: null }
+): Promise<{ present: boolean; derniere: number | null; expireLe: number | null; pause: Pause | null }> {
+  if (!record.appareil) return { present: false, derniere: null, expireLe: null, pause: null }
   const coffre = await sessions.read(record.appareil)
-  if (!coffre?.coffre) return { present: false, derniere: null, expireLe: null }
+  if (!coffre?.coffre) return { present: false, derniere: null, expireLe: null, pause: null }
   return {
     present: true,
+    pause: pauseActive(coffre.pause) ? coffre.pause : null,
     derniere: coffre.reauth?.at ?? null,
     expireLe: coffre.touchedAt + COFFRE_TTL_MS,
   }
@@ -152,6 +156,10 @@ async function rouvrir(
     return null
   }
 
+  // Le disjoncteur : blocage, demande de patienter, ou question de sécurité en attente.
+  // Rien ne part vers ÉcoleDirecte tant que la pause dure.
+  if (pauseActive(coffre.pause)) return null
+
   // Une requête parallèle, ou un autre onglet, vient peut-être déjà de rouvrir la session.
   if (coffre.derniere && Date.now() - coffre.derniere.at < REEMPLOI_MS) {
     const recente = await sessions.read(coffre.derniere.id)
@@ -178,15 +186,27 @@ async function rouvrir(
   await sessions.write(idCoffre, coffre)
 
   const client = clientDeReconnexion()
-  const issue = await client.login(identifiants.identifier, identifiants.password, coffre.trusted)
+  // Seule une panne passagère est rejouée (trois essais espacés) ; tout refus s'arrête là.
+  const issue = await avecReessais(() => client.login(identifiants.identifier, identifiants.password, coffre.trusted))
 
   if (!issue.ok) {
-    // Mot de passe refusé, ou couple de confiance périmé : rejouer le même mot de passe faux
-    // est ce qu'ÉcoleDirecte compte pour bloquer un compte. On oublie, la personne se
-    // reconnecte à la main une fois. Une panne réseau, elle, laisse le coffre intact.
-    if (issue.kind === 'invalid-credentials' || issue.kind === 'two-factor') await oublierAppareil(cookies)
+    // Mot de passe refusé : rejouer le même mot de passe faux est ce qu'ÉcoleDirecte compte
+    // pour bloquer un compte. On oublie tout, et la personne se reconnecte à la main.
+    if (issue.kind === 'invalid-credentials') {
+      await oublierAppareil(cookies)
+      return null
+    }
+    // Blocage, adresse refusée, demande de patienter, question de sécurité : le coffre est
+    // **gardé** et mis en pause. Il n'est pas faux, il n'est juste pas le moment.
+    const pause = pauseApres(issue)
+    if (pause) {
+      coffre.pause = pause
+      await sessions.write(idCoffre, coffre)
+    }
+    // Une panne réseau laisse le coffre intact, sans pause : le délai de garde suffit.
     return null
   }
+  delete coffre.pause
   if (issue.accounts.length === 0) return null
 
   const actif = compteInitial(issue.accounts)

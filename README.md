@@ -346,6 +346,36 @@ gardé et l'application redemande le mot de passe.
 Après modification de `apps/sessions` (délai maximal porté à 200 jours pour le coffre), ce worker
 doit être redéployé : `cd apps/sessions && npx wrangler deploy`.
 
+## Quand ÉcoleDirecte dit non : cesser d'insister
+
+Presque tout ce qui prolonge un blocage est un client qui réessaie. Chaque refus a donc sa
+réponse — et aucune n'est « recommencer tout de suite » :
+
+| Ce que dit le service | Ce que fait l'application |
+|---|---|
+| Identifiants refusés (505) | On oublie tout (coffre, identifiants scellés) et on **déconnecte**. Jamais rejoué. |
+| Question de sécurité (250) | **Pause** : rien n'est deviné ni rejoué. Les identifiants restent, la pause dure jusqu'à une connexion à la main. |
+| Compte bloqué (516/535), HTTP 403 sans JSON (adresse refusée) | **Disjoncteur** d'une demi-heure par défaut : aucun appel — ni connexion, ni réouverture silencieuse — avant l'heure dite. La page de connexion l'annonce. |
+| HTTP 429, ou 503 avec `Retry-After` | Disjoncteur de la durée demandée (au moins une minute, au plus six heures). |
+| Panne passagère (réseau, HTTP 500/502/503/504) | Seul cas rejoué : trois essais, attente qui double (0,8 s puis 1,6 s) avec un peu d'aléa. |
+| Version d'API périmée (517) | Message dédié, rien n'est rejoué. |
+
+Un refus en amont (pare-feu, limitation de débit) arrive en HTML ou vide, pas en JSON : il était
+auparavant classé « le protocole a changé », ce qui n'apprenait rien et laissait insister. Il est
+maintenant reconnu par son statut HTTP. L'état de la pause est visible dans Réglages, « Cet
+appareil ».
+
+**Ce que cela ne fait pas, volontairement : lever ou contourner un blocage.** C'est ÉcoleDirecte qui
+le lève, ou toi en autorisant ton adresse (le service envoie un e-mail pour cela). L'application
+n'a aucun moyen de le forcer et n'en cherche pas.
+
+**Le VPN.** Une adresse qui change entre deux connexions est la cause la plus probable d'un refus :
+le blocage vise l'adresse, et l'e-mail d'autorisation arrive après que le VPN l'a déjà changée. Aucun
+code ne règle cela proprement ; ce qui le règle, c'est une adresse **stable** pour ce site :
+exclure ecole2recte (ou le navigateur) du VPN (*split tunneling*), ou utiliser une adresse dédiée.
+Sur le site déployé, les appels vers ÉcoleDirecte partent de Cloudflare, pas de ton VPN : le VPN ne
+joue que lorsque l'application tourne chez toi.
+
 ## Verrouillage, présentation, journal
 
 - **Verrouillage de l'application** (Réglages) : un écran de code (4 à 6 chiffres, haché PBKDF2 avec

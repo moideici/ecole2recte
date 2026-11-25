@@ -158,12 +158,36 @@ describe('un mot de passe refusé', () => {
     expect(reconnecteur('s1', record)).toBeUndefined()
   })
 
-  it('s’oublie aussi si le service repose sa question', async () => {
-    // Personne n'est là pour y répondre : insister ne ferait qu'ajouter des connexions.
+  it('met en pause, sans rien oublier, si le service repose sa question', async () => {
+    // Personne n'est là pour y répondre : on ne devine rien et on n'insiste pas. Les
+    // identifiants restent (ils ne sont pas faux), la pause attend une reconnexion à la main.
     connexions.resultat = { ok: false, kind: 'two-factor', message: 'question' }
     const record = dossier()
     expect(await reconnecteur('s1', record)?.()).toBe(false)
+    expect(record.remembered).toBeDefined()
+    expect(record.pause?.raison).toBe('question')
+    // Rien ne repart tant que la pause dure, même le délai de garde passé.
+    record.reauth = { at: 0, count: 0 }
+    expect(await reconnecteur('s1', record)?.()).toBe(false)
+    expect(connexions.compte).toBe(1)
+  })
+
+  it('un compte bloqué ou une adresse refusée met en pause : plus un appel avant l’heure', async () => {
+    connexions.resultat = { ok: false, kind: 'ip-blocked', message: 'refusé' }
+    const record = dossier()
+    expect(await reconnecteur('s1', record)?.()).toBe(false)
+    expect(record.pause?.raison).toBe('blocage')
+    record.reauth = { at: 0, count: 0 }
+    for (let i = 0; i < 3; i++) expect(await reconnecteur('s1', record)?.()).toBe(false)
+    expect(connexions.compte).toBe(1)
+  })
+
+  it('des identifiants refusés ferment la session : déconnexion forcée', async () => {
+    connexions.resultat = { ok: false, kind: 'invalid-credentials', message: 'refusé' }
+    const record = dossier()
+    expect(await reconnecteur('s1', record)?.()).toBe(false)
     expect(record.remembered).toBeUndefined()
+    expect(record.expired).toBe(true)
   })
 
   it('garde ce qu’il faut si c’est le service qui est en panne', async () => {
