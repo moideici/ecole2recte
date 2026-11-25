@@ -1,4 +1,13 @@
 import { type ApiErrorKind, type ApiResult, ApiCode, failure, failureForHttpStatus, kindForCode } from './codes.js'
+
+/** Le refus d'accès d'une connexion : l'adresse, pas un droit. Il arrête les essais (voir `pause.ts`). */
+function refusDAcces(diagnostic?: string) {
+  return failure(
+    'ip-blocked',
+    "L'accès est refusé depuis cette adresse. Un VPN ou une adresse non reconnue en est souvent la cause.",
+    diagnostic,
+  )
+}
 import { type JsonValue, base64DecodeOrRaw, base64Encode, formBody } from './encoding.js'
 import { type Account } from './models.js'
 import { parseAccounts } from './parse/accounts.js'
@@ -368,13 +377,20 @@ export class EcoleDirecteClient {
 
     // Le champ `code` fait foi : un HTTP 200 ne dit rien de la réussite.
     const code = typeof body['code'] === 'number' ? (body['code'] as number) : response.status
+    // Un 403 JSON **sans** champ `code` ne vient pas d'ÉcoleDirecte : c'est un refus en amont
+    // (pare-feu, adresse jugée suspecte). Le lire comme « ce compte n'a pas accès à cette
+    // ressource » faisait chercher un droit manquant au lieu de cesser d'insister.
+    if (typeof body['code'] !== 'number' && response.status === 403) {
+      const http = failureForHttpStatus(403, response.headers['retry-after']?.[0])
+      if (http) return http
+    }
     const token = body['token']
     if (typeof token === 'string' && token !== '') this.session.token = token
     if (code === ApiCode.OK) return { ok: true, value: body['data'] ?? null }
 
     const { kind, message } = kindForCode(code)
     const detail = typeof body['message'] === 'string' ? (body['message'] as string) : undefined
-    return failure(kind, detail && detail !== '' ? detail : message, `code ${code}`)
+    return failure(kind, detail && detail !== '' ? detail : message, `code ${code}, HTTP ${response.status}`)
   }
 
   /**
@@ -492,7 +508,7 @@ export class EcoleDirecteClient {
     const code = typeof body?.['code'] === 'number' ? (body['code'] as number) : ApiCode.OK
     if (code !== ApiCode.OK) {
       const { kind, message } = kindForCode(code)
-      return failure(kind, message, `code ${code}`)
+      return kind === 'access-denied' ? refusDAcces(`code ${code}`) : failure(kind, message, `code ${code}`)
     }
     return failure('protocol', "Le service n'a pas fourni de jeton GTK.")
   }
@@ -540,7 +556,9 @@ export class EcoleDirecteClient {
     headers['X-GTK'] = gtk.value
 
     const result = await this.send({ method: 'POST', url, headers, body: formBody(body) })
-    if (!result.ok) return result
+    // À la connexion, « accès refusé » n'a qu'un sens : le service refuse cette adresse. Il n'y a
+    // pas de ressource dont ce compte manquerait avant même d'être connecté.
+    if (!result.ok) return result.kind === 'access-denied' ? refusDAcces(result.diagnostic) : result
     const accounts = parseAccounts(result.value)
     // Le titulaire de la connexion, pour pouvoir renouveler le jeton sans le mot de passe.
     // C'est le compte principal — pour une famille, la famille, et non l'un des enfants.

@@ -81,6 +81,30 @@ describe('dans le client', () => {
     expect(await client(engine).login('camille', 'x')).toMatchObject({ ok: false, kind: 'network' })
   })
 
+  it('un 403 JSON sans champ code (refus en amont) est une adresse refusée, pas « pas d’accès »', async () => {
+    const engine = new FakeEngine([GTK_EXCHANGE, { match: 'login.awp', status: 403, body: { error: 'forbidden' } }])
+    expect(await client(engine).login('camille', 'x')).toMatchObject({ ok: false, kind: 'ip-blocked' })
+  })
+
+  it('à la connexion, le code 403 du service est un refus d’adresse, pas une ressource manquante', async () => {
+    const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(403, {})])
+    const issue = await client(engine).login('camille', 'x')
+    expect(issue).toMatchObject({ ok: false, kind: 'ip-blocked' })
+    expect(issue.ok === false && issue.message).not.toMatch(/ressource/)
+  })
+
+  it('hors connexion, le code 403 reste « ce compte n’a pas accès à cette ressource »', async () => {
+    const engine = new FakeEngine([{ match: '/une-ressource', body: { code: 403, message: '' } }])
+    const issue = await client(engine).call('/une-ressource')
+    expect(issue).toMatchObject({ ok: false, kind: 'access-denied' })
+  })
+
+  it('le diagnostic garde le code et le statut HTTP, sans valeur personnelle', async () => {
+    const engine = new FakeEngine([{ match: '/une-ressource', body: { code: 403, message: '' } }])
+    const issue = await client(engine).call('/une-ressource')
+    expect(issue.ok === false && issue.diagnostic).toBe('code 403, HTTP 200')
+  })
+
   it('une réponse JSON normale reste lue comme avant', async () => {
     const engine = new FakeEngine([GTK_EXCHANGE, loginResponse(200, STUDENT_PAYLOAD)])
     expect((await client(engine).login('camille', 'x')).ok).toBe(true)

@@ -114,14 +114,14 @@ export const actions: Actions = {
       const pause = pauseApres(outcome)
       if (pause) {
         poserPause(cookies, pause, secure(url))
-        return fail(429, { message: messagePause(pause) })
+        return fail(429, { message: messagePause(pause), detail: outcome.diagnostic })
       }
       // Identifiants refusés : on oublie tout et on déconnecte, rien ne doit rester pour rejouer.
       if (outcome.kind === 'invalid-credentials') {
         await oublierAppareil(cookies)
         clearSessionCookie(cookies)
       }
-      return fail(401, { message: outcome.message })
+      return fail(401, { message: outcome.message, detail: outcome.diagnostic })
     }
 
     const question = await client.securityQuestion()

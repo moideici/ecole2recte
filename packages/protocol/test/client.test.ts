@@ -109,7 +109,9 @@ describe('connexion', () => {
 describe('codes métier', () => {
   const cases: Array<[number, string]> = [
     [250, 'two-factor'],
-    [403, 'access-denied'],
+    // À la connexion, un 403 est un refus d'adresse ; « pas d'accès à cette ressource » ne vaut
+    // que hors connexion (voir refus-http.test.ts).
+    [403, 'ip-blocked'],
     [505, 'invalid-credentials'],
     [516, 'account-blocked'],
     [517, 'stale-version'],

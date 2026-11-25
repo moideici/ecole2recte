@@ -35,6 +35,10 @@
 
 {#if form && 'message' in form && form.message}
   <p class="erreur" role="alert" style="margin-top:18px">{form.message}</p>
+  {#if 'detail' in form && form.detail}
+    <!-- Le code et le statut de la réponse, jamais une valeur : de quoi dire ce que répond le service. -->
+    <p class="discret" style="font-size:0.8rem">Détail technique : {form.detail}</p>
+  {/if}
 {/if}
 
 {#if question}
