@@ -2,7 +2,7 @@ import type { Handle } from '@sveltejs/kit'
 import { activeAccount, COOKIE_NAME, readSession, setSessionCookie } from '$lib/server/session.js'
 import { COOKIE_APPAREIL, rouvrirDepuisCoffre } from '$lib/server/appareil.js'
 import { ajouterAuJournal } from '$lib/server/journal.js'
-import { COOKIE_PAUSE, pauseActive } from '$lib/server/pause.js'
+import { COOKIE_PAUSE, pauseActive, valeurCookiePause } from '$lib/server/pause.js'
 import { enFile } from '$lib/server/file.js'
 import { selectStore, ttlFor, withSessionStore } from '$lib/server/store.js'
 import { createHash } from 'node:crypto'
@@ -88,7 +88,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         // savoir, sinon elle laisserait retaper et rappeler le service pendant la pause.
         const pause = session.record.pause
         if (pauseActive(pause) && pause.raison !== 'question') {
-          response.headers.append('Set-Cookie', event.cookies.serialize(COOKIE_PAUSE, `${pause.jusqua}.${pause.raison}`, {
+          response.headers.append('Set-Cookie', event.cookies.serialize(COOKIE_PAUSE, valeurCookiePause(pause), {
             path: '/', httpOnly: true, sameSite: 'lax', secure: event.url.protocol === 'https:',
             maxAge: Math.max(1, Math.ceil((pause.jusqua - Date.now()) / 1000)),
           }))

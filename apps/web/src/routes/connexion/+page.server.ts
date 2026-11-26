@@ -13,7 +13,7 @@ import {
 import { env } from '$env/dynamic/private'
 import { DEMO_LOGIN, DEMO_STUDENT_LOGIN, demoEnabled } from '$lib/server/demo.js'
 import { oublierAppareil, retenirAppareil } from '$lib/server/appareil.js'
-import { avecReessais, lirePause, messagePause, pauseApres, poserPause } from '$lib/server/pause.js'
+import { COOKIE_PAUSE, avecReessais, essaiManuelPermis, lirePause, messagePause, pauseApres, poserPause } from '$lib/server/pause.js'
 import { reconnexionDisponible, retenirIdentifiants } from '$lib/server/reconnexion.js'
 import { seal, unseal } from '$lib/server/seal.js'
 import { clearSessionCookie, setSessionCookie } from '$lib/server/session.js'
@@ -53,10 +53,14 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
  */
 export const actions: Actions = {
   connexion: async ({ request, cookies, url }) => {
-    // Le disjoncteur : tant que le service a dit d'attendre ou qu'il refuse cette adresse, on
-    // n'ajoute pas un appel. Insister est ce qui prolonge un blocage.
+    // Le disjoncteur : on n'ajoute pas d'appel quand le service a dit d'attendre, ni dans la
+    // minute qui suit un refus d'adresse. Passé cette minute, la personne peut retenter : elle
+    // seule sait si elle a coupé son VPN. Un nouveau refus repose la pause.
     const enPause = lirePause(cookies)
-    if (enPause) return fail(429, { message: messagePause(enPause) })
+    if (enPause) {
+      if (!essaiManuelPermis(enPause)) return fail(429, { message: messagePause(enPause) })
+      cookies.delete(COOKIE_PAUSE, { path: '/' })
+    }
 
     const form = await request.formData()
     const identifiant = String(form.get('identifiant') ?? '').trim()

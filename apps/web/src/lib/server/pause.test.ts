@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ATTENTE_PAR_DEFAUT_MS, BLOCAGE_PAR_DEFAUT_MS, QUESTION_MS, avecReessais, lirePause, messagePause, pauseActive,
-  pauseApres, poserPause, reessais,
+  pauseApres, poserPause, reessais, ESSAI_MANUEL_MS, essaiManuelPermis,
 } from './pause.js'
 
 const echec = (kind: string, extra: object = {}) => ({ ok: false as const, kind: kind as never, message: 'm', ...extra })
@@ -9,19 +9,19 @@ const maintenant = Date.parse('2026-11-25T10:00:00Z')
 
 describe('la pause qui suit un refus', () => {
   it('demande de patienter : la durée du service, au moins une minute', () => {
-    expect(pauseApres(echec('rate-limited', { retryAfterMs: 120_000 }), maintenant)).toEqual({ jusqua: maintenant + 120_000, raison: 'attente' })
+    expect(pauseApres(echec('rate-limited', { retryAfterMs: 120_000 }), maintenant)).toEqual({ jusqua: maintenant + 120_000, raison: 'attente', depuis: maintenant })
     expect(pauseApres(echec('rate-limited'), maintenant)?.jusqua).toBe(maintenant + ATTENTE_PAR_DEFAUT_MS)
     expect(pauseApres(echec('rate-limited', { retryAfterMs: 1000 }), maintenant)?.jusqua).toBe(maintenant + 60_000)
   })
 
   it('adresse refusée ou compte bloqué : une demi-heure par défaut', () => {
     for (const kind of ['ip-blocked', 'account-blocked']) {
-      expect(pauseApres(echec(kind), maintenant)).toEqual({ jusqua: maintenant + BLOCAGE_PAR_DEFAUT_MS, raison: 'blocage' })
+      expect(pauseApres(echec(kind), maintenant)).toEqual({ jusqua: maintenant + BLOCAGE_PAR_DEFAUT_MS, raison: 'blocage', depuis: maintenant })
     }
   })
 
   it('question de sécurité : une pause qui attend une personne, pas un délai', () => {
-    expect(pauseApres(echec('two-factor'), maintenant)).toEqual({ jusqua: maintenant + QUESTION_MS, raison: 'question' })
+    expect(pauseApres(echec('two-factor'), maintenant)).toEqual({ jusqua: maintenant + QUESTION_MS, raison: 'question', depuis: maintenant })
   })
 
   it('pas de pause pour le reste : identifiants refusés, panne passagère, version périmée', () => {
@@ -35,6 +35,38 @@ describe('la pause qui suit un refus', () => {
     expect(pauseActive(pause, maintenant)).toBe(true)
     expect(pauseActive(pause, maintenant + 1000)).toBe(false)
     expect(pauseActive(undefined)).toBe(false)
+  })
+})
+
+describe('l’essai à la main', () => {
+  const blocage = { jusqua: maintenant + BLOCAGE_PAR_DEFAUT_MS, raison: 'blocage' as const, depuis: maintenant }
+
+  it('après un refus d’adresse : refusé la première minute, permis ensuite (VPN coupé)', () => {
+    expect(essaiManuelPermis(blocage, maintenant)).toBe(false)
+    expect(essaiManuelPermis(blocage, maintenant + ESSAI_MANUEL_MS - 1)).toBe(false)
+    expect(essaiManuelPermis(blocage, maintenant + ESSAI_MANUEL_MS)).toBe(true)
+  })
+
+  it('quand le service demande de patienter, son délai est respecté jusqu’au bout', () => {
+    expect(essaiManuelPermis({ ...blocage, raison: 'attente' }, maintenant + 25 * 60_000)).toBe(false)
+  })
+
+  it('la question de sécurité se résout justement par une connexion à la main', () => {
+    expect(essaiManuelPermis({ ...blocage, raison: 'question' }, maintenant)).toBe(true)
+  })
+
+  it('un ancien cookie, sans heure de refus, ne retient personne', () => {
+    const jar = { get: () => `${maintenant + 60_000}.blocage` }
+    const lue = lirePause(jar, maintenant)
+    expect(lue).toEqual({ jusqua: maintenant + 60_000, raison: 'blocage' })
+    expect(essaiManuelPermis(lue!, maintenant)).toBe(true)
+  })
+
+  it('le cookie garde l’heure du refus à l’aller-retour', () => {
+    const valeurs = new Map<string, string>()
+    const jar = { get: (n: string) => valeurs.get(n), set: (n: string, v: string) => void valeurs.set(n, v) }
+    poserPause(jar as never, blocage, true, maintenant)
+    expect(lirePause(jar, maintenant)).toEqual(blocage)
   })
 })
 

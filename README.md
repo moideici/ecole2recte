@@ -355,7 +355,7 @@ réponse — et aucune n'est « recommencer tout de suite » :
 |---|---|
 | Identifiants refusés (505) | On oublie tout (coffre, identifiants scellés) et on **déconnecte**. Jamais rejoué. |
 | Question de sécurité (250) | **Pause** : rien n'est deviné ni rejoué. Les identifiants restent, la pause dure jusqu'à une connexion à la main. |
-| Compte bloqué (516/535), HTTP 403 sans JSON (adresse refusée) | **Disjoncteur** d'une demi-heure par défaut : aucun appel — ni connexion, ni réouverture silencieuse — avant l'heure dite. La page de connexion l'annonce. |
+| Compte bloqué (516/535), HTTP 403 sans JSON (adresse refusée) | **Disjoncteur** d'une demi-heure par défaut : aucun appel — ni connexion, ni réouverture silencieuse — avant l'heure dite. La page de connexion l'annonce. Après un refus d'adresse, un essai **à la main** redevient possible au bout d'une minute (VPN coupé, réseau changé) ; la reconnexion automatique reste en pause. |
 | HTTP 429, ou 503 avec `Retry-After` | Disjoncteur de la durée demandée (au moins une minute, au plus six heures). |
 | Panne passagère (réseau, HTTP 500/502/503/504) | Seul cas rejoué : trois essais, attente qui double (0,8 s puis 1,6 s) avec un peu d'aléa. |
 | Version d'API périmée (517) | Message dédié, rien n'est rejoué. |
